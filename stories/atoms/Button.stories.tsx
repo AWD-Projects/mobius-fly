@@ -14,7 +14,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost", "link"],
+      options: ["primary", "secondary", "ghost", "link", "outline"],
     },
     size: {
       control: "select",
@@ -43,6 +43,14 @@ export const Primary: Story = {
   },
 };
 
+export const PrimaryDisabled: Story = {
+  args: {
+    children: "Reservar vuelo",
+    variant: "primary",
+    disabled: true,
+  },
+};
+
 export const Secondary: Story = {
   args: {
     children: "Ver detalles",
@@ -61,6 +69,13 @@ export const Link: Story = {
   args: {
     children: "Saber mas",
     variant: "link",
+  },
+};
+
+export const Outline: Story = {
+  args: {
+    children: "Editar",
+    variant: "outline",
   },
 };
 
@@ -103,6 +118,11 @@ export const WithLeadingAndTrailingIcons: Story = {
         Fantasma
         <ArrowRight size={18} />
       </Button>
+      <Button variant="outline">
+        <Plane size={18} />
+        Outline
+        <ArrowRight size={18} />
+      </Button>
       <Button variant="link">
         <Plane size={18} />
         Enlace
@@ -132,6 +152,7 @@ export const AllVariants: Story = {
       <Button variant="primary">Boton primario</Button>
       <Button variant="secondary">Boton secundario</Button>
       <Button variant="ghost">Boton fantasma</Button>
+      <Button variant="outline">Boton outline</Button>
       <Button variant="link">Boton enlace</Button>
     </div>
   ),
@@ -143,6 +164,25 @@ export const AllSizes: Story = {
       <Button size="sm">Pequeno</Button>
       <Button size="md">Mediano</Button>
       <Button size="lg">Grande</Button>
+    </div>
+  ),
+};
+
+export const ButtonStates: Story = {
+  render: () => (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-4">
+        <span className="w-24 text-sm text-muted">Default:</span>
+        <Button variant="primary">Reservar vuelo</Button>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="w-24 text-sm text-muted">Disabled:</span>
+        <Button variant="primary" disabled>Reservar vuelo</Button>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="w-24 text-sm text-muted">Loading:</span>
+        <Button variant="primary" isLoading>Procesando...</Button>
+      </div>
     </div>
   ),
 };

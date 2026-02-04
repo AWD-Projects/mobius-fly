@@ -13,14 +13,23 @@ const meta = {
   argTypes: {
     status: {
       control: "select",
-      options: ["success", "warning", "error", "info"],
+      options: [
+        "active",
+        "pending",
+        "scheduled",
+        "in-review",
+        "approved",
+        "rejected",
+        "completed",
+        "on-time",
+        "success",
+        "warning",
+        "error",
+        "info",
+      ],
     },
-    showIcon: {
+    showDot: {
       control: "boolean",
-    },
-    iconPosition: {
-      control: "radio",
-      options: ["start", "end"],
     },
   },
 } satisfies Meta<typeof StatusBadge>;
@@ -28,79 +37,173 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Success: Story = {
+export const Active: Story = {
   args: {
-    status: "success",
-    children: "Vuelo confirmado",
+    status: "active",
+    children: "Activo",
   },
 };
 
-export const Warning: Story = {
+export const Pending: Story = {
   args: {
-    status: "warning",
-    children: "Pendiente de aprobacion",
+    status: "pending",
+    children: "Pendiente",
   },
 };
 
-export const Error: Story = {
+export const Scheduled: Story = {
   args: {
-    status: "error",
-    children: "Reserva cancelada",
+    status: "scheduled",
+    children: "Programado",
   },
 };
 
-export const Info: Story = {
+export const InReview: Story = {
   args: {
-    status: "info",
-    children: "En progreso",
+    status: "in-review",
+    children: "En revisión",
   },
 };
 
-export const WithoutIcon: Story = {
+export const Approved: Story = {
   args: {
-    status: "success",
-    children: "Confirmado",
-    showIcon: false,
+    status: "approved",
+    children: "Aprobado",
+  },
+};
+
+export const Rejected: Story = {
+  args: {
+    status: "rejected",
+    children: "Rechazado",
+  },
+};
+
+export const Completed: Story = {
+  args: {
+    status: "completed",
+    children: "Finalizado",
+  },
+};
+
+export const OnTime: Story = {
+  args: {
+    status: "on-time",
+    children: "A tiempo",
+  },
+};
+
+export const WithoutDot: Story = {
+  args: {
+    status: "active",
+    children: "Activo",
+    showDot: false,
   },
 };
 
 export const AllStatuses: Story = {
   args: {
-    status: "success",
-    children: "Vuelo confirmado",
+    status: "active",
+    children: "Activo",
   },
   render: () => (
     <div className="flex flex-wrap gap-3">
-      <StatusBadge status="success">Vuelo confirmado</StatusBadge>
-      <StatusBadge status="warning">Retraso por clima</StatusBadge>
-      <StatusBadge status="error">Cancelado</StatusBadge>
-      <StatusBadge status="info">Check-in abierto</StatusBadge>
+      <StatusBadge status="active">Activo</StatusBadge>
+      <StatusBadge status="pending">Pendiente</StatusBadge>
+      <StatusBadge status="scheduled">Programado</StatusBadge>
+      <StatusBadge status="in-review">En revisión</StatusBadge>
+      <StatusBadge status="approved">Aprobado</StatusBadge>
+      <StatusBadge status="rejected">Rechazado</StatusBadge>
+      <StatusBadge status="completed">Finalizado</StatusBadge>
+      <StatusBadge status="on-time">A tiempo</StatusBadge>
     </div>
   ),
 };
 
-export const BookingStatuses: Story = {
+export const FlightStatuses: Story = {
   args: {
-    status: "success",
-    children: "Listo para volar",
+    status: "active",
+    children: "En vuelo",
   },
   render: () => (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <span className="w-32">Confirmado:</span>
-        <StatusBadge status="success">Listo para volar</StatusBadge>
+        <span className="w-32 text-sm">En vuelo:</span>
+        <StatusBadge status="active">En vuelo</StatusBadge>
       </div>
       <div className="flex items-center gap-2">
-        <span className="w-32">Pendiente:</span>
-        <StatusBadge status="warning">Esperando pago</StatusBadge>
+        <span className="w-32 text-sm">Programado:</span>
+        <StatusBadge status="scheduled">Programado</StatusBadge>
       </div>
       <div className="flex items-center gap-2">
-        <span className="w-32">Cancelado:</span>
-        <StatusBadge status="error">Reserva cancelada</StatusBadge>
+        <span className="w-32 text-sm">Pendiente:</span>
+        <StatusBadge status="pending">Esperando tripulación</StatusBadge>
       </div>
       <div className="flex items-center gap-2">
-        <span className="w-32">En ruta:</span>
-        <StatusBadge status="info">En camino</StatusBadge>
+        <span className="w-32 text-sm">A tiempo:</span>
+        <StatusBadge status="on-time">A tiempo</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Completado:</span>
+        <StatusBadge status="completed">Finalizado</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Cancelado:</span>
+        <StatusBadge status="rejected">Cancelado</StatusBadge>
+      </div>
+    </div>
+  ),
+};
+
+export const AircraftStatuses: Story = {
+  args: {
+    status: "active",
+    children: "Operativo",
+  },
+  render: () => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Operativo:</span>
+        <StatusBadge status="active">Operativo</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Mantenimiento:</span>
+        <StatusBadge status="in-review">En mantenimiento</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Aprobado:</span>
+        <StatusBadge status="approved">Certificado</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Fuera de servicio:</span>
+        <StatusBadge status="rejected">Fuera de servicio</StatusBadge>
+      </div>
+    </div>
+  ),
+};
+
+export const CrewStatuses: Story = {
+  args: {
+    status: "active",
+    children: "Disponible",
+  },
+  render: () => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Disponible:</span>
+        <StatusBadge status="active">Activo</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Asignado:</span>
+        <StatusBadge status="scheduled">Asignado</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Descanso:</span>
+        <StatusBadge status="pending">En descanso</StatusBadge>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-32 text-sm">Entrenamiento:</span>
+        <StatusBadge status="in-review">En entrenamiento</StatusBadge>
       </div>
     </div>
   ),
