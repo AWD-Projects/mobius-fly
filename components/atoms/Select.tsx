@@ -13,7 +13,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <div className="relative">
         <select
           className={cn(
-            "flex h-10 w-full appearance-none rounded-sm border border-border bg-surface px-3 pr-10 py-2 text-body text-text transition-all",
+            "flex h-10 w-full appearance-none rounded-lg border border-border bg-surface px-3 pr-10 py-2 text-body text-text transition-all",
             "focus-visible:outline-none focus-visible:border-text focus-visible:border-2",
             "disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-neutral/40",
             error && "border-error focus-visible:border-error",
