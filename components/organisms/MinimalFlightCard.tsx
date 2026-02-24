@@ -59,7 +59,7 @@ export const MinimalFlightCard: React.FC<MinimalFlightCardProps> = ({
         </div>
 
         {/* Arrow Icon */}
-        <ArrowRight className="w-5 h-5 text-[#D0D0D0] flex-shrink-0" strokeWidth={2} />
+        <ArrowRight className="w-5 h-5 text-[#D0D0D0] flex-shrink-0" strokeWidth={1} />
 
         {/* Destination */}
         <div className="flex flex-col gap-1 flex-1 items-end">

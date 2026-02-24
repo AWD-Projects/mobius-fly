@@ -75,7 +75,7 @@ export const PricePassengerSelectorCard: React.FC<PricePassengerSelectorCardProp
             disabled={adults === 0}
             className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Minus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={2} />
+            <Minus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
           </button>
           <span className="text-[#0A0A0A] text-sm font-semibold">{adults}</span>
           <button
@@ -83,7 +83,7 @@ export const PricePassengerSelectorCard: React.FC<PricePassengerSelectorCardProp
             disabled={totalPassengers >= maxPassengers}
             className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={2} />
+            <Plus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
           </button>
         </div>
       </div>
@@ -97,7 +97,7 @@ export const PricePassengerSelectorCard: React.FC<PricePassengerSelectorCardProp
             disabled={minors === 0}
             className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Minus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={2} />
+            <Minus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
           </button>
           <span className="text-[#0A0A0A] text-sm font-semibold">{minors}</span>
           <button
@@ -105,7 +105,7 @@ export const PricePassengerSelectorCard: React.FC<PricePassengerSelectorCardProp
             disabled={totalPassengers >= maxPassengers}
             className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={2} />
+            <Plus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
           </button>
         </div>
       </div>

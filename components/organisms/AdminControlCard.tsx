@@ -119,7 +119,7 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
           onClick={onDownloadManifest}
           className="flex items-center justify-center gap-1.5 pt-3"
         >
-          <Download className="w-3.5 h-3.5 text-[#666666]" strokeWidth={2} />
+          <Download className="w-3.5 h-3.5 text-[#666666]" strokeWidth={1} />
           <span className="text-[#666666] text-xs font-medium">
             Descargar manifiesto PDF
           </span>

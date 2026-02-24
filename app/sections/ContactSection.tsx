@@ -239,7 +239,7 @@ export const ContactSection = React.memo<ContactSectionProps>(({
                     backgroundColor: "#C4A77D20",
                   }}
                 >
-                  <Check size={32} className="sm:w-10 sm:h-10" strokeWidth={2} style={{ color: "#C4A77D" }} />
+                  <Check size={32} className="sm:w-10 sm:h-10" strokeWidth={1} style={{ color: "#C4A77D" }} />
                 </div>
 
                 <div className="flex flex-col items-center gap-3 sm:gap-4 text-center max-w-md px-4">

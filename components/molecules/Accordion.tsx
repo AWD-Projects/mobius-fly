@@ -53,7 +53,7 @@ const Accordion = React.forwardRef<HTMLDivElement, AccordionProps>(
                 </span>
                 <ChevronDown
                   size={20}
-                  strokeWidth={2}
+                  strokeWidth={1}
                   style={{
                     color: "#39424E",
                     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",

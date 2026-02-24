@@ -37,7 +37,7 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
     <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-7 flex flex-col gap-5">
       {/* Flight Type Row */}
       <div className="flex items-center gap-3 w-full">
-        <Repeat className="w-4 h-4 text-[#999999]" strokeWidth={2} />
+        <Repeat className="w-4 h-4 text-[#999999]" strokeWidth={1} />
         <div className="flex items-center gap-2">
           <span className="text-[#666666] text-[13px] font-normal">
             Tipo de vuelo
@@ -57,7 +57,7 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
       <div className="flex items-start gap-8">
         {/* Origin Block */}
         <div className="flex gap-3.5 flex-1">
-          <CircleDot className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={2} />
+          <CircleDot className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
             <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
               Origen
@@ -73,7 +73,7 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
 
         {/* Destination Block */}
         <div className="flex gap-3.5 flex-1">
-          <MapPin className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={2} />
+          <MapPin className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
             <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
               Destino
@@ -95,7 +95,7 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
       <div className="flex items-start gap-8">
         {/* FBO Block */}
         <div className="flex gap-3.5 flex-1">
-          <Building2 className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={2} />
+          <Building2 className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
             <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
               FBO de salida
@@ -111,7 +111,7 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
 
         {/* Schedule Block */}
         <div className="flex gap-3.5 flex-1">
-          <Clock3 className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={2} />
+          <Clock3 className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
             <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
               Horario

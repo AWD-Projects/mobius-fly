@@ -88,10 +88,10 @@ export const CrewListCard: React.FC<CrewListCardProps> = ({
       {/* Actions */}
       <div className="flex items-center justify-between gap-2">
         <button onClick={onView} className="p-0">
-          <Eye className="w-[18px] h-[18px] text-[#1976D2]" strokeWidth={2} />
+          <Eye className="w-[18px] h-[18px] text-[#1976D2]" strokeWidth={1} />
         </button>
         <button onClick={onEdit} className="p-0">
-          <Edit2 className="w-[18px] h-[18px] text-[#666666]" strokeWidth={2} />
+          <Edit2 className="w-[18px] h-[18px] text-[#666666]" strokeWidth={1} />
         </button>
       </div>
     </div>

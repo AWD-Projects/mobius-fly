@@ -20,7 +20,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         )}
         {...props}
       >
-        <Icon className="h-12 w-12 text-border" strokeWidth={1.5} />
+        <Icon className="h-12 w-12 text-border" strokeWidth={1} />
         <div className="flex flex-col items-center gap-2 text-center">
           <h3 className="text-base font-semibold text-text">{title}</h3>
           {description && (

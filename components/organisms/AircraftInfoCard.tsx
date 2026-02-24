@@ -51,7 +51,7 @@ export const AircraftInfoCard: React.FC<AircraftInfoCardProps> = ({
     <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-7 flex items-center gap-7">
       {/* Icon Box */}
       <div className="w-20 h-20 rounded-xl bg-[#FAFAFA] flex items-center justify-center flex-shrink-0">
-        <Plane className="w-8 h-8 text-[#CCCCCC]" strokeWidth={1.5} />
+        <Plane className="w-8 h-8 text-[#CCCCCC]" strokeWidth={1} />
       </div>
 
       {/* Aircraft Info */}

@@ -125,7 +125,7 @@ const ComparisonTable = React.forwardRef<HTMLDivElement, ComparisonTableProps>(
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  <Check size={16} strokeWidth={2} />
+                  <Check size={16} strokeWidth={1} />
                   {row.mobius}
                 </div>
                 <div

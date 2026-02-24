@@ -62,7 +62,7 @@ export const PassengerNavigationCard: React.FC<PassengerNavigationCardProps> = (
                 {passenger.label}
               </span>
               {passenger.isCompleted && (
-                <Check className="w-4 h-4 text-[#2E7D32]" strokeWidth={2} />
+                <Check className="w-4 h-4 text-[#2E7D32]" strokeWidth={1} />
               )}
             </button>
           ))}

@@ -113,7 +113,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
             className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: iconBackgroundColor }}
           >
-            <Icon className="w-[18px] h-[18px] text-white" strokeWidth={2} />
+            <Icon className="w-[18px] h-[18px] text-white" strokeWidth={1} />
           </div>
         )}
 

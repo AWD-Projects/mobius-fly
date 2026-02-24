@@ -71,7 +71,7 @@ export const AircraftGalleryCard: React.FC<AircraftGalleryCardProps> = ({
           onClick={onViewMore}
           className="w-full h-10 border border-[#E5E5E5] rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
         >
-          <ChevronDown className="w-4 h-4 text-[#666666]" strokeWidth={2} />
+          <ChevronDown className="w-4 h-4 text-[#666666]" strokeWidth={1} />
           <span className="text-[#666666] text-[13px] font-medium">
             {buttonText || defaultButtonText}
           </span>

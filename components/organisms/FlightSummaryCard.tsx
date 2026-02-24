@@ -53,7 +53,7 @@ export const FlightSummaryCard: React.FC<FlightSummaryCardProps> = ({
       <div className="flex flex-col gap-3 w-full">
         <div className="flex items-center justify-center gap-2">
           <span className="text-[#0A0A0A] text-base font-bold">{originCode}</span>
-          <ArrowRight className="w-4 h-4 text-[#666666]" strokeWidth={2} />
+          <ArrowRight className="w-4 h-4 text-[#666666]" strokeWidth={1} />
           <span className="text-[#0A0A0A] text-base font-bold">{destinationCode}</span>
         </div>
         <div className="text-[#666666] text-xs font-normal text-center">

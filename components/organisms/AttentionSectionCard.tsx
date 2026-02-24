@@ -27,7 +27,7 @@ export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
       {/* Header */}
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-[#FFF8E1] flex items-center justify-center">
-          <TriangleAlert className="w-4 h-4 text-[#F57F17]" strokeWidth={2} />
+          <TriangleAlert className="w-4 h-4 text-[#F57F17]" strokeWidth={1} />
         </div>
         <h3 className="text-[#0A0A0A] text-[15px] font-semibold">{title}</h3>
       </div>
@@ -47,7 +47,7 @@ export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
               <ItemIcon
                 className="w-[18px] h-[18px] flex-shrink-0"
                 style={{ color: iconColor }}
-                strokeWidth={2}
+                strokeWidth={1}
               />
               <div className="flex flex-col gap-0.5 flex-1 text-left min-w-0">
                 <span className="text-[#0A0A0A] text-[13px] font-medium leading-tight">
@@ -57,7 +57,7 @@ export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
                   {item.subtitle}
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#CCCCCC] flex-shrink-0" strokeWidth={2} />
+              <ChevronRight className="w-4 h-4 text-[#CCCCCC] flex-shrink-0" strokeWidth={1} />
             </button>
           );
         })}

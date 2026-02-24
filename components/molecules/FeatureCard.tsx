@@ -19,38 +19,36 @@ const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
           className
         )}
         style={{
-          backgroundColor: "#C4A77D",
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #C4A77D",
           minHeight: "240px",
         }}
       >
         {/* Icon */}
         <div className="flex-shrink-0">
           <Icon
-            size={32}
+            size={28}
             strokeWidth={1}
-            style={{ color: "#F6F6F4" }}
+            style={{ color: "#C4A77D" }}
           />
         </div>
 
         {/* Content */}
         <div className="flex flex-col gap-2">
           <h3
+            className="text-base sm:text-lg font-semibold leading-tight"
             style={{
-              color: "#F6F6F4",
-              fontSize: "20px",
-              fontWeight: 600,
-              lineHeight: "1.3",
+              color: "#C4A77D",
+              letterSpacing: "-0.01em",
             }}
           >
             {title}
           </h3>
           <p
+            className="text-sm font-normal leading-relaxed"
             style={{
-              color: "#F6F6F4",
-              fontSize: "14px",
-              fontWeight: 400,
-              lineHeight: "1.5",
-              opacity: 0.85,
+              color: "#39424E",
+              opacity: 0.7,
             }}
           >
             {description}
