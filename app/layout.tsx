@@ -1,19 +1,30 @@
+/**
+ * Root Layout
+ * Mobius Fly - Empty Leg Marketplace
+ *
+ * Global layout with:
+ * - Base SEO metadata
+ * - Organization & Website structured data
+ * - Font optimization
+ * - Google Search Console verification
+ */
+
 import type { Metadata } from "next";
 import "../styles/globals.css";
+import { baseMetadata } from "@/lib/seo/metadata";
+import { JsonLdMultiple } from "@/components/seo/JsonLd";
+import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo/json-ld";
+import { inter } from "@/lib/fonts";
 
-export const metadata: Metadata = {
-  title: "Mobius Fly - Vuelos Empty Leg | Experiencia privada en minutos",
-  description: "Compra o publica vuelos empty leg en minutos. Experiencia de aviación privada accesible y exclusiva.",
-  keywords: "vuelos empty leg, aviación privada, jets privados, vuelos charter",
-  icons: {
-    icon: "/logo/main-logo.svg",
-  },
-  openGraph: {
-    title: "Mobius Fly - Vuelos Empty Leg",
-    description: "Compra o publica vuelos empty leg en minutos",
-    type: "website",
-  },
-};
+// ============================================================================
+// METADATA
+// ============================================================================
+
+export const metadata: Metadata = baseMetadata;
+
+// ============================================================================
+// ROOT LAYOUT
+// ============================================================================
 
 export default function RootLayout({
   children,
@@ -21,8 +32,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className="antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Google Search Console Verification */}
+        <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" />
+
+        {/* Organization & Website Structured Data */}
+        <JsonLdMultiple
+          schemas={[
+            getOrganizationSchema(),
+            getWebSiteSchema(),
+          ]}
+        />
+      </head>
+      <body className={`${inter.className} antialiased`}>
         {children}
       </body>
     </html>

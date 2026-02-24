@@ -24,7 +24,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, domAnimation, m, AnimatePresence } from "framer-motion";
 
 const navbarVariants = cva("w-full", {
   variants: {
@@ -138,9 +138,10 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
 
     // Componente del menú móvil
     const mobileMenu = (
+      <LazyMotion features={domAnimation} strict>
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -148,7 +149,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
             className="lg:hidden fixed inset-0"
             style={{ backgroundColor: isHero ? "#090E11" : "#F6F6F4", zIndex: 99999 }}
           >
-            <motion.div
+            <m.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -20, opacity: 0 }}
@@ -259,10 +260,11 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                 {loginButtonText}
               </button>
             </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
+      </LazyMotion>
     );
 
     return (

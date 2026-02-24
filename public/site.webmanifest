@@ -1,0 +1,39 @@
+{
+  "name": "Mobius Fly",
+  "short_name": "Mobius Fly",
+  "description": "Book verified private jet empty legs at exclusive rates",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090E11",
+  "theme_color": "#C4A77D",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "business"],
+  "shortcuts": [
+    {
+      "name": "Search Flights",
+      "short_name": "Search",
+      "description": "Search for empty leg flights",
+      "url": "/search",
+      "icons": [
+        {
+          "src": "/logo/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

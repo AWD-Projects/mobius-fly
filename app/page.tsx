@@ -1,8 +1,18 @@
+/**
+ * Landing Page
+ * Mobius Fly - Empty Leg Marketplace
+ *
+ * SEO-optimized landing page with:
+ * - Dynamic metadata
+ * - Structured data
+ * - Preload optimization
+ */
+
 "use client";
 
 import { Navbar } from "@/components/organisms/Navbar";
 import { Button } from "@/components/atoms/Button";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, domAnimation, m, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
@@ -116,7 +126,7 @@ export default function Home() {
 
     const container = scrollContainerRef.current;
     if (container) {
-      container.addEventListener("scroll", handleScroll);
+      container.addEventListener("scroll", handleScroll, { passive: true });
       return () => container.removeEventListener("scroll", handleScroll);
     }
   }, [isInFooter]);
@@ -322,6 +332,7 @@ export default function Home() {
   ];
 
   return (
+    <LazyMotion features={domAnimation} strict>
     <div ref={scrollContainerRef} className="lg:snap-y lg:snap-mandatory overflow-y-scroll h-screen">
       {/* Fixed Navbar - Aparece después del scroll */}
       <div
@@ -379,6 +390,7 @@ export default function Home() {
               src="/assets/window.jpg"
               alt="Airplane window view"
               fill
+              sizes="(max-width: 640px) 400px, (max-width: 768px) 450px, (max-width: 1024px) 550px, 600px"
               className="object-contain"
               priority
             />
@@ -423,7 +435,7 @@ export default function Home() {
         <div className={`flex-1 relative z-[1] flex items-center ${sectionPadding}`}>
             <div className="w-full max-w-2xl">
               {/* Main Heading */}
-              <motion.h1
+              <m.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
@@ -439,7 +451,7 @@ export default function Home() {
                 <br />
                 <span className="inline-block relative" style={{ minWidth: "1em" }}>
                   <AnimatePresence mode="wait">
-                    <motion.span
+                    <m.span
                       key={currentWordIndex}
                       initial={{ y: 20, opacity: 0, filter: "blur(8px)" }}
                       animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
@@ -454,13 +466,13 @@ export default function Home() {
                       }}
                     >
                       {rotatingWords[currentWordIndex]}
-                    </motion.span>
+                    </m.span>
                   </AnimatePresence>
                 </span>
-              </motion.h1>
+              </m.h1>
 
               {/* Subtitle */}
-              <motion.p
+              <m.p
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
@@ -471,10 +483,10 @@ export default function Home() {
                 }}
               >
                 Compra o publica vuelos empty leg en minutos.
-              </motion.p>
+              </m.p>
 
               {/* CTA Buttons */}
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
@@ -512,7 +524,7 @@ export default function Home() {
                     Publica tu vuelo
                   </Button>
                 </div>
-              </motion.div>
+              </m.div>
             </div>
         </div>
       </section>
@@ -525,7 +537,7 @@ export default function Home() {
       >
         <div className="w-full flex flex-col items-center gap-12">
           {/* Header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -537,10 +549,10 @@ export default function Home() {
               align="center"
               size="page"
             />
-          </motion.div>
+          </m.div>
 
           {/* Flight Search Card */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -554,10 +566,10 @@ export default function Home() {
               departureDate="15 dec"
               passengers={2}
             />
-          </motion.div>
+          </m.div>
 
           {/* Search Button */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
@@ -576,10 +588,10 @@ export default function Home() {
               <Search size={18} className="sm:w-5 sm:h-5" />
               Buscar vuelos
             </Button>
-          </motion.div>
+          </m.div>
 
           {/* Trust badges */}
-          <motion.p
+          <m.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 0.7 }}
             transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
@@ -591,7 +603,7 @@ export default function Home() {
             }}
           >
             Vuelos verificados · Pagos seguros · Sin membresías
-          </motion.p>
+          </m.p>
         </div>
       </section>
 
@@ -603,7 +615,7 @@ export default function Home() {
       >
         <div className="w-full flex flex-col items-center gap-12">
           {/* Header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -629,12 +641,12 @@ export default function Home() {
               inactiveColor="#C4A77D"
               activeBgColor="#EDE7DC"
             />
-          </motion.div>
+          </m.div>
 
           {/* Feature Cards Grid */}
           <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {featuresData[userType].map((feature, index) => (
-              <motion.div
+              <m.div
                 key={`${userType}-${index}`}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -652,7 +664,7 @@ export default function Home() {
                   description={feature.description}
                   className="h-full"
                 />
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -666,7 +678,7 @@ export default function Home() {
       >
         <div className="w-full flex flex-col items-center gap-8">
           {/* Header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -679,10 +691,10 @@ export default function Home() {
               align="center"
               size="page"
             />
-          </motion.div>
+          </m.div>
 
           {/* Comparison Table */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -692,7 +704,7 @@ export default function Home() {
             <div className="min-w-[700px]">
               <ComparisonTable features={comparisonFeatures} />
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -704,7 +716,7 @@ export default function Home() {
       >
         <div className="w-full flex flex-col items-center gap-16">
           {/* Header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -716,12 +728,12 @@ export default function Home() {
               align="center"
               size="page"
             />
-          </motion.div>
+          </m.div>
 
           {/* Two Column Benefits */}
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 max-w-6xl">
             {/* Left Column - Para quienes vuelan */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -756,8 +768,8 @@ export default function Home() {
                     title: "4. Experiencia privada de principio a fin",
                     description: "Desde el FBO hasta el aterrizaje, todo está diseñado para volar sin fricciones.",
                   },
-                ].map((benefit, index) => (
-                  <div key={index} className="flex flex-col gap-1.5 sm:gap-2">
+                ].map((benefit) => (
+                  <div key={benefit.title} className="flex flex-col gap-1.5 sm:gap-2">
                     <h4
                       className="text-sm sm:text-base font-medium"
                       style={{
@@ -790,10 +802,10 @@ export default function Home() {
                 Explorar vuelos
                 <ArrowRight size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
               </button>
-            </motion.div>
+            </m.div>
 
             {/* Right Column - Para quienes operan */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -828,8 +840,8 @@ export default function Home() {
                     title: "4. Soporte y validación de Mobius Fly",
                     description: "Nos encargamos de revisar documentación y respaldar cada operación.",
                   },
-                ].map((benefit, index) => (
-                  <div key={index} className="flex flex-col gap-1.5 sm:gap-2">
+                ].map((benefit) => (
+                  <div key={benefit.title} className="flex flex-col gap-1.5 sm:gap-2">
                     <h4
                       className="text-sm sm:text-base font-medium"
                       style={{
@@ -862,7 +874,7 @@ export default function Home() {
                 Publicar un vuelo
                 <ArrowRight size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
               </button>
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </section>
@@ -875,7 +887,7 @@ export default function Home() {
       >
         <div className="w-full flex flex-col items-center gap-12">
           {/* Header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -887,10 +899,10 @@ export default function Home() {
               align="center"
               size="page"
             />
-          </motion.div>
+          </m.div>
 
           {/* Bento Grid */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -1016,7 +1028,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -1028,7 +1040,7 @@ export default function Home() {
       >
         <div className="w-full flex flex-col items-center gap-12">
           {/* Header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -1040,12 +1052,12 @@ export default function Home() {
               align="center"
               size="page"
             />
-          </motion.div>
+          </m.div>
 
           {/* Two Column Layout */}
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 max-w-6xl">
             {/* Left Column - Para compradores */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -1074,10 +1086,10 @@ export default function Home() {
               </div>
 
               <Accordion items={faqCompradores} />
-            </motion.div>
+            </m.div>
 
             {/* Right Column - Para propietarios */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
@@ -1106,7 +1118,7 @@ export default function Home() {
               </div>
 
               <Accordion items={faqPropietarios} />
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </section>
@@ -1134,7 +1146,7 @@ export default function Home() {
             {contactStep !== 4 && (
               <button
                 onClick={() => {
-                  setContactStep(Math.max(1, contactStep - 1));
+                  setContactStep((prev) => Math.max(1, prev - 1));
                   setSubmitError(null);
                 }}
                 disabled={contactStep === 1 || isSubmitting}
@@ -1151,7 +1163,7 @@ export default function Home() {
             <div className="flex-1 min-h-[400px] flex flex-col items-center justify-center">
               {/* Step 1: User Type Selection */}
               {contactStep === 1 && (
-                <motion.div
+                <m.div
                   key="step1"
                   initial={{ opacity: 0, x: 50 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1255,12 +1267,12 @@ export default function Home() {
                       </p>
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
 
               {/* Step 2: Contact Information */}
               {contactStep === 2 && (
-                <motion.div
+                <m.div
                   key="step2"
                   initial={{ opacity: 0, x: 50 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1303,12 +1315,12 @@ export default function Home() {
                       onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
                     />
                   </div>
-                </motion.div>
+                </m.div>
               )}
 
               {/* Step 3: Additional Message */}
               {contactStep === 3 && (
-                <motion.div
+                <m.div
                   key="step3"
                   initial={{ opacity: 0, x: 50 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1353,12 +1365,12 @@ export default function Home() {
                       </p>
                     </div>
                   )}
-                </motion.div>
+                </m.div>
               )}
 
               {/* Step 4: Success */}
               {contactStep === 4 && (
-                <motion.div
+                <m.div
                   key="step4"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -1415,7 +1427,7 @@ export default function Home() {
                       Publicar un vuelo
                     </Button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
             </div>
 
@@ -1446,7 +1458,7 @@ export default function Home() {
                       setIsSubmitting(false);
                     }
                   } else if (contactStep < 4) {
-                    setContactStep(contactStep + 1);
+                    setContactStep((prev) => prev + 1);
                   }
                 }}
                 disabled={
@@ -1487,7 +1499,7 @@ export default function Home() {
       >
         <div className={`w-full flex flex-col gap-12 sm:gap-16 md:gap-20 ${sectionPadding}`}>
           {/* Top Section - Logo + CTA */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
@@ -1547,7 +1559,7 @@ export default function Home() {
                 Publicar un vuelo
               </Button>
             </div>
-          </motion.div>
+          </m.div>
 
           {/* Divider */}
           <div style={{ height: "1px", backgroundColor: "#F6F6F4", opacity: 0.1 }} />
@@ -1568,15 +1580,15 @@ export default function Home() {
             </div>
 
             {/* Links Grid */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
               viewport={{ once: true, amount: 0.8 }}
-              className="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 max-w-4xl mx-auto py-6 sm:py-8 text-center sm:text-left"
+              className="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 max-w-4xl mx-auto py-6 sm:py-8 text-center"
             >
               {/* Plataforma */}
-              <div className="flex flex-col gap-3 sm:gap-4 items-center sm:items-start">
+              <div className="flex flex-col gap-3 sm:gap-4 items-center">
                 <h3
                   className="text-xs sm:text-sm font-semibold uppercase tracking-wider"
                   style={{
@@ -1592,11 +1604,11 @@ export default function Home() {
                     { label: "Cómo funciona", href: "/how-it-works" },
                     { label: "Beneficios", href: "/benefits" },
                     { label: "Contacto", href: "/contact" },
-                  ].map((link, index) => (
+                  ].map((link) => (
                     <button
-                      key={index}
+                      key={link.href}
                       onClick={() => scrollToSection(link.href)}
-                      className="text-left transition-all hover:opacity-100 hover:translate-x-1 text-xs sm:text-sm font-normal"
+                      className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
                       style={{
                         color: "#F6F6F4",
                         opacity: 0.7,
@@ -1609,7 +1621,7 @@ export default function Home() {
               </div>
 
               {/* Recursos */}
-              <div className="flex flex-col gap-3 sm:gap-4 items-center sm:items-start">
+              <div className="flex flex-col gap-3 sm:gap-4 items-center">
                 <h3
                   className="text-xs sm:text-sm font-semibold uppercase tracking-wider"
                   style={{
@@ -1623,11 +1635,11 @@ export default function Home() {
                   {[
                     { label: "Preguntas frecuentes", href: "/faq" },
                     { label: "Comparación", href: "/comparison" },
-                  ].map((link, index) => (
+                  ].map((link) => (
                     <button
-                      key={index}
+                      key={link.href}
                       onClick={() => scrollToSection(link.href)}
-                      className="text-left transition-all hover:opacity-100 hover:translate-x-1 text-xs sm:text-sm font-normal"
+                      className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
                       style={{
                         color: "#F6F6F4",
                         opacity: 0.7,
@@ -1640,7 +1652,7 @@ export default function Home() {
               </div>
 
               {/* Legal */}
-              <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex flex-col gap-3 sm:gap-4 items-center">
                 <h3
                   className="text-xs sm:text-sm font-semibold uppercase tracking-wider"
                   style={{
@@ -1650,10 +1662,10 @@ export default function Home() {
                 >
                   Legal
                 </h3>
-                <nav className="flex flex-col gap-2 sm:gap-3">
+                <nav className="flex flex-col gap-2 sm:gap-3 items-center">
                   <a
                     href="#"
-                    className="text-left transition-all hover:opacity-100 hover:translate-x-1 text-xs sm:text-sm font-normal"
+                    className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
                     style={{
                       color: "#F6F6F4",
                       opacity: 0.7,
@@ -1663,7 +1675,7 @@ export default function Home() {
                   </a>
                   <a
                     href="#"
-                    className="text-left transition-all hover:opacity-100 hover:translate-x-1 text-xs sm:text-sm font-normal"
+                    className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
                     style={{
                       color: "#F6F6F4",
                       opacity: 0.7,
@@ -1673,19 +1685,19 @@ export default function Home() {
                   </a>
                 </nav>
               </div>
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Divider */}
           <div style={{ height: "1px", backgroundColor: "#F6F6F4", opacity: 0.1 }} />
 
           {/* Bottom Section - Copyright */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             viewport={{ once: true, amount: 0.8 }}
-            className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-center sm:text-left"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center"
           >
             <p
               className="text-xs sm:text-sm font-normal"
@@ -1708,9 +1720,10 @@ export default function Home() {
             >
               Powered by Amoxtli®
             </a>
-          </motion.div>
+          </m.div>
         </div>
       </footer>
     </div>
+    </LazyMotion>
   );
 }
