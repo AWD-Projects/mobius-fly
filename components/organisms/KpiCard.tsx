@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import { fontFamily } from '@/lib/utils';
 
 export interface KpiData {
   value: string | number;
@@ -124,7 +125,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
           >
             <span
               className={`${badgeColorStyles[badgeColor]}`}
-              style={{ fontFamily: 'Inter', fontSize: '11px', fontWeight: 500 }}
+              style={{ fontFamily, fontSize: '11px', fontWeight: 500 }}
             >
               {badgeText}
             </span>
@@ -135,7 +136,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       {/* Main Value */}
       <div
         className="text-white leading-none"
-        style={{ fontFamily: 'Inter', fontSize: '48px', fontWeight: 600, letterSpacing: '-2px' }}
+        style={{ fontFamily, fontSize: '48px', fontWeight: 600, letterSpacing: '-2px' }}
       >
         {value}
       </div>
@@ -144,14 +145,14 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       <div className="flex flex-col" style={{ gap: '2px' }}>
         <div
           className="text-white leading-tight"
-          style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 500 }}
+          style={{ fontFamily, fontSize: '14px', fontWeight: 500 }}
         >
           {title}
         </div>
         {subtitle && (
           <div
             className="text-[#999999] leading-tight"
-            style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400 }}
+            style={{ fontFamily, fontSize: '12px', fontWeight: 400 }}
           >
             {subtitle}
           </div>

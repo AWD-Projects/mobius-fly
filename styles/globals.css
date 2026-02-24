@@ -6,7 +6,7 @@
   /* Colors */
   --color-primary: #C4A77D;
   --color-secondary: #39424E;
-  --color-text: #2B2B2B;
+  --color-text: #39424E;
   --color-neutral: #C7C7C5;
   --color-muted: #6B6B6B;
   --color-border: #E0E0DE;
@@ -141,4 +141,33 @@ a {
 button {
   font-family: inherit;
   color: unset;
+}
+
+/* Landing Page Snap Scroll */
+.snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-mandatory {
+  scroll-snap-stop: always;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but keep functionality */
+.overflow-y-scroll::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+.overflow-y-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

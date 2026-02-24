@@ -10,8 +10,12 @@ export interface SectionHeaderProps extends React.HTMLAttributes<HTMLDivElement>
 
 const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps>(
   ({ title, subtitle, align = "left", size = "section", className, ...props }, ref) => {
-    const titleClass = size === "page" ? "text-h1" : "text-h3";
-    const subtitleClass = size === "page" ? "text-body" : "text-small";
+    const titleClass = size === "page"
+      ? "text-2xl sm:text-3xl md:text-4xl"
+      : "text-xl sm:text-2xl md:text-3xl";
+    const subtitleClass = size === "page"
+      ? "text-sm sm:text-base"
+      : "text-xs sm:text-sm";
     const alignment = align === "center" ? "text-center items-center" : "text-left items-start";
 
     return (
