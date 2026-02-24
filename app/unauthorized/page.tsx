@@ -1,9 +1,12 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { SystemScreen } from "@/components/molecules/SystemScreen";
-import { buttonVariants } from "@/components/atoms/Button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
 
 export default function UnauthorizedPage() {
+  const router = useRouter();
+
   return (
     <SystemScreen
       code="401"
@@ -11,12 +14,12 @@ export default function UnauthorizedPage() {
       subtitle="Inicia sesion para continuar y acceder a esta area."
       actions={
         <>
-          <Link href="/" className={cn(buttonVariants({ variant: "primary", size: "md" }))}>
+          <Button variant="primary" size="md" onClick={() => router.push("/login")}>
             Iniciar sesion
-          </Link>
-          <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "md" }))}>
+          </Button>
+          <Button variant="ghost" size="md" onClick={() => router.push("/")}>
             Volver al inicio
-          </Link>
+          </Button>
         </>
       }
     />

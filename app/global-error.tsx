@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SystemScreen } from "@/components/molecules/SystemScreen";
-import { Button, buttonVariants } from "@/components/atoms/Button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
 
 export default function GlobalError({
   reset,
@@ -12,6 +11,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   return (
     <html lang="es">
       <body>
@@ -24,12 +25,9 @@ export default function GlobalError({
               <Button variant="primary" size="md" type="button" onClick={() => reset()}>
                 Reintentar
               </Button>
-              <Link
-                href="/"
-                className={cn(buttonVariants({ variant: "ghost", size: "md" }))}
-              >
+              <Button variant="ghost" size="md" onClick={() => router.push("/")}>
                 Volver al inicio
-              </Link>
+              </Button>
             </>
           }
         />

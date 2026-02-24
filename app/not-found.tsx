@@ -1,9 +1,12 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { SystemScreen } from "@/components/molecules/SystemScreen";
-import { buttonVariants } from "@/components/atoms/Button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
 
 export default function NotFound() {
+  const router = useRouter();
+
   return (
     <SystemScreen
       code="404"
@@ -11,18 +14,12 @@ export default function NotFound() {
       subtitle="La pagina que buscas no existe o fue movida."
       actions={
         <>
-          <Link
-            href="/"
-            className={cn(buttonVariants({ variant: "primary", size: "md" }))}
-          >
+          <Button variant="primary" size="md" onClick={() => router.push("/")}>
             Volver al inicio
-          </Link>
-          <Link
-            href="/"
-            className={cn(buttonVariants({ variant: "ghost", size: "md" }))}
-          >
+          </Button>
+          <Button variant="ghost" size="md" onClick={() => router.push("/")}>
             Explorar el sitio
-          </Link>
+          </Button>
         </>
       }
     />

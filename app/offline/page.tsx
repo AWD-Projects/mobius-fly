@@ -1,18 +1,21 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { SystemScreen } from "@/components/molecules/SystemScreen";
-import { buttonVariants } from "@/components/atoms/Button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
 
 export default function OfflinePage() {
+  const router = useRouter();
+
   return (
     <SystemScreen
       code="Sin conexion"
       title="Estas sin conexion"
       subtitle="Revisa tu conexion y vuelve a intentar cuando estes en linea."
       actions={
-        <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "md" }))}>
+        <Button variant="ghost" size="md" onClick={() => router.push("/")}>
           Volver al inicio
-        </Link>
+        </Button>
       }
     />
   );

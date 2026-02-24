@@ -1,18 +1,21 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { SystemScreen } from "@/components/molecules/SystemScreen";
-import { buttonVariants } from "@/components/atoms/Button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
 
 export default function RateLimitPage() {
+  const router = useRouter();
+
   return (
     <SystemScreen
       code="429"
       title="Demasiadas solicitudes"
       subtitle="Estas haciendo demasiadas solicitudes. Espera un momento y vuelve a intentar."
       actions={
-        <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "md" }))}>
+        <Button variant="ghost" size="md" onClick={() => router.push("/")}>
           Volver al inicio
-        </Link>
+        </Button>
       }
     />
   );

@@ -1,33 +1,19 @@
-/**
- * Landing Page
- * Mobius Fly - Empty Leg Marketplace
- *
- * SEO-optimized landing page with:
- * - Dynamic metadata
- * - Structured data
- * - Preload optimization
- */
-
 "use client";
 
 import { Navbar } from "@/components/organisms/Navbar";
-import { Button } from "@/components/atoms/Button";
-import { LazyMotion, domAnimation, m, AnimatePresence } from "framer-motion";
+import { LazyMotion, domAnimation } from "framer-motion";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { SectionHeader } from "@/components/molecules/SectionHeader";
-import { FlightSearchCard } from "@/components/organisms/FlightSearchCard";
-import { FeatureCard } from "@/components/molecules/FeatureCard";
-import { Pills } from "@/components/atoms/Pills";
-import { ComparisonTable } from "@/components/organisms/ComparisonTable";
-import { Accordion } from "@/components/molecules/Accordion";
-import { InputGroup } from "@/components/molecules/InputGroup";
-import { SelectionCard } from "@/components/molecules/SelectionCard";
-import { IconButton } from "@/components/atoms/IconButton";
-import { Textarea } from "@/components/atoms/Textarea";
-import { Search, Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet, ArrowRight, Play, Plane, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet } from "lucide-react";
+import { HeroSection } from "./sections/HeroSection";
+import { FlightSearchSection } from "./sections/FlightSearchSection";
+import { FeaturesSection } from "./sections/FeaturesSection";
+import { ComparisonSection } from "./sections/ComparisonSection";
+import { BenefitsSection } from "./sections/BenefitsSection";
+import { FAQSection } from "./sections/FAQSection";
+import { ContactSection } from "./sections/ContactSection";
+import { FooterSection } from "./sections/FooterSection";
 
 // Mapa de hrefs a section IDs
 const sectionMap: Record<string, string> = {
@@ -123,7 +109,7 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentWordIndex((prevIndex) => (prevIndex + 1) % rotatingWords.length);
-    }, 2500); // Cambiar cada 2.5 segundos
+    }, 2500);
 
     return () => clearInterval(interval);
     // rotatingWords is a constant array, no need for dependency
@@ -134,8 +120,6 @@ export default function Home() {
     const handleScroll = () => {
       if (scrollContainerRef.current) {
         const scrollPosition = scrollContainerRef.current.scrollTop;
-
-        // Hero mode: en el hero section O en el footer
         const isInHero = scrollPosition <= window.innerHeight * 0.5;
         setIsScrolled(!isInHero && !isInFooter);
       }
@@ -160,7 +144,6 @@ export default function Home() {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const sectionId = entry.target.id;
-          // Buscar el href correspondiente
           const href = Object.keys(sectionMap).find(
             (key) => sectionMap[key] === sectionId
           );
@@ -174,8 +157,6 @@ export default function Home() {
     };
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-    // Observar todas las secciones
     const sections = document.querySelectorAll("section[id]");
     sections.forEach((section) => observer.observe(section));
 
@@ -216,71 +197,86 @@ export default function Home() {
   }, []);
 
   // Función para hacer scroll a una sección específica
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     const section = document.getElementById(sectionId);
     if (section && scrollContainerRef.current) {
       section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  };
+  }, []);
+
+  // Memoized handlers for better performance
+  const handleContactPrev = useCallback(() => {
+    setContactStep((prev) => Math.max(1, prev - 1));
+    setSubmitError(null);
+  }, []);
+
+  const handleContactNext = useCallback(async () => {
+    setSubmitError(null);
+
+    if (contactStep === 3) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(contactData),
+        });
+
+        if (response.ok) {
+          setContactStep(4);
+        } else {
+          setSubmitError("Error al enviar el formulario. Por favor, intenta de nuevo.");
+        }
+      } catch (error) {
+        setSubmitError("Error de conexión. Verifica tu internet e intenta de nuevo.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else if (contactStep < 4) {
+      setContactStep((prev) => prev + 1);
+    }
+  }, [contactStep, contactData]);
+
+  const handleContactTypeSelect = useCallback((type: string) => {
+    setContactData(prev => ({ ...prev, userType: type }));
+    setContactStep(2);
+  }, []);
+
+  const handleContactDataChange = useCallback((data: typeof contactData) => {
+    setContactData(data);
+  }, []);
+
+  const handleExploreClick = useCallback(() => {
+    scrollToSection("vuelos");
+  }, [scrollToSection]);
+
+  const handleNavLinkClick = useCallback((href: string) => {
+    const sectionId = sectionMap[href];
+    if (sectionId) scrollToSection(sectionId);
+  }, [scrollToSection]);
+
+  const handleLogoClick = useCallback(() => {
+    scrollToSection("hero");
+  }, [scrollToSection]);
+
+  const handleLoginClick = useCallback(() => {
+    router.push("/login");
+  }, [router]);
+
+  const handleSignUpClick = useCallback(() => {
+    router.push("/register");
+  }, [router]);
 
   // Comparison table data
   const comparisonFeatures = [
-    {
-      feature: "Modelo de compra",
-      mobius: "Por asiento",
-      traditional: "Vuelo completo",
-      jetCard: "Membresía anual",
-      fullCharter: "Vuelo completo",
-    },
-    {
-      feature: "Costo por asiento",
-      mobius: "Desde €900",
-      traditional: "€10,000+",
-      jetCard: "€25k - €50k/año",
-      fullCharter: "€15,000+",
-    },
-    {
-      feature: "Vuelo completo obligatorio",
-      mobius: "No",
-      traditional: "Sí",
-      jetCard: "Sí",
-      fullCharter: "Sí",
-    },
-    {
-      feature: "Transparencia de costos",
-      mobius: "Completa",
-      traditional: "Parcial",
-      jetCard: "Parcial",
-      fullCharter: "Negociable",
-    },
-    {
-      feature: "Flexibilidad de reserva",
-      mobius: "Muy alta",
-      traditional: "Baja",
-      jetCard: "Moderada",
-      fullCharter: "Alta",
-    },
-    {
-      feature: "Proceso de pago",
-      mobius: "Digital, instantáneo",
-      traditional: "Manual",
-      jetCard: "Acuerdos previos",
-      fullCharter: "Manual",
-    },
-    {
-      feature: "Acceso a vuelos vacíos",
-      mobius: "Sí, especializado",
-      traditional: "No",
-      jetCard: "Ocasionalmente",
-      fullCharter: "No",
-    },
-    {
-      feature: "Ideal para",
-      mobius: "Viajeros ocasionales",
-      traditional: "Vuelos frecuentes",
-      jetCard: "Usuarios frecuentes",
-      fullCharter: "Grupos grandes",
-    },
+    { feature: "Modelo de compra", mobius: "Por asiento", traditional: "Vuelo completo", jetCard: "Membresía anual", fullCharter: "Vuelo completo" },
+    { feature: "Costo por asiento", mobius: "Desde €900", traditional: "€10,000+", jetCard: "€25k - €50k/año", fullCharter: "€15,000+" },
+    { feature: "Vuelo completo obligatorio", mobius: "No", traditional: "Sí", jetCard: "Sí", fullCharter: "Sí" },
+    { feature: "Transparencia de costos", mobius: "Completa", traditional: "Parcial", jetCard: "Parcial", fullCharter: "Negociable" },
+    { feature: "Flexibilidad de reserva", mobius: "Muy alta", traditional: "Baja", jetCard: "Moderada", fullCharter: "Alta" },
+    { feature: "Proceso de pago", mobius: "Digital, instantáneo", traditional: "Manual", jetCard: "Acuerdos previos", fullCharter: "Manual" },
+    { feature: "Acceso a vuelos vacíos", mobius: "Sí, especializado", traditional: "No", jetCard: "Ocasionalmente", fullCharter: "No" },
+    { feature: "Ideal para", mobius: "Viajeros ocasionales", traditional: "Vuelos frecuentes", jetCard: "Usuarios frecuentes", fullCharter: "Grupos grandes" },
   ];
 
   // FAQ data
@@ -298,43 +294,35 @@ export default function Home() {
       answer: "Puedes comprar desde 1 hasta todos los asientos disponibles en el vuelo, dependiendo de la capacidad de la aeronave y los asientos que el operador haya publicado.",
     },
     {
-      question: "¿Qué documentos necesito para volar?",
-      answer: "Necesitarás tu identificación oficial vigente (pasaporte para vuelos internacionales) y cualquier documentación adicional que requiera el país de destino.",
+      question: "¿Puedo llevar equipaje?",
+      answer: "Sí. Cada asiento incluye equipaje de mano y una maleta facturada. Consulta los detalles específicos de cada vuelo.",
     },
     {
-      question: "¿Qué pasa si mi pago falla?",
-      answer: "Si tu pago no se procesa correctamente, no se confirmará tu reserva. Puedes intentar nuevamente con otro método de pago o contactar a nuestro equipo de soporte.",
-    },
-    {
-      question: "¿Puedo cancelar una reserva?",
-      answer: "Las políticas de cancelación varían según el operador y el tiempo de anticipación. Revisa los términos específicos de tu reserva antes de confirmar.",
+      question: "¿Qué documentos necesito?",
+      answer: "Para vuelos nacionales, identificación oficial vigente. Para internacionales, pasaporte vigente y visas necesarias.",
     },
   ];
 
   const faqPropietarios = [
     {
-      question: "¿Qué es Mobius Fly para propietarios?",
-      answer: "Mobius Fly es una plataforma que te permite monetizar tus vuelos empty leg publicándolos directamente a pasajeros verificados, sin intermediarios ni comisiones excesivas.",
+      question: "¿Cómo publico un vuelo?",
+      answer: "Inicia sesión, ve a 'Publicar Vuelo', completa la ruta, fecha y precio. Tu vuelo estará visible en minutos.",
     },
     {
-      question: "¿Cómo publico un vuelo empty leg?",
-      answer: "Desde tu panel de control, selecciona la ruta, fecha, hora, aeronave y cantidad de asientos disponibles. Puedes publicar un vuelo en menos de 5 minutos.",
+      question: "¿Cuánto cuesta publicar?",
+      answer: "Publicar es gratis. Mobius cobra una comisión solo cuando se confirma una reserva.",
     },
     {
-      question: "¿Cómo defino el precio por asiento?",
-      answer: "Tú decides el precio por asiento basándote en tus costos operativos y la demanda del mercado. Mobius Fly te proporciona sugerencias basadas en rutas similares.",
+      question: "¿Puedo cancelar un vuelo publicado?",
+      answer: "Sí, mientras no haya reservas confirmadas. Si ya hay pasajeros confirmados, contacta a soporte para gestionar la cancelación.",
     },
     {
-      question: "¿Cuándo recibo el pago?",
-      answer: "Los pagos se procesan semanalmente. Mobius Fly retiene los fondos hasta que el vuelo se completa exitosamente, y luego los transfiere a tu cuenta registrada.",
+      question: "¿Cómo recibo el pago?",
+      answer: "Los pagos se procesan de forma automática cada semana. Recibirás transferencia directa a tu cuenta bancaria registrada.",
     },
     {
-      question: "¿Puedo editar o cancelar un vuelo?",
-      answer: "Puedes editar los detalles de un vuelo mientras no tenga reservas confirmadas. Si ya hay pasajeros confirmados, deberás contactar a soporte para gestionar cambios o cancelaciones.",
-    },
-    {
-      question: "¿Qué documentos debo cargar como propietario?",
-      answer: "Necesitas cargar certificaciones de la aeronave, licencias de la tripulación, seguros vigentes y cualquier documentación regulatoria requerida por las autoridades de aviación.",
+      question: "¿Qué verificaciones hace Mobius?",
+      answer: "Verificamos que operadores y aeronaves cumplan regulaciones vigentes, seguro activo y certificaciones al día.",
     },
   ];
 
@@ -376,1288 +364,75 @@ export default function Home() {
           loginButtonText="Iniciar Sesión"
           signUpButtonText="Crear cuenta"
           activeHref={activeSection}
-          onLogoClick={() => scrollToSection("hero")}
-          onNavLinkClick={(href) => {
-            const sectionId = sectionMap[href];
-            if (sectionId) scrollToSection(sectionId);
-          }}
-          onLoginClick={() => router.push("/login")}
-          onSignUpClick={() => router.push("/register")}
+          onLogoClick={handleLogoClick}
+          onNavLinkClick={handleNavLinkClick}
+          onLoginClick={handleLoginClick}
+          onSignUpClick={handleSignUpClick}
         />
       </div>
 
       {/* Hero Section */}
-      <section
-        id="hero"
-        className="lg:snap-start min-h-screen lg:h-screen relative flex flex-col"
-        style={{ backgroundColor: "#090E11" }}
-      >
-        {/* Background Image */}
-        <div className="absolute inset-0 flex items-center justify-center md:justify-end pr-0 md:pr-12 lg:pr-16 xl:pr-24 2xl:pr-48">
-          <div className="relative w-[400px] h-[400px] sm:w-[450px] sm:h-[450px] md:w-[450px] md:h-[450px] lg:w-[550px] lg:h-[550px] xl:w-[600px] xl:h-[600px] opacity-40 sm:opacity-60 md:opacity-100">
-            <Image
-              src="/assets/window.jpg"
-              alt="Airplane window view"
-              fill
-              sizes="(max-width: 640px) 400px, (max-width: 768px) 450px, (max-width: 1024px) 550px, 600px"
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-
-        {/* Navbar */}
-        <div className="relative z-20">
-          <Navbar
-            variant="hero"
-            backgroundColor="transparent"
-            logo={
-              <Image
-                src="/logo/mobiuswhite-logo.svg"
-                alt="Mobius Fly"
-                width={32}
-                height={32}
-              />
-            }
-            logoText="Mobius Fly"
-            contentPadding={sectionPadding}
-            navLinks={[
-              { label: "Vuelos", href: "/flights" },
-              { label: "Cómo funciona", href: "/how-it-works" },
-              { label: "Comparación", href: "/comparison" },
-              { label: "Beneficios", href: "/benefits" },
-              { label: "Preguntas frecuentes", href: "/faq" },
-              { label: "Contacto", href: "/contact" },
-            ]}
-            loginButtonText="Iniciar Sesión"
-            signUpButtonText="Crear cuenta"
-            activeHref={activeSection}
-            onLogoClick={() => scrollToSection("hero")}
-            onNavLinkClick={(href) => {
-              const sectionId = sectionMap[href];
-              if (sectionId) scrollToSection(sectionId);
-            }}
-            onLoginClick={() => router.push("/login")}
-            onSignUpClick={() => router.push("/register")}
-          />
-        </div>
-
-        {/* Hero Content */}
-        <div className={`flex-1 relative z-[1] flex items-center ${sectionPadding}`}>
-            <div className="w-full max-w-2xl">
-              {/* Main Heading */}
-              <m.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                className="mb-3 sm:mb-4 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[80px] font-bold leading-tight"
-                style={{
-                  color: "#F6F6F4",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Empty legs.
-                <br />
-                Experiencia
-                <br />
-                <span className="inline-block relative" style={{ minWidth: "1em" }}>
-                  <AnimatePresence mode="wait">
-                    <m.span
-                      key={currentWordIndex}
-                      initial={{ y: 20, opacity: 0, filter: "blur(8px)" }}
-                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                      exit={{ y: -20, opacity: 0, filter: "blur(8px)" }}
-                      transition={{
-                        duration: 0.5,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
-                      className="inline-block"
-                      style={{
-                        color: "#F6F6F4",
-                      }}
-                    >
-                      {rotatingWords[currentWordIndex]}
-                    </m.span>
-                  </AnimatePresence>
-                </span>
-              </m.h1>
-
-              {/* Subtitle */}
-              <m.p
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-                className="mb-8 sm:mb-10 text-base sm:text-lg font-light leading-relaxed"
-                style={{
-                  color: "#F6F6F4",
-                  opacity: 0.7,
-                }}
-              >
-                Compra o publica vuelos empty leg en minutos.
-              </m.p>
-
-              {/* CTA Buttons */}
-              <m.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-                className="flex flex-col items-start gap-3"
-              >
-                <button
-                  className="transition-all hover:bg-white/10 rounded-md w-full sm:w-auto text-sm sm:text-base px-6 py-3 sm:px-7 sm:py-3.5 font-medium"
-                  style={{
-                    color: "#F6F6F4",
-                    backgroundColor: "rgba(255, 255, 255, 0.05)",
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
-                    border: "1px solid rgba(255, 255, 255, 0.15)",
-                  }}
-                >
-                  Buscar vuelos
-                </button>
-
-                <div
-                  className="flex items-center gap-1 text-xs sm:text-sm font-light"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.6,
-                  }}
-                >
-                  ¿Eres propietario?{" "}
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-xs sm:text-sm font-medium"
-                    style={{
-                      color: "#F6F6F4",
-                      opacity: 1,
-                    }}
-                  >
-                    Publica tu vuelo
-                  </Button>
-                </div>
-              </m.div>
-            </div>
-        </div>
-      </section>
-
-      {/* Sección de Vuelos */}
-      <section
-        id="vuelos"
-        className={`snap-start h-screen relative flex flex-col justify-center ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full flex flex-col items-center gap-12">
-          {/* Header */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-          >
-            <SectionHeader
-              title="Encuentra tu vuelo ideal"
-              subtitle="Selecciona ruta, fecha y pasajeros"
-              align="center"
-              size="page"
-            />
-          </m.div>
-
-          {/* Flight Search Card */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-          >
-            <FlightSearchCard
-              tripType={flightTripType}
-              onTripTypeChange={setFlightTripType}
-              originCode="COK"
-              destinationCode="BLR"
-              departureDate="15 dec"
-              passengers={2}
-            />
-          </m.div>
-
-          {/* Search Button */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-            className="w-full sm:w-auto"
-          >
-            <Button
-              size="lg"
-              className="gap-2 w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 py-3 sm:py-3.5"
-              style={{
-                backgroundColor: "#C4A77D",
-                color: "#ffffff",
-                fontWeight: 500,
-              }}
-            >
-              <Search size={18} className="sm:w-5 sm:h-5" />
-              Buscar vuelos
-            </Button>
-          </m.div>
-
-          {/* Trust badges */}
-          <m.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 0.7 }}
-            transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-            className="text-center text-xs sm:text-sm px-4"
-            style={{
-              color: "#39424E",
-              fontWeight: 400,
-            }}
-          >
-            Vuelos verificados · Pagos seguros · Sin membresías
-          </m.p>
-        </div>
-      </section>
-
-      {/* Sección Cómo funciona */}
-      <section
-        id="como-funciona"
-        className={`lg:snap-start min-h-screen lg:h-screen relative flex flex-col py-12 lg:py-0 lg:justify-center ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full flex flex-col items-center gap-12">
-          {/* Header */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-            className="flex flex-col items-center gap-8"
-          >
-            <SectionHeader
-              title="Así funciona Mobius Fly"
-              subtitle="Una plataforma. Dos formas de volar"
-              align="center"
-              size="page"
-            />
-
-            {/* Pills */}
-            <Pills
-              pills={[
-                { label: "Pasajero", value: "pasajero" },
-                { label: "Propietario", value: "propietario" },
-              ]}
-              value={userType}
-              onChange={(value) => setUserType(value as "pasajero" | "propietario")}
-              activeColor="#C4A77D"
-              inactiveColor="#C4A77D"
-              activeBgColor="#EDE7DC"
-            />
-          </m.div>
-
-          {/* Feature Cards Grid */}
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {featuresData[userType].map((feature, index) => (
-              <m.div
-                key={`${userType}-${index}`}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.5,
-                  delay: 0.1 * index,
-                  ease: "easeOut",
-                }}
-                viewport={{ once: true, amount: 0.3 }}
-                className="h-full"
-              >
-                <FeatureCard
-                  icon={feature.icon}
-                  title={feature.title}
-                  description={feature.description}
-                  className="h-full"
-                />
-              </m.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Sección Comparación */}
-      <section
-        id="comparacion"
-        className={`snap-start min-h-screen relative flex flex-col justify-center py-20 ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full flex flex-col items-center gap-8">
-          {/* Header */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-            className="max-w-4xl"
-          >
-            <SectionHeader
-              title="Comparación con otras plataformas"
-              subtitle="Mobius Fly simplifica el acceso a vuelos privados con transparencia total, flexibilidad sin compromisos y el control que mereces."
-              align="center"
-              size="page"
-            />
-          </m.div>
-
-          {/* Comparison Table */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.3 }}
-            className="w-full overflow-x-auto"
-          >
-            <div className="min-w-[700px]">
-              <ComparisonTable features={comparisonFeatures} />
-            </div>
-          </m.div>
-        </div>
-      </section>
-
-      {/* Sección Beneficios */}
-      <section
-        id="beneficios"
-        className={`snap-start min-h-screen relative flex flex-col justify-center py-20 ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full flex flex-col items-center gap-16">
-          {/* Header */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-          >
-            <SectionHeader
-              title="Pensado para pasajeros y propietarios"
-              subtitle="Más valor, menos fricción"
-              align="center"
-              size="page"
-            />
-          </m.div>
-
-          {/* Two Column Benefits */}
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 max-w-6xl">
-            {/* Left Column - Para quienes vuelan */}
-            <m.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              viewport={{ once: true, amount: 0.3 }}
-              className="flex flex-col gap-8"
-            >
-              <h3
-                className="text-lg sm:text-xl font-medium"
-                style={{
-                  color: "#39424E",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Para quienes vuelan
-              </h3>
-
-              <div className="flex flex-col gap-4 sm:gap-6">
-                {[
-                  {
-                    title: "1. Vuela en jet privado a menor costo",
-                    description: "Accede a vuelos empty leg y disfruta una experiencia privada real.",
-                  },
-                  {
-                    title: "2. Reserva rápida, sin intermediarios",
-                    description: "Encuentra, reserva y paga tu vuelo en minutos desde una sola plataforma.",
-                  },
-                  {
-                    title: "3. Seguridad validada en cada vuelo",
-                    description: "Aeronaves y tripulación revisadas antes de publicarse.",
-                  },
-                  {
-                    title: "4. Experiencia privada de principio a fin",
-                    description: "Desde el FBO hasta el aterrizaje, todo está diseñado para volar sin fricciones.",
-                  },
-                ].map((benefit) => (
-                  <div key={benefit.title} className="flex flex-col gap-1.5 sm:gap-2">
-                    <h4
-                      className="text-sm sm:text-base font-medium"
-                      style={{
-                        color: "#39424E",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      {benefit.title}
-                    </h4>
-                    <p
-                      className="text-xs sm:text-sm font-normal leading-relaxed"
-                      style={{
-                        color: "#39424E",
-                        opacity: 0.7,
-                      }}
-                    >
-                      {benefit.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                className="flex items-center gap-2 self-start transition-all hover:gap-3 text-xs sm:text-sm font-medium"
-                style={{
-                  color: "#C4A77D",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Explorar vuelos
-                <ArrowRight size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
-              </button>
-            </m.div>
-
-            {/* Right Column - Para quienes operan */}
-            <m.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              viewport={{ once: true, amount: 0.3 }}
-              className="flex flex-col gap-8"
-            >
-              <h3
-                className="text-lg sm:text-xl font-medium"
-                style={{
-                  color: "#39424E",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Para quienes operan
-              </h3>
-
-              <div className="flex flex-col gap-4 sm:gap-6">
-                {[
-                  {
-                    title: "1. Monetiza vuelos empty leg fácilmente",
-                    description: "Convierte trayectos sin pasajeros en ingresos adicionales.",
-                  },
-                  {
-                    title: "2. Publica y gestiona tus vuelos en un solo lugar",
-                    description: "Controla flota, tripulación y pasajeros desde tu panel.",
-                  },
-                  {
-                    title: "3. Sin brokers ni fricción operativa",
-                    description: "Publica vuelos directamente, sin llamadas ni intermediarios.",
-                  },
-                  {
-                    title: "4. Soporte y validación de Mobius Fly",
-                    description: "Nos encargamos de revisar documentación y respaldar cada operación.",
-                  },
-                ].map((benefit) => (
-                  <div key={benefit.title} className="flex flex-col gap-1.5 sm:gap-2">
-                    <h4
-                      className="text-sm sm:text-base font-medium"
-                      style={{
-                        color: "#39424E",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      {benefit.title}
-                    </h4>
-                    <p
-                      className="text-xs sm:text-sm font-normal leading-relaxed"
-                      style={{
-                        color: "#39424E",
-                        opacity: 0.7,
-                      }}
-                    >
-                      {benefit.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                className="flex items-center gap-2 self-start transition-all hover:gap-3 text-xs sm:text-sm font-medium"
-                style={{
-                  color: "#C4A77D",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Publicar un vuelo
-                <ArrowRight size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
-              </button>
-            </m.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Sección Experiencia Mobius */}
-      <section
-        id="experiencia"
-        className={`snap-start min-h-screen relative flex flex-col justify-center py-20 ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full flex flex-col items-center gap-12">
-          {/* Header */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-          >
-            <SectionHeader
-              title="La experiencia Mobius Fly"
-              subtitle="Volar privado, como debería sentirse"
-              align="center"
-              size="page"
-            />
-          </m.div>
-
-          {/* Bento Grid */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.3 }}
-            className="w-full max-w-7xl"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:auto-rows-[280px]">
-              {/* Video Placeholder - Large */}
-              <div
-                className="relative overflow-hidden group cursor-pointer h-[200px] sm:h-[240px] lg:col-span-5 lg:row-span-1 rounded-2xl"
-                style={{
-                  backgroundColor: "#1a1a1a",
-                }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="transition-transform group-hover:scale-110"
-                    style={{
-                      width: "80px",
-                      height: "80px",
-                      borderRadius: "50%",
-                      border: "3px solid #F6F6F4",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Play
-                      size={32}
-                      fill="#F6F6F4"
-                      strokeWidth={0}
-                      style={{ marginLeft: "4px" }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Wing Photo */}
-              <div
-                className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-4 lg:row-span-1 rounded-2xl"
-                style={{
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#F6F6F4",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    opacity: 0.8,
-                  }}
-                >
-                  Vista del ala
-                </span>
-              </div>
-
-              {/* Service Photo */}
-              <div
-                className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-3 lg:row-span-1 rounded-2xl"
-                style={{
-                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                }}
-              >
-                <span
-                  className="text-xs sm:text-sm font-medium"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.8,
-                  }}
-                >
-                  Servicio a bordo
-                </span>
-              </div>
-
-              {/* Plane Silhouette */}
-              <div
-                className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-3 lg:row-span-1 rounded-2xl"
-                style={{
-                  backgroundColor: "#E8E8E6",
-                }}
-              >
-                <Plane
-                  size={60}
-                  className="sm:w-20 sm:h-20"
-                  strokeWidth={1}
-                  style={{ color: "#39424E", opacity: 0.3 }}
-                />
-              </div>
-
-              {/* Jet on Tarmac */}
-              <div
-                className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-4 lg:row-span-1 rounded-2xl"
-                style={{
-                  background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                }}
-              >
-                <span
-                  className="text-xs sm:text-sm font-medium"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.8,
-                  }}
-                >
-                  Jet en pista
-                </span>
-              </div>
-
-              {/* Cockpit View */}
-              <div
-                className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-5 lg:row-span-1 rounded-2xl"
-                style={{
-                  background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-                }}
-              >
-                <span
-                  className="text-xs sm:text-sm font-medium"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.8,
-                  }}
-                >
-                  Vista desde cabina
-                </span>
-              </div>
-            </div>
-          </m.div>
-        </div>
-      </section>
-
-      {/* Sección Preguntas Frecuentes */}
-      <section
-        id="preguntas-frecuentes"
-        className={`snap-start min-h-screen relative flex flex-col justify-center py-20 ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full flex flex-col items-center gap-12">
-          {/* Header */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-          >
-            <SectionHeader
-              title="Preguntas frecuentes"
-              subtitle="Nuestras preguntas frecuentes están organizadas por tipo de usuario. Encuentra las respuestas específicas para tu rol en Mobius Fly."
-              align="center"
-              size="page"
-            />
-          </m.div>
-
-          {/* Two Column Layout */}
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 max-w-6xl">
-            {/* Left Column - Para compradores */}
-            <m.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              viewport={{ once: true, amount: 0.3 }}
-              className="flex flex-col gap-6"
-            >
-              <div className="flex flex-col gap-2">
-                <h3
-                  className="text-lg sm:text-xl font-medium"
-                  style={{
-                    color: "#39424E",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  Para compradores
-                </h3>
-                <p
-                  className="text-xs sm:text-sm font-normal leading-relaxed"
-                  style={{
-                    color: "#39424E",
-                    opacity: 0.7,
-                  }}
-                >
-                  Respuestas a preguntas sobre reservas, vuelos y documentación necesaria para pasajeros de Mobius Fly.
-                </p>
-              </div>
-
-              <Accordion items={faqCompradores} />
-            </m.div>
-
-            {/* Right Column - Para propietarios */}
-            <m.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              viewport={{ once: true, amount: 0.3 }}
-              className="flex flex-col gap-6"
-            >
-              <div className="flex flex-col gap-2">
-                <h3
-                  className="text-lg sm:text-xl font-medium"
-                  style={{
-                    color: "#39424E",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  Para propietarios
-                </h3>
-                <p
-                  className="text-xs sm:text-sm font-normal leading-relaxed"
-                  style={{
-                    color: "#39424E",
-                    opacity: 0.7,
-                  }}
-                >
-                  Respuestas para propietarios y operadores de aeronaves sobre monetización, publicación de vuelos y gestión de operaciones.
-                </p>
-              </div>
-
-              <Accordion items={faqPropietarios} />
-            </m.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Sección Contacto - Multistep Form */}
-      <section
-        id="contacto"
-        className={`snap-start h-screen relative flex flex-col justify-center ${sectionPadding}`}
-        style={{ backgroundColor: "#F6F6F4" }}
-      >
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-12">
-          {/* Header */}
-          {contactStep !== 4 && (
-            <SectionHeader
-              title="Hablemos"
-              subtitle="Cuéntanos qué necesitas y te contactamos personalmente"
-              align="center"
-              size="page"
-            />
-          )}
-
-          {/* Form Container */}
-          <div className="w-full relative flex items-center gap-8">
-            {/* Left Arrow */}
-            {contactStep !== 4 && (
-              <IconButton
-                onClick={() => {
-                  setContactStep((prev) => Math.max(1, prev - 1));
-                  setSubmitError(null);
-                }}
-                disabled={contactStep === 1 || isSubmitting}
-                icon={<ChevronLeft size={32} strokeWidth={1} style={{ color: "#39424E" }} />}
-                tooltip="Anterior"
-              />
-            )}
-
-            {/* Form Content */}
-            <div className="flex-1 min-h-[400px] flex flex-col items-center justify-center">
-              {/* Step 1: User Type Selection */}
-              {contactStep === 1 && (
-                <m.div
-                  key="step1"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-full flex flex-col items-center gap-8"
-                >
-                  <p
-                    className="text-sm sm:text-base font-normal text-center"
-                    style={{
-                      color: "#39424E",
-                      opacity: 0.8,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    ¿Qué te gustaría hacer en Mobius Fly?
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
-                    <SelectionCard
-                      title="Reservar un vuelo"
-                      description="Explorar vuelos privados disponibles"
-                      isSelected={contactData.userType === "reservar"}
-                      onClick={() => {
-                        setContactData({ ...contactData, userType: "reservar" });
-                        setContactStep(2);
-                      }}
-                    />
-
-                    <SelectionCard
-                      title="Administrar mis vuelos"
-                      description="Soy operador o propietario de aeronaves"
-                      isSelected={contactData.userType === "administrar"}
-                      onClick={() => {
-                        setContactData({ ...contactData, userType: "administrar" });
-                        setContactStep(2);
-                      }}
-                    />
-                  </div>
-                </m.div>
-              )}
-
-              {/* Step 2: Contact Information */}
-              {contactStep === 2 && (
-                <m.div
-                  key="step2"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-full flex flex-col items-center gap-8"
-                >
-                  <p
-                    className="text-sm sm:text-base font-normal text-center"
-                    style={{
-                      color: "#39424E",
-                      opacity: 0.8,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    ¿Cómo podemos contactarte?
-                  </p>
-
-                  <div className="w-full flex flex-col gap-4">
-                    <InputGroup
-                      label="Nombre"
-                      type="text"
-                      value={contactData.name}
-                      onChange={(e) => setContactData({ ...contactData, name: e.target.value })}
-                      required
-                    />
-
-                    <InputGroup
-                      label="Correo"
-                      type="email"
-                      value={contactData.email}
-                      onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
-                      required
-                    />
-
-                    <InputGroup
-                      label="Número telefónico (opcional)"
-                      type="tel"
-                      value={contactData.phone}
-                      onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
-                    />
-                  </div>
-                </m.div>
-              )}
-
-              {/* Step 3: Additional Message */}
-              {contactStep === 3 && (
-                <m.div
-                  key="step3"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-full flex flex-col items-center gap-8"
-                >
-                  <p
-                    className="text-sm sm:text-base font-normal text-center"
-                    style={{
-                      color: "#39424E",
-                      opacity: 0.8,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    ¿Hay algo más qué quieras contarnos?
-                  </p>
-
-                  <Textarea
-                    value={contactData.message}
-                    onChange={(e) => setContactData({ ...contactData, message: e.target.value })}
-                    rows={6}
-                    className="resize-none"
-                  />
-
-                  {submitError && (
-                    <div
-                      className="w-full p-4 rounded-lg text-center"
-                      style={{
-                        backgroundColor: "#FEE2E2",
-                        border: "1px solid #FCA5A5",
-                      }}
-                    >
-                      <p
-                        style={{
-                          color: "#991B1B",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {submitError}
-                      </p>
-                    </div>
-                  )}
-                </m.div>
-              )}
-
-              {/* Step 4: Success */}
-              {contactStep === 4 && (
-                <m.div
-                  key="step4"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-full flex flex-col items-center gap-10"
-                >
-                  {/* Success Icon */}
-                  <div
-                    className="rounded-full flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20"
-                    style={{
-                      backgroundColor: "#C4A77D20",
-                    }}
-                  >
-                    <Check size={32} className="sm:w-10 sm:h-10" strokeWidth={2} style={{ color: "#C4A77D" }} />
-                  </div>
-
-                  <div className="flex flex-col items-center gap-3 sm:gap-4 text-center max-w-md px-4">
-                    <h3
-                      className="text-xl sm:text-2xl md:text-3xl font-medium leading-tight"
-                      style={{
-                        color: "#39424E",
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      Hemos recibido tus datos
-                    </h3>
-                    <p
-                      className="text-sm sm:text-base font-normal leading-relaxed"
-                      style={{
-                        color: "#39424E",
-                        opacity: 0.7,
-                      }}
-                    >
-                      Nos pondremos en contacto contigo muy pronto para continuar
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center w-full sm:w-auto px-4">
-                    <Button
-                      variant="link"
-                      icon={<ArrowRight size={16} strokeWidth={1} />}
-                      iconPosition="end"
-                    >
-                      Explorar vuelos
-                    </Button>
-
-                    <span style={{ color: "#E0E0DE" }}>|</span>
-
-                    <Button
-                      variant="link"
-                      icon={<ArrowRight size={16} strokeWidth={1} />}
-                      iconPosition="end"
-                    >
-                      Publicar un vuelo
-                    </Button>
-                  </div>
-                </m.div>
-              )}
-            </div>
-
-            {/* Right Arrow */}
-            {contactStep !== 4 && (
-              <IconButton
-                onClick={async () => {
-                  setSubmitError(null);
-
-                  if (contactStep === 3) {
-                    // Submit form
-                    setIsSubmitting(true);
-                    try {
-                      const response = await fetch("/api/contact", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(contactData),
-                      });
-
-                      if (response.ok) {
-                        setContactStep(4);
-                      } else {
-                        setSubmitError("Error al enviar el formulario. Por favor, intenta de nuevo.");
-                      }
-                    } catch (error) {
-                      setSubmitError("Error de conexión. Verifica tu internet e intenta de nuevo.");
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  } else if (contactStep < 4) {
-                    setContactStep((prev) => prev + 1);
-                  }
-                }}
-                disabled={
-                  (contactStep === 1 && !contactData.userType) ||
-                  (contactStep === 2 && (!contactData.name.trim() || !contactData.email.trim())) ||
-                  (contactStep === 3 && !contactData.message.trim()) ||
-                  isSubmitting
-                }
-                icon={
-                  isSubmitting ? (
-                    <div className="animate-spin">
-                      <Loader2 size={32} strokeWidth={1} style={{ color: "#C4A77D" }} />
-                    </div>
-                  ) : (
-                    <ChevronRight size={32} strokeWidth={1} style={{ color: "#39424E" }} />
-                  )
-                }
-                tooltip={contactStep === 3 ? "Enviar" : "Siguiente"}
-              />
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer
-        id="footer"
-        className="snap-start relative min-h-screen flex items-center justify-center py-16"
-        style={{ backgroundColor: "#39424E" }}
-      >
-        <div className={`w-full flex flex-col gap-12 sm:gap-16 md:gap-20 ${sectionPadding}`}>
-          {/* Top Section - Logo + CTA */}
-          <m.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-            className="flex flex-col items-center gap-6 sm:gap-8 text-center"
-          >
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <Image
-                src="/logo/mobiuswhite-logo.svg"
-                alt="Mobius Fly"
-                width={60}
-                height={60}
-                className="sm:w-20 sm:h-20"
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:gap-4 px-4">
-              <h2
-                className="text-xl sm:text-2xl md:text-3xl font-medium leading-snug"
-                style={{
-                  color: "#F6F6F4",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                La plataforma que une pasajeros y operadores
-              </h2>
-              <p
-                className="text-sm sm:text-base font-normal"
-                style={{
-                  color: "#F6F6F4",
-                  opacity: 0.7,
-                }}
-              >
-                Más valor. Menos intermediarios. Total control
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center w-full sm:w-auto px-4">
-              <Button
-                variant="link"
-                icon={<ArrowRight size={16} strokeWidth={1} />}
-                iconPosition="end"
-                className="!text-background"
-              >
-                Explorar vuelos
-              </Button>
-
-              <span style={{ color: "#F6F6F4", opacity: 0.2 }}>|</span>
-
-              <Button
-                variant="link"
-                icon={<ArrowRight size={16} strokeWidth={1} />}
-                iconPosition="end"
-                className="!text-background"
-              >
-                Publicar un vuelo
-              </Button>
-            </div>
-          </m.div>
-
-          {/* Divider */}
-          <div style={{ height: "1px", backgroundColor: "#F6F6F4", opacity: 0.1 }} />
-
-          {/* Middle Section - Links with Background SVG */}
-          <div className="relative">
-            {/* Background Mobius Fly Logo */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full max-w-5xl" style={{ opacity: 0.15 }}>
-                <Image
-                  src="/assets/mobius-footer.svg"
-                  alt="Mobius Fly"
-                  width={1200}
-                  height={200}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-
-            {/* Links Grid */}
-            <m.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-              viewport={{ once: true, amount: 0.8 }}
-              className="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 max-w-4xl mx-auto py-6 sm:py-8 text-center"
-            >
-              {/* Plataforma */}
-              <div className="flex flex-col gap-3 sm:gap-4 items-center">
-                <h3
-                  className="text-xs sm:text-sm font-semibold uppercase tracking-wider"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.9,
-                  }}
-                >
-                  Plataforma
-                </h3>
-                <nav className="flex flex-col gap-2 sm:gap-3">
-                  {[
-                    { label: "Vuelos", href: "/flights" },
-                    { label: "Cómo funciona", href: "/how-it-works" },
-                    { label: "Beneficios", href: "/benefits" },
-                    { label: "Contacto", href: "/contact" },
-                  ].map((link) => (
-                    <button
-                      key={link.href}
-                      onClick={() => scrollToSection(link.href)}
-                      className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
-                      style={{
-                        color: "#F6F6F4",
-                        opacity: 0.7,
-                      }}
-                    >
-                      {link.label}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-
-              {/* Recursos */}
-              <div className="flex flex-col gap-3 sm:gap-4 items-center">
-                <h3
-                  className="text-xs sm:text-sm font-semibold uppercase tracking-wider"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.9,
-                  }}
-                >
-                  Recursos
-                </h3>
-                <nav className="flex flex-col gap-3">
-                  {[
-                    { label: "Preguntas frecuentes", href: "/faq" },
-                    { label: "Comparación", href: "/comparison" },
-                  ].map((link) => (
-                    <button
-                      key={link.href}
-                      onClick={() => scrollToSection(link.href)}
-                      className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
-                      style={{
-                        color: "#F6F6F4",
-                        opacity: 0.7,
-                      }}
-                    >
-                      {link.label}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-
-              {/* Legal */}
-              <div className="flex flex-col gap-3 sm:gap-4 items-center">
-                <h3
-                  className="text-xs sm:text-sm font-semibold uppercase tracking-wider"
-                  style={{
-                    color: "#F6F6F4",
-                    opacity: 0.9,
-                  }}
-                >
-                  Legal
-                </h3>
-                <nav className="flex flex-col gap-2 sm:gap-3 items-center">
-                  <a
-                    href="#"
-                    className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
-                    style={{
-                      color: "#F6F6F4",
-                      opacity: 0.7,
-                    }}
-                  >
-                    Privacidad
-                  </a>
-                  <a
-                    href="#"
-                    className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
-                    style={{
-                      color: "#F6F6F4",
-                      opacity: 0.7,
-                    }}
-                  >
-                    Términos
-                  </a>
-                </nav>
-              </div>
-            </m.div>
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: "1px", backgroundColor: "#F6F6F4", opacity: 0.1 }} />
-
-          {/* Bottom Section - Copyright */}
-          <m.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, amount: 0.8 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center"
-          >
-            <p
-              className="text-xs sm:text-sm font-normal"
-              style={{
-                color: "#F6F6F4",
-                opacity: 0.6,
-              }}
-            >
-              © 2025 Mobius Fly. Todos los derechos reservados.
-            </p>
-            <a
-              href="https://www.amoxtli.tech"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
-              style={{
-                color: "#F6F6F4",
-                opacity: 0.6,
-              }}
-            >
-              Powered by Amoxtli®
-            </a>
-          </m.div>
-        </div>
-      </footer>
+      <HeroSection
+        sectionPadding={sectionPadding}
+        currentWordIndex={currentWordIndex}
+        rotatingWords={rotatingWords}
+        activeSection={activeSection}
+        onLogoClick={handleLogoClick}
+        onNavLinkClick={handleNavLinkClick}
+        onLoginClick={handleLoginClick}
+        onSignUpClick={handleSignUpClick}
+        onExploreClick={handleExploreClick}
+      />
+
+      {/* Flight Search Section */}
+      <FlightSearchSection
+        sectionPadding={sectionPadding}
+        flightTripType={flightTripType}
+        onTripTypeChange={setFlightTripType}
+      />
+
+      {/* Features Section */}
+      <FeaturesSection
+        sectionPadding={sectionPadding}
+        userType={userType}
+        featuresData={featuresData}
+        onUserTypeChange={setUserType}
+      />
+
+      {/* Comparison Section */}
+      <ComparisonSection
+        sectionPadding={sectionPadding}
+        comparisonFeatures={comparisonFeatures}
+      />
+
+      {/* Benefits Section */}
+      <BenefitsSection sectionPadding={sectionPadding} />
+
+      {/* FAQ Section */}
+      <FAQSection
+        sectionPadding={sectionPadding}
+        faqCompradores={faqCompradores}
+        faqPropietarios={faqPropietarios}
+      />
+
+      {/* Contact Section */}
+      <ContactSection
+        sectionPadding={sectionPadding}
+        contactStep={contactStep}
+        contactData={contactData}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
+        onContactDataChange={handleContactDataChange}
+        onPrevClick={handleContactPrev}
+        onNextClick={handleContactNext}
+        onContactTypeSelect={handleContactTypeSelect}
+      />
+
+      {/* Footer Section */}
+      <FooterSection
+        sectionPadding={sectionPadding}
+        onScrollToSection={scrollToSection}
+      />
     </div>
     </LazyMotion>
   );
