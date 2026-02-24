@@ -63,4 +63,8 @@ const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
 
 FeatureCard.displayName = "FeatureCard";
 
-export { FeatureCard };
+// Memoize to prevent unnecessary re-renders when parent updates
+const MemoizedFeatureCard = React.memo(FeatureCard);
+MemoizedFeatureCard.displayName = "FeatureCard";
+
+export { MemoizedFeatureCard as FeatureCard };

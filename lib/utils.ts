@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { fontFamily as interFontFamily } from "./fonts";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,6 +7,6 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Default font family for the application.
- * Uses next/font optimized Inter font
+ * Uses SF Pro as the primary font
  */
-export const fontFamily = interFontFamily;
+export const fontFamily = '"SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';

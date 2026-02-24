@@ -15,6 +15,7 @@ import { Button } from "@/components/atoms/Button";
 import { LazyMotion, domAnimation, m, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { FlightSearchCard } from "@/components/organisms/FlightSearchCard";
 import { FeatureCard } from "@/components/molecules/FeatureCard";
@@ -22,11 +23,25 @@ import { Pills } from "@/components/atoms/Pills";
 import { ComparisonTable } from "@/components/organisms/ComparisonTable";
 import { Accordion } from "@/components/molecules/Accordion";
 import { InputGroup } from "@/components/molecules/InputGroup";
+import { SelectionCard } from "@/components/molecules/SelectionCard";
+import { IconButton } from "@/components/atoms/IconButton";
 import { Textarea } from "@/components/atoms/Textarea";
 import { Search, Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet, ArrowRight, Play, Plane, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Mapa de hrefs a section IDs
+const sectionMap: Record<string, string> = {
+  "/flights": "vuelos",
+  "/how-it-works": "como-funciona",
+  "/benefits": "beneficios",
+  "/comparison": "comparacion",
+  "/faq": "preguntas-frecuentes",
+  "/contact": "contacto",
+};
+
 export default function Home() {
+  const router = useRouter();
+
   // Padding consistente para toda la landing
   const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
 
@@ -111,7 +126,9 @@ export default function Home() {
     }, 2500); // Cambiar cada 2.5 segundos
 
     return () => clearInterval(interval);
-  }, [rotatingWords.length]);
+    // rotatingWords is a constant array, no need for dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -204,16 +221,6 @@ export default function Home() {
     if (section && scrollContainerRef.current) {
       section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  };
-
-  // Mapa de hrefs a section IDs
-  const sectionMap: Record<string, string> = {
-    "/flights": "vuelos",
-    "/how-it-works": "como-funciona",
-    "/benefits": "beneficios",
-    "/comparison": "comparacion",
-    "/faq": "preguntas-frecuentes",
-    "/contact": "contacto",
   };
 
   // Comparison table data
@@ -374,6 +381,8 @@ export default function Home() {
             const sectionId = sectionMap[href];
             if (sectionId) scrollToSection(sectionId);
           }}
+          onLoginClick={() => router.push("/login")}
+          onSignUpClick={() => router.push("/register")}
         />
       </div>
 
@@ -428,6 +437,8 @@ export default function Home() {
               const sectionId = sectionMap[href];
               if (sectionId) scrollToSection(sectionId);
             }}
+            onLoginClick={() => router.push("/login")}
+            onSignUpClick={() => router.push("/register")}
           />
         </div>
 
@@ -1144,19 +1155,15 @@ export default function Home() {
           <div className="w-full relative flex items-center gap-8">
             {/* Left Arrow */}
             {contactStep !== 4 && (
-              <button
+              <IconButton
                 onClick={() => {
                   setContactStep((prev) => Math.max(1, prev - 1));
                   setSubmitError(null);
                 }}
                 disabled={contactStep === 1 || isSubmitting}
-                className="group relative transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110"
-              >
-                <ChevronLeft size={32} strokeWidth={1} style={{ color: "#39424E" }} />
-                <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-secondary text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  Anterior
-                </span>
-              </button>
+                icon={<ChevronLeft size={32} strokeWidth={1} style={{ color: "#39424E" }} />}
+                tooltip="Anterior"
+              />
             )}
 
             {/* Form Content */}
@@ -1183,89 +1190,25 @@ export default function Home() {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
-                    <button
+                    <SelectionCard
+                      title="Reservar un vuelo"
+                      description="Explorar vuelos privados disponibles"
+                      isSelected={contactData.userType === "reservar"}
                       onClick={() => {
                         setContactData({ ...contactData, userType: "reservar" });
                         setContactStep(2);
                       }}
-                      className={cn(
-                        "group p-6 sm:p-8 rounded-2xl bg-white hover:shadow-hover transition-all flex flex-col items-start gap-2 sm:gap-3 text-left border",
-                        contactData.userType === "reservar"
-                          ? "border-primary"
-                          : "border-border hover:border-primary"
-                      )}
-                    >
-                      <h3
-                        className={cn(
-                          "transition-colors text-base sm:text-lg md:text-xl font-medium",
-                          contactData.userType === "reservar"
-                            ? "!text-primary"
-                            : "group-hover:!text-primary"
-                        )}
-                        style={{
-                          color: "#39424E",
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        Reservar un vuelo
-                      </h3>
-                      <p
-                        className={cn(
-                          "transition-colors text-xs sm:text-sm font-normal leading-relaxed",
-                          contactData.userType === "reservar"
-                            ? "!text-primary !opacity-100"
-                            : "group-hover:!text-primary group-hover:!opacity-100"
-                        )}
-                        style={{
-                          color: "#39424E",
-                          opacity: 0.7,
-                        }}
-                      >
-                        Explorar vuelos privados disponibles
-                      </p>
-                    </button>
+                    />
 
-                    <button
+                    <SelectionCard
+                      title="Administrar mis vuelos"
+                      description="Soy operador o propietario de aeronaves"
+                      isSelected={contactData.userType === "administrar"}
                       onClick={() => {
                         setContactData({ ...contactData, userType: "administrar" });
                         setContactStep(2);
                       }}
-                      className={cn(
-                        "group p-6 sm:p-8 rounded-2xl bg-white hover:shadow-hover transition-all flex flex-col items-start gap-2 sm:gap-3 text-left border",
-                        contactData.userType === "administrar"
-                          ? "border-primary"
-                          : "border-border hover:border-primary"
-                      )}
-                    >
-                      <h3
-                        className={cn(
-                          "transition-colors text-base sm:text-lg md:text-xl font-medium",
-                          contactData.userType === "administrar"
-                            ? "!text-primary"
-                            : "group-hover:!text-primary"
-                        )}
-                        style={{
-                          color: "#39424E",
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        Administrar mis vuelos
-                      </h3>
-                      <p
-                        className={cn(
-                          "transition-colors text-xs sm:text-sm font-normal leading-relaxed",
-                          contactData.userType === "administrar"
-                            ? "!text-primary !opacity-100"
-                            : "group-hover:!text-primary group-hover:!opacity-100"
-                        )}
-                        style={{
-                          color: "#39424E",
-                          opacity: 0.7,
-                        }}
-                      >
-                        Soy operador o propietario de aeronaves
-                      </p>
-                    </button>
+                    />
                   </div>
                 </m.div>
               )}
@@ -1433,7 +1376,7 @@ export default function Home() {
 
             {/* Right Arrow */}
             {contactStep !== 4 && (
-              <button
+              <IconButton
                 onClick={async () => {
                   setSubmitError(null);
 
@@ -1467,25 +1410,17 @@ export default function Home() {
                   (contactStep === 3 && !contactData.message.trim()) ||
                   isSubmitting
                 }
-                className="group relative transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110"
-              >
-                {isSubmitting ? (
-                  <div className="animate-spin">
-                    <Loader2 size={32} strokeWidth={1} style={{ color: "#C4A77D" }} />
-                  </div>
-                ) : (
-                  <>
-                    <ChevronRight
-                      size={32}
-                      strokeWidth={1}
-                      style={{ color: "#39424E" }}
-                    />
-                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-secondary text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                      {contactStep === 3 ? "Enviar" : "Siguiente"}
-                    </span>
-                  </>
-                )}
-              </button>
+                icon={
+                  isSubmitting ? (
+                    <div className="animate-spin">
+                      <Loader2 size={32} strokeWidth={1} style={{ color: "#C4A77D" }} />
+                    </div>
+                  ) : (
+                    <ChevronRight size={32} strokeWidth={1} style={{ color: "#39424E" }} />
+                  )
+                }
+                tooltip={contactStep === 3 ? "Enviar" : "Siguiente"}
+              />
             )}
           </div>
         </div>

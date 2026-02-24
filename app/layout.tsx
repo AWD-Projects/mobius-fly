@@ -14,7 +14,6 @@ import "../styles/globals.css";
 import { baseMetadata } from "@/lib/seo/metadata";
 import { JsonLdMultiple } from "@/components/seo/JsonLd";
 import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo/json-ld";
-import { inter } from "@/lib/fonts";
 
 // ============================================================================
 // METADATA
@@ -45,7 +44,7 @@ export default function RootLayout({
           ]}
         />
       </head>
-      <body className={`${inter.className} antialiased`}>
+      <body className="antialiased">
         {children}
       </body>
     </html>

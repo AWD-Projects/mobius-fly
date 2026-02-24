@@ -9,20 +9,20 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-primary text-white shadow-soft hover:shadow-hover hover:brightness-95",
+          "bg-primary text-white shadow-soft hover:shadow-hover hover:brightness-110 hover:-translate-y-[1px]",
         secondary:
-          "bg-secondary text-white shadow-soft hover:shadow-hover hover:brightness-95",
+          "bg-secondary text-white shadow-soft hover:shadow-hover hover:brightness-110 hover:-translate-y-[1px]",
         ghost:
-          "text-text border-border hover:bg-neutral/60",
+          "text-text border-border hover:bg-neutral/60 hover:border-text/30",
         link:
-          "border-0 text-primary underline-offset-4 hover:underline",
+          "border-0 text-primary underline-offset-4 hover:underline hover:text-primary/80",
         outline:
-          "border-border bg-transparent text-text hover:bg-neutral/40",
+          "border-border bg-transparent text-text hover:bg-neutral/60 hover:border-text",
       },
       size: {
-        sm: "h-9 px-4 text-sm",
-        md: "h-10 px-5 text-sm",
-        lg: "h-12 px-6 text-base",
+        sm: "h-9 px-4 text-xs",
+        md: "h-10 px-5 text-xs",
+        lg: "h-12 px-6 text-sm",
       },
     },
     defaultVariants: {

@@ -39,4 +39,8 @@ const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps>(
 
 SectionHeader.displayName = "SectionHeader";
 
-export { SectionHeader };
+// Memoize to prevent unnecessary re-renders
+const MemoizedSectionHeader = React.memo(SectionHeader);
+MemoizedSectionHeader.displayName = "SectionHeader";
+
+export { MemoizedSectionHeader as SectionHeader };

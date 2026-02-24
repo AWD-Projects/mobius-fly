@@ -5,15 +5,16 @@ export interface RadioProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {}
 
 const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
-  ({ className, ...props }, ref) => {
-    const [isChecked, setIsChecked] = React.useState(props.checked || false);
-
-    React.useEffect(() => {
-      setIsChecked(!!props.checked);
-    }, [props.checked]);
+  ({ className, checked, defaultChecked, ...props }, ref) => {
+    // Support both controlled and uncontrolled usage
+    const [uncontrolledChecked, setUncontrolledChecked] = React.useState(defaultChecked || false);
+    const isControlled = checked !== undefined;
+    const isChecked = isControlled ? checked : uncontrolledChecked;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setIsChecked(e.target.checked);
+      if (!isControlled) {
+        setUncontrolledChecked(e.target.checked);
+      }
       props.onChange?.(e);
     };
 
@@ -30,6 +31,7 @@ const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
             className
           )}
           ref={ref}
+          checked={isChecked}
           {...props}
           onChange={handleChange}
         />
