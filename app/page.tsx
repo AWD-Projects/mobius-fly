@@ -11,6 +11,7 @@ import { FlightSearchSection } from "./sections/FlightSearchSection";
 import { FeaturesSection } from "./sections/FeaturesSection";
 import { ComparisonSection } from "./sections/ComparisonSection";
 import { BenefitsSection } from "./sections/BenefitsSection";
+import { ExperienceSection } from "./sections/ExperienceSection";
 import { FAQSection } from "./sections/FAQSection";
 import { ContactSection } from "./sections/ContactSection";
 import { FooterSection } from "./sections/FooterSection";
@@ -407,6 +408,9 @@ export default function Home() {
 
       {/* Benefits Section */}
       <BenefitsSection sectionPadding={sectionPadding} />
+
+      {/* Experience Section */}
+      <ExperienceSection sectionPadding={sectionPadding} />
 
       {/* FAQ Section */}
       <FAQSection
