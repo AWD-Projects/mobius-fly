@@ -31,7 +31,7 @@ const Tooltip = React.forwardRef<HTMLDivElement, TooltipProps>(
         {isVisible && (
           <div
             className={cn(
-              "absolute z-50 px-2 py-1 text-[11px] font-normal tracking-[0.01em] text-secondary whitespace-nowrap",
+              "absolute z-50 px-2 py-1 text-caption font-normal tracking-[0.01em] text-secondary whitespace-nowrap",
               "bg-white border border-border rounded-md",
               "animate-in fade-in-0",
               positionClasses[position]

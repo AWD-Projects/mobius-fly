@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { TypeBadge } from "@/components/atoms/TypeBadge";
 
 export interface FlightDetailItem {
   label: string;
@@ -51,19 +52,4 @@ const FlightDetailsGrid = React.forwardRef<HTMLDivElement, FlightDetailsGridProp
 
 FlightDetailsGrid.displayName = "FlightDetailsGrid";
 
-// Badge component for type values
-const TypeBadgeValue: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className,
-}) => (
-  <span
-    className={cn(
-      "inline-flex px-2 py-1 rounded text-caption font-medium bg-neutral/40 text-muted",
-      className
-    )}
-  >
-    {children}
-  </span>
-);
-
-export { FlightDetailsGrid, DetailItem, TypeBadgeValue };
+export { FlightDetailsGrid, DetailItem, TypeBadge as TypeBadgeValue };

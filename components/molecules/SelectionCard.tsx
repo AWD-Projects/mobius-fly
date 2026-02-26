@@ -14,7 +14,7 @@ const SelectionCard = React.forwardRef<HTMLButtonElement, SelectionCardProps>(
       <button
         ref={ref}
         className={cn(
-          "group p-6 sm:p-8 rounded-2xl bg-white hover:shadow-hover transition-all flex flex-col items-start gap-2 sm:gap-3 text-left border",
+          "group p-6 sm:p-8 rounded-md bg-surface hover:shadow-hover transition-all flex flex-col items-start gap-2 sm:gap-3 text-left border",
           isSelected
             ? "border-primary"
             : "border-border hover:border-primary",
@@ -24,29 +24,21 @@ const SelectionCard = React.forwardRef<HTMLButtonElement, SelectionCardProps>(
       >
         <h3
           className={cn(
-            "transition-colors text-base sm:text-lg md:text-xl font-medium",
+            "transition-colors text-body sm:text-h4 font-medium text-text tracking-tight",
             isSelected
               ? "!text-primary"
               : "group-hover:!text-primary"
           )}
-          style={{
-            color: "#39424E",
-            letterSpacing: "-0.01em",
-          }}
         >
           {title}
         </h3>
         <p
           className={cn(
-            "transition-colors text-xs sm:text-sm font-normal leading-relaxed",
+            "transition-colors text-caption sm:text-small font-normal leading-relaxed text-text/70",
             isSelected
               ? "!text-primary !opacity-100"
               : "group-hover:!text-primary group-hover:!opacity-100"
           )}
-          style={{
-            color: "#39424E",
-            opacity: 0.7,
-          }}
         >
           {description}
         </p>

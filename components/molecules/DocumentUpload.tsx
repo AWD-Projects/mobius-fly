@@ -3,6 +3,7 @@
 import * as React from "react";
 import { FilePlus, FileCheck, X, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/atoms/IconButton";
 
 export interface UploadedDocument {
   name: string;
@@ -98,7 +99,7 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
-              "flex flex-col items-center justify-center gap-4 rounded-xl cursor-pointer transition-all",
+              "flex flex-col items-center justify-center gap-4 rounded-md cursor-pointer transition-all",
               "bg-neutral/20 border-2 border-dashed border-border",
               "hover:border-muted hover:bg-neutral/30",
               isDragging && "border-primary bg-primary/5",
@@ -124,11 +125,11 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
           // Loaded state
           <div
             className={cn(
-              "flex items-center gap-3 rounded-xl p-3",
-              "bg-status-active-bg border border-status-active"
+              "flex items-center gap-3 rounded-md p-3",
+              "bg-[#E8F5E9] border border-success"
             )}
           >
-            <FileCheck className="h-6 w-6 text-status-active flex-shrink-0" />
+            <FileCheck className="h-6 w-6 text-success flex-shrink-0" />
             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
               <span className="text-caption font-semibold text-text truncate">
                 {document.name}
@@ -136,14 +137,14 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
               <span className="text-caption text-muted">{document.size}</span>
             </div>
             {onRemove && (
-              <button
-                type="button"
+              <IconButton
+                icon={<X className="h-5 w-5" />}
                 onClick={onRemove}
-                className="p-1 text-status-active hover:text-status-active/70 transition-colors"
+                variant="ghost"
+                size="sm"
                 aria-label="Remove document"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                className="text-success hover:text-success/70"
+              />
             )}
           </div>
         )}

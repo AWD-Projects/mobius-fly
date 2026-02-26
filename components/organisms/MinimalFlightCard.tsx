@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { TypeBadge } from '../atoms/TypeBadge';
 
 export interface MinimalFlightCardProps {
   /** Origin airport code (e.g., "MAD") */
@@ -23,9 +24,9 @@ export interface MinimalFlightCardProps {
 }
 
 const capacityColorStyles = {
-  success: 'text-[#2E7D32]',
-  warning: 'text-[#F57C00]',
-  default: 'text-[#0A0A0A]',
+  success: 'text-success',
+  warning: 'text-warning',
+  default: 'text-text',
 };
 
 export const MinimalFlightCard: React.FC<MinimalFlightCardProps> = ({
@@ -41,8 +42,8 @@ export const MinimalFlightCard: React.FC<MinimalFlightCardProps> = ({
 }) => {
   return (
     <div
-      className={`w-full bg-white rounded-2xl border border-[#E5E5E5] p-6 flex flex-col gap-3 ${
-        onClick ? 'cursor-pointer hover:border-gray-300 transition-colors' : ''
+      className={`w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-3 ${
+        onClick ? 'cursor-pointer hover:border-neutral transition-colors' : ''
       }`}
       onClick={onClick}
     >
@@ -50,57 +51,53 @@ export const MinimalFlightCard: React.FC<MinimalFlightCardProps> = ({
       <div className="flex items-center justify-between gap-4 w-full">
         {/* Origin */}
         <div className="flex flex-col gap-1 flex-1">
-          <div className="text-[#0A0A0A] text-2xl font-bold leading-tight">
+          <div className="text-text text-h3 font-bold leading-tight">
             {originCode}
           </div>
-          <div className="text-[#666666] text-xs font-normal">
+          <div className="text-muted text-caption font-normal">
             {originCity}
           </div>
         </div>
 
         {/* Arrow Icon */}
-        <ArrowRight className="w-5 h-5 text-[#D0D0D0] flex-shrink-0" strokeWidth={1} />
+        <ArrowRight className="w-5 h-5 text-neutral flex-shrink-0" strokeWidth={1} />
 
         {/* Destination */}
         <div className="flex flex-col gap-1 flex-1 items-end">
-          <div className="text-[#0A0A0A] text-2xl font-bold leading-tight">
+          <div className="text-text text-h3 font-bold leading-tight">
             {destinationCode}
           </div>
-          <div className="text-[#666666] text-xs font-normal">
+          <div className="text-muted text-caption font-normal">
             {destinationCity}
           </div>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-full h-px bg-[#F0F0F0]" />
+      <div className="w-full h-px bg-border" />
 
       {/* Details Row */}
       <div className="flex items-start justify-between gap-6">
         {/* Date */}
         <div className="flex flex-col gap-1 flex-1">
-          <div className="text-[#999999] text-[11px] font-medium">Salida</div>
-          <div className="text-[#0A0A0A] text-[13px] font-semibold">
+          <div className="text-muted text-caption font-medium">Salida</div>
+          <div className="text-text text-small font-semibold">
             {departureDateTime}
           </div>
         </div>
 
         {/* Capacity */}
         <div className="flex flex-col gap-1 flex-1">
-          <div className="text-[#999999] text-[11px] font-medium">Disponible</div>
-          <div className={`text-[13px] font-semibold ${capacityColorStyles[capacityColor]}`}>
+          <div className="text-muted text-caption font-medium">Disponible</div>
+          <div className={`text-small font-semibold ${capacityColorStyles[capacityColor]}`}>
             {capacity}
           </div>
         </div>
 
         {/* Flight Type */}
         <div className="flex flex-col gap-1 flex-1">
-          <div className="text-[#999999] text-[11px] font-medium">Tipo</div>
-          <div className="inline-flex">
-            <span className="bg-[#F5F5F5] rounded px-2 py-1 text-[#666666] text-[11px] font-medium">
-              {flightType}
-            </span>
-          </div>
+          <div className="text-muted text-caption font-medium">Tipo</div>
+          <TypeBadge variant="neutral">{flightType}</TypeBadge>
         </div>
       </div>
     </div>

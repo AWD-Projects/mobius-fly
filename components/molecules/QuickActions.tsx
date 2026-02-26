@@ -3,6 +3,7 @@
 import * as React from "react";
 import { LucideIcon, Plus, Plane, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
 
 export interface QuickAction {
   id: string;
@@ -24,21 +25,14 @@ const QuickActionButton: React.FC<{
   const isPrimary = action.variant === "primary";
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={isPrimary ? "secondary" : "outline"}
+      size="md"
       onClick={action.onClick}
-      className={cn(
-        "inline-flex items-center gap-2 h-10 px-4 rounded-xl transition-all",
-        "border font-medium text-small",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
-        isPrimary
-          ? "bg-text text-white border-text hover:bg-secondary"
-          : "bg-transparent text-muted border-border hover:border-neutral hover:text-text"
-      )}
+      icon={<Icon className="h-4 w-4" />}
     >
-      <Icon className="h-4 w-4" />
-      <span>{action.label}</span>
-    </button>
+      {action.label}
+    </Button>
   );
 };
 

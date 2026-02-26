@@ -17,8 +17,8 @@ const ActionLink = React.forwardRef<HTMLButtonElement, ActionLinkProps>(
         ref={ref}
         type="button"
         className={cn(
-          "inline-flex items-center gap-2 text-[13px] font-medium text-[#666666] hover:text-[#0A0A0A] transition-colors cursor-pointer bg-transparent border-none",
-          isIconOnly && "p-1 rounded hover:bg-[#F5F5F5]",
+          "inline-flex items-center gap-2 text-small font-medium text-muted hover:text-text transition-colors cursor-pointer bg-transparent border-none",
+          isIconOnly && "p-1 rounded-sm hover:bg-background",
           className
         )}
         {...props}
