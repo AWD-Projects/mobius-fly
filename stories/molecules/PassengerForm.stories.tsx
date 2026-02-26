@@ -22,7 +22,7 @@ export const AdultPassenger: Story = {
   args: {
     title: "Adulto – Pasajero 1",
     passengerType: "adult",
-    data: {
+    defaultValues: {
       fullName: "Maria Garcia",
       sex: "female",
       dateOfBirth: "1985-03-15",
@@ -43,7 +43,7 @@ export const MinorPassenger: Story = {
   args: {
     title: "Menor – Pasajero 3",
     passengerType: "minor",
-    data: {
+    defaultValues: {
       fullName: "Pablo Garcia",
       sex: "male",
       dateOfBirth: "2015-06-20",
@@ -65,7 +65,6 @@ export const EmptyForm: Story = {
   args: {
     title: "Adulto – Pasajero 2",
     passengerType: "adult",
-    data: {},
   },
   decorators: [
     (Story) => (
@@ -77,38 +76,20 @@ export const EmptyForm: Story = {
 };
 
 const InteractiveForm = () => {
-  const [data, setData] = useState<Partial<PassengerFormData>>({});
-
-  const handleDocumentUpload = (file: File) => {
-    setData((prev) => ({
-      ...prev,
-      document: {
-        name: file.name,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      },
-    }));
-  };
-
-  const handleDocumentRemove = () => {
-    setData((prev) => ({
-      ...prev,
-      document: undefined,
-    }));
-  };
+  const [submitted, setSubmitted] = useState<PassengerFormData | null>(null);
 
   return (
     <div className="w-[600px]">
       <PassengerForm
         title="Adulto – Pasajero 1"
         passengerType="adult"
-        data={data}
-        onChange={setData}
-        onDocumentUpload={handleDocumentUpload}
-        onDocumentRemove={handleDocumentRemove}
+        onSubmit={setSubmitted}
       />
-      <pre className="mt-4 p-4 bg-neutral/20 rounded-lg text-caption overflow-auto">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+      {submitted && (
+        <pre className="mt-4 p-4 bg-neutral/20 rounded-lg text-caption overflow-auto">
+          {JSON.stringify(submitted, null, 2)}
+        </pre>
+      )}
     </div>
   );
 };
@@ -121,16 +102,16 @@ export const WithDocument: Story = {
   args: {
     title: "Adulto – Pasajero 1",
     passengerType: "adult",
-    data: {
+    defaultValues: {
       fullName: "Maria Garcia",
       sex: "female",
       dateOfBirth: "1985-03-15",
       email: "maria.garcia@email.com",
       phone: "+52 55 1234 5678",
-      document: {
-        name: "ine_maria_garcia.pdf",
-        size: "2.4 MB",
-      },
+    },
+    document: {
+      name: "ine_maria_garcia.pdf",
+      size: "2.4 MB",
     },
   },
   decorators: [
@@ -148,7 +129,7 @@ export const MultiplePassengers: Story = {
       <PassengerForm
         title="Adulto – Pasajero 1"
         passengerType="adult"
-        data={{
+        defaultValues={{
           fullName: "Maria Garcia",
           sex: "female",
           email: "maria.garcia@email.com",
@@ -157,7 +138,7 @@ export const MultiplePassengers: Story = {
       <PassengerForm
         title="Menor – Pasajero 2"
         passengerType="minor"
-        data={{
+        defaultValues={{
           fullName: "Pablo Garcia",
           sex: "male",
           responsibleName: "Maria Garcia",

@@ -1,34 +1,48 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import { Input } from "@/components/atoms/Input";
+import { InputGroup } from "@/components/molecules/InputGroup";
 import { Button } from "@/components/atoms/Button";
+
+const recoverSchema = z.object({
+  email: z.string().min(1, "Correo requerido").refine(
+    (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    { message: "Correo no válido" }
+  ),
+});
+
+type RecoverFormData = z.infer<typeof recoverSchema>;
 
 export default function RecoverPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RecoverFormData>({
+    resolver: zodResolver(recoverSchema),
+  });
+
+  const onSubmit = async (_data: RecoverFormData) => {
     // TODO: Implement password recovery logic
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSubmitted(true);
-    }, 1000);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsSubmitted(true);
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 relative">
       <LazyMotion features={domAnimation} strict>
-        {/* Back Arrow - Fixed to top left corner */}
+        {/* Back Arrow */}
         <m.button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -39,6 +53,7 @@ export default function RecoverPasswordPage() {
         >
           <ArrowLeft size={24} />
         </m.button>
+
         <div className="w-full max-w-[356px] flex flex-col items-center">
           {/* Logo */}
           <m.div
@@ -69,7 +84,6 @@ export default function RecoverPasswordPage() {
           </m.h1>
 
           {isSubmitted ? (
-            /* Success Message */
             <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -89,39 +103,30 @@ export default function RecoverPasswordPage() {
               </Button>
             </m.div>
           ) : (
-            /* Form */
             <m.form
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-              onSubmit={handleSubmit}
+              onSubmit={handleSubmit(onSubmit)}
+              noValidate
               className="w-full space-y-6"
             >
-            {/* Email Input */}
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm text-text">
-                Correo electrónico
-              </label>
-              <Input
-                id="email"
+              <InputGroup
+                label="Correo electrónico"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full"
-                required
+                error={errors.email?.message}
+                {...register("email")}
               />
-            </div>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              variant="secondary"
-              size="lg"
-              isLoading={isLoading}
-              className="w-full mt-8"
-            >
-              Recuperar contraseña
-            </Button>
+              <Button
+                type="submit"
+                variant="secondary"
+                size="lg"
+                isLoading={isSubmitting}
+                className="w-full mt-8"
+              >
+                Recuperar contraseña
+              </Button>
             </m.form>
           )}
         </div>

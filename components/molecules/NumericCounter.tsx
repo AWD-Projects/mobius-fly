@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/atoms/IconButton";
 
 export interface NumericCounterProps {
   value: number;
@@ -37,38 +38,28 @@ const NumericCounter = React.forwardRef<HTMLDivElement, NumericCounterProps>(
     return (
       <div ref={ref} className={cn("flex flex-col gap-3", className)}>
         {label && (
-          <span className="text-xs font-medium text-muted">{label}</span>
+          <span className="text-caption font-medium text-muted">{label}</span>
         )}
         <div className="inline-flex items-center gap-3">
-          <button
-            type="button"
+          <IconButton
+            icon={<Minus size={14} className="text-text" />}
             onClick={handleDecrement}
             disabled={!canDecrement}
+            variant="outline"
+            size="sm"
             aria-label="Disminuir valor"
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-md border border-border bg-neutral/30 transition-colors",
-              "hover:bg-neutral/50 active:bg-neutral/60",
-              "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-neutral/30"
-            )}
-          >
-            <Minus size={14} className="text-text" />
-          </button>
-          <span className="min-w-[2ch] text-center text-sm font-semibold text-text">
+          />
+          <span className="min-w-[2ch] text-center text-small font-semibold text-text">
             {value}
           </span>
-          <button
-            type="button"
+          <IconButton
+            icon={<Plus size={14} className="text-text" />}
             onClick={handleIncrement}
             disabled={!canIncrement}
+            variant="outline"
+            size="sm"
             aria-label="Aumentar valor"
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-md border border-border bg-neutral/30 transition-colors",
-              "hover:bg-neutral/50 active:bg-neutral/60",
-              "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-neutral/30"
-            )}
-          >
-            <Plus size={14} className="text-text" />
-          </button>
+          />
         </div>
       </div>
     );
