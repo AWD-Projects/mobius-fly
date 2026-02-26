@@ -55,6 +55,9 @@ export type {
   DropdownMenuSeparatorProps,
 } from "./DropdownMenu";
 
+export { ToastProvider, toast } from "./Toast";
+export type { ToastProviderProps, ToastPosition, ToastPromiseOptions } from "./Toast";
+
 export {
   Skeleton,
   SkeletonText,
