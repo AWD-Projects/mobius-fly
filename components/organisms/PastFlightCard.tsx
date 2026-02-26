@@ -1,7 +1,9 @@
 import React from 'react';
+import { Button } from '../atoms/Button';
+import { StatusBadge, type StatusBadgeVariant } from '../molecules/StatusBadge';
 
 export interface PastFlightCardProps {
-  /** Flight route (e.g., "París → Barcelona") */
+  /** Flight route (e.g., "Paris -> Barcelona") */
   route: string;
   /** Flight date */
   date: string;
@@ -19,22 +21,10 @@ export interface PastFlightCardProps {
   buttonText?: string;
 }
 
-const statusStyles = {
-  completed: {
-    bg: 'bg-[#F0F0F0]',
-    text: 'text-[#666666]',
-    dot: 'bg-[#999999]',
-  },
-  cancelled: {
-    bg: 'bg-[#FFEBEE]',
-    text: 'text-[#C62828]',
-    dot: 'bg-[#C62828]',
-  },
-  delayed: {
-    bg: 'bg-[#FFF8E1]',
-    text: 'text-[#F57C00]',
-    dot: 'bg-[#F57C00]',
-  },
+const statusVariantMap: Record<NonNullable<PastFlightCardProps['statusVariant']>, StatusBadgeVariant> = {
+  completed: 'completed',
+  cancelled: 'rejected',
+  delayed: 'warning',
 };
 
 export const PastFlightCard: React.FC<PastFlightCardProps> = ({
@@ -47,19 +37,18 @@ export const PastFlightCard: React.FC<PastFlightCardProps> = ({
   onDetailsClick,
   buttonText = 'Ver detalles',
 }) => {
-  const statusStyle = statusStyles[statusVariant];
 
   return (
-    <div className="w-full max-w-full h-[140px] rounded-2xl bg-white border border-[#E5E5E5] overflow-hidden flex">
+    <div className="w-full max-w-full h-[140px] rounded-md bg-surface border border-border overflow-hidden flex">
       {/* Image Section */}
       <div className="w-[180px] h-full flex-shrink-0">
         {imageUrl ? (
           <div
-            className="w-full h-full bg-cover bg-center rounded-l-2xl"
+            className="w-full h-full bg-cover bg-center rounded-l-md"
             style={{ backgroundImage: `url(${imageUrl})` }}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 rounded-l-2xl" />
+          <div className="w-full h-full bg-gradient-to-br from-neutral to-muted/30 rounded-l-md" />
         )}
       </div>
 
@@ -69,32 +58,31 @@ export const PastFlightCard: React.FC<PastFlightCardProps> = ({
         <div className="flex items-start justify-between gap-4">
           {/* Route Section */}
           <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-            <h3 className="text-[#0A0A0A] text-[15px] font-semibold leading-tight">
+            <h3 className="text-text text-body font-semibold leading-tight">
               {route}
             </h3>
-            <div className="flex items-center gap-3 text-[#999999]">
-              <span className="text-xs font-normal">{date}</span>
-              <span className="text-[#D0D0D0] text-xs font-normal">•</span>
-              <span className="text-xs font-normal">{timeRange}</span>
+            <div className="flex items-center gap-3 text-muted">
+              <span className="text-caption font-normal">{date}</span>
+              <span className="text-neutral text-caption font-normal">&#8226;</span>
+              <span className="text-caption font-normal">{timeRange}</span>
             </div>
           </div>
 
           {/* Status Badge */}
-          <div className={`${statusStyle.bg} rounded-md px-3 py-2 flex items-center gap-2 flex-shrink-0`}>
-            <div className={`w-2 h-2 rounded ${statusStyle.dot}`} />
-            <span className={`${statusStyle.text} text-xs font-medium`}>
-              {status}
-            </span>
-          </div>
+          <StatusBadge status={statusVariantMap[statusVariant]} className="flex-shrink-0">
+            {status}
+          </StatusBadge>
         </div>
 
         {/* Bottom: Button */}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onDetailsClick}
-          className="w-[130px] h-9 border border-[#E5E5E5] rounded-lg text-[#666666] text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
+          className="w-[130px]"
         >
           {buttonText}
-        </button>
+        </Button>
       </div>
     </div>
   );

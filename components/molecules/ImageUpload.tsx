@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ImagePlus, X, Edit2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/atoms/IconButton";
 
 export interface UploadedImage {
   name: string;
@@ -104,7 +105,7 @@ const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
-              "flex flex-col items-center justify-center gap-4 rounded-xl cursor-pointer transition-all",
+              "flex flex-col items-center justify-center gap-4 rounded-md cursor-pointer transition-all",
               "bg-neutral/20 border-2 border-dashed border-border",
               "hover:border-muted hover:bg-neutral/30",
               isDragging && "border-primary bg-primary/5",
@@ -127,11 +128,11 @@ const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
           </div>
         ) : (
           // Loaded state with preview
-          <div className="flex flex-col rounded-xl border border-border bg-surface overflow-hidden">
+          <div className="flex flex-col rounded-md border border-border bg-surface overflow-hidden">
             {/* Image preview */}
             <div
               className={cn(
-                "relative bg-neutral/30 rounded-t-xl overflow-hidden",
+                "relative bg-neutral/30 rounded-t-md overflow-hidden",
                 aspectRatioClass
               )}
               style={
@@ -157,34 +158,34 @@ const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
 
               <div className="flex items-center gap-2">
                 {onEdit && (
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={<Edit2 className="h-4 w-4" />}
                     onClick={onEdit}
-                    className="p-1.5 text-muted hover:text-text transition-colors"
+                    variant="ghost"
+                    size="sm"
                     aria-label="Edit image"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
+                    className="text-muted hover:text-text"
+                  />
                 )}
                 {onDownload && (
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={<Download className="h-4 w-4" />}
                     onClick={onDownload}
-                    className="p-1.5 text-muted hover:text-text transition-colors"
+                    variant="ghost"
+                    size="sm"
                     aria-label="Download image"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
+                    className="text-muted hover:text-text"
+                  />
                 )}
                 {onRemove && (
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={<X className="h-4 w-4" />}
                     onClick={onRemove}
-                    className="p-1.5 text-muted hover:text-error transition-colors"
+                    variant="ghost"
+                    size="sm"
                     aria-label="Remove image"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                    className="text-muted hover:text-error"
+                  />
                 )}
               </div>
             </div>

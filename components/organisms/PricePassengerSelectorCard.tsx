@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Button } from '../atoms/Button';
+import { NumericCounter } from '../molecules/NumericCounter';
 
 export interface PricePassengerSelectorCardProps {
   /** Price per seat */
@@ -37,99 +38,58 @@ export const PricePassengerSelectorCard: React.FC<PricePassengerSelectorCardProp
     maximumFractionDigits: 0,
   });
 
-  const handleIncrement = (type: 'adults' | 'minors') => {
-    if (totalPassengers >= maxPassengers) return;
-    if (type === 'adults') setAdults(adults + 1);
-    else setMinors(minors + 1);
-  };
-
-  const handleDecrement = (type: 'adults' | 'minors') => {
-    if (type === 'adults' && adults > 0) setAdults(adults - 1);
-    else if (type === 'minors' && minors > 0) setMinors(minors - 1);
-  };
-
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-6 flex flex-col gap-5">
+    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-5">
       {/* Price per seat */}
       <div className="flex flex-col gap-1">
-        <span className="text-[#999999] text-[11px] font-medium">
-          Precio por asiento
-        </span>
-        <span className="text-[#0A0A0A] text-2xl font-bold">
+        <span className="text-muted text-caption font-medium">Precio por asiento</span>
+        <span className="text-text text-h3 font-bold">
           {pricePerSeat} {currency}
         </span>
       </div>
 
-      {/* Divider */}
-      <div className="w-full h-px bg-[#F0F0F0]" />
+      <div className="w-full h-px bg-border" />
 
-      {/* Passengers title */}
-      <h4 className="text-[#0A0A0A] text-xs font-semibold">Pasajeros</h4>
+      <h4 className="text-text text-caption font-semibold">Pasajeros</h4>
 
-      {/* Adults Section */}
-      <div className="flex flex-col gap-2">
-        <span className="text-[#999999] text-[11px] font-medium">Adultos</span>
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={() => handleDecrement('adults')}
-            disabled={adults === 0}
-            className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Minus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
-          </button>
-          <span className="text-[#0A0A0A] text-sm font-semibold">{adults}</span>
-          <button
-            onClick={() => handleIncrement('adults')}
-            disabled={totalPassengers >= maxPassengers}
-            className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
-          </button>
-        </div>
-      </div>
+      {/* Adults */}
+      <NumericCounter
+        label="Adultos"
+        value={adults}
+        onChange={setAdults}
+        min={0}
+        max={maxPassengers - minors}
+      />
 
-      {/* Minors Section */}
-      <div className="flex flex-col gap-2">
-        <span className="text-[#999999] text-[11px] font-medium">Menores</span>
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={() => handleDecrement('minors')}
-            disabled={minors === 0}
-            className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Minus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
-          </button>
-          <span className="text-[#0A0A0A] text-sm font-semibold">{minors}</span>
-          <button
-            onClick={() => handleIncrement('minors')}
-            disabled={totalPassengers >= maxPassengers}
-            className="w-9 h-9 rounded-md bg-[#F5F5F5] border border-[#E5E5E5] flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#0A0A0A]" strokeWidth={1} />
-          </button>
-        </div>
-      </div>
+      {/* Minors */}
+      <NumericCounter
+        label="Menores"
+        value={minors}
+        onChange={setMinors}
+        min={0}
+        max={maxPassengers - adults}
+      />
 
-      {/* Divider */}
-      <div className="w-full h-px bg-[#F0F0F0]" />
+      <div className="w-full h-px bg-border" />
 
       {/* Total */}
       <div className="flex flex-col gap-1">
-        <span className="text-[#999999] text-[11px] font-medium">
+        <span className="text-muted text-caption font-medium">
           Total ({totalPassengers} asiento{totalPassengers !== 1 ? 's' : ''})
         </span>
-        <span className="text-[#0A0A0A] text-xl font-bold">
+        <span className="text-text text-h4 font-bold">
           ${totalPrice} {currency}
         </span>
       </div>
 
-      {/* CTA Button */}
-      <button
+      <Button
+        variant="secondary"
+        size="md"
         onClick={() => onContinue?.(adults, minors, `$${totalPrice} ${currency}`)}
-        className="w-full h-10 bg-[#0A0A0A] text-white text-xs font-semibold rounded-lg hover:bg-[#1a1a1a] transition-colors shadow-sm flex items-center justify-center"
+        className="w-full"
       >
         {buttonText}
-      </button>
+      </Button>
     </div>
   );
 };

@@ -15,41 +15,28 @@ const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-2xl p-8 flex flex-col gap-4 transition-all hover:scale-105",
+          "rounded-md p-8 flex flex-col gap-4 transition-all hover:scale-105 bg-white border border-primary min-h-[240px]",
           className
         )}
-        style={{
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #C4A77D",
-          minHeight: "240px",
-        }}
       >
         {/* Icon */}
         <div className="flex-shrink-0">
           <Icon
             size={28}
             strokeWidth={1}
-            style={{ color: "#C4A77D" }}
+            className="text-primary"
           />
         </div>
 
         {/* Content */}
         <div className="flex flex-col gap-2">
           <h3
-            className="text-base sm:text-lg font-semibold leading-tight"
-            style={{
-              color: "#C4A77D",
-              letterSpacing: "-0.01em",
-            }}
+            className="text-body sm:text-lg font-semibold leading-tight text-primary tracking-tight"
           >
             {title}
           </h3>
           <p
-            className="text-sm font-normal leading-relaxed"
-            style={{
-              color: "#39424E",
-              opacity: 0.7,
-            }}
+            className="text-small font-normal leading-relaxed text-secondary opacity-70"
           >
             {description}
           </p>

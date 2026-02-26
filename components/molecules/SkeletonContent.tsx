@@ -98,7 +98,7 @@ const SkeletonArticle = React.forwardRef<HTMLDivElement, SkeletonArticleProps>(
 
         {/* Author info */}
         {showAuthor && (
-          <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[#F0F0F0]">
+          <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
             <Skeleton variant="circular" width={40} height={40} />
             <div>
               <Skeleton height={14} width={120} className="mb-1" />
@@ -109,7 +109,7 @@ const SkeletonArticle = React.forwardRef<HTMLDivElement, SkeletonArticleProps>(
 
         {/* Featured image */}
         {showImage && (
-          <SkeletonImage aspectRatio="video" className="mb-6 rounded-xl" />
+          <SkeletonImage aspectRatio="video" className="mb-6 rounded-sm" />
         )}
 
         {/* Content paragraphs */}
@@ -151,7 +151,7 @@ const SkeletonForm = React.forwardRef<HTMLDivElement, SkeletonFormProps>(
         {Array.from({ length: fields }).map((_, index) => (
           <div key={index} className="space-y-2">
             {showLabels && <Skeleton height={12} width={80} />}
-            <Skeleton height={44} width="100%" className="rounded-lg" />
+            <Skeleton height={44} width="100%" className="rounded-sm" />
           </div>
         ))}
         <div className={cn(columns === 2 && "col-span-2", "pt-2")}>
@@ -182,7 +182,7 @@ const SkeletonDashboard = React.forwardRef<HTMLDivElement, SkeletonDashboardProp
           {Array.from({ length: statsCount }).map((_, index) => (
             <div
               key={index}
-              className="rounded-2xl border border-[#E5E5E5] bg-white p-5"
+              className="rounded-md border border-border bg-white p-5"
             >
               <Skeleton height={12} width={100} className="mb-4" />
               <Skeleton height={28} width={80} className="mb-2" />
@@ -194,15 +194,15 @@ const SkeletonDashboard = React.forwardRef<HTMLDivElement, SkeletonDashboardProp
         {/* Chart and sidebar */}
         <div className="grid grid-cols-3 gap-6">
           {showChart && (
-            <div className="col-span-2 rounded-2xl border border-[#E5E5E5] bg-white p-5">
+            <div className="col-span-2 rounded-md border border-border bg-white p-5">
               <div className="flex items-center justify-between mb-6">
                 <Skeleton height={18} width={150} />
-                <Skeleton height={32} width={120} className="rounded-lg" />
+                <Skeleton height={32} width={120} className="rounded-sm" />
               </div>
-              <Skeleton height={250} className="rounded-lg" />
+              <Skeleton height={250} className="rounded-sm" />
             </div>
           )}
-          <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
+          <div className="rounded-md border border-border bg-white p-5">
             <Skeleton height={18} width={120} className="mb-4" />
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, index) => (
@@ -220,8 +220,8 @@ const SkeletonDashboard = React.forwardRef<HTMLDivElement, SkeletonDashboardProp
 
         {/* Table */}
         {showTable && (
-          <div className="rounded-2xl border border-[#E5E5E5] bg-white">
-            <div className="p-5 border-b border-[#E5E5E5]">
+          <div className="rounded-md border border-border bg-white">
+            <div className="p-5 border-b border-border">
               <Skeleton height={18} width={180} />
             </div>
             <div className="p-5">
@@ -230,7 +230,7 @@ const SkeletonDashboard = React.forwardRef<HTMLDivElement, SkeletonDashboardProp
                   key={index}
                   className={cn(
                     "flex items-center py-3",
-                    index !== 4 && "border-b border-[#F0F0F0]"
+                    index !== 4 && "border-b border-border"
                   )}
                 >
                   <Skeleton height={14} width={180} className="flex-shrink-0" />
@@ -262,7 +262,7 @@ const SkeletonDetailPage = React.forwardRef<HTMLDivElement, SkeletonDetailPagePr
         <div ref={ref} className={cn("grid grid-cols-3 gap-6", className)} {...props}>
           {/* Main content */}
           <div className="col-span-2 space-y-6">
-            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6">
+            <div className="rounded-md border border-border bg-white p-6">
               <Skeleton height={24} width={200} className="mb-6" />
               <div className="grid grid-cols-2 gap-6">
                 {Array.from({ length: 6 }).map((_, index) => (
@@ -273,14 +273,14 @@ const SkeletonDetailPage = React.forwardRef<HTMLDivElement, SkeletonDetailPagePr
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6">
+            <div className="rounded-md border border-border bg-white p-6">
               <Skeleton height={20} width={150} className="mb-4" />
               <SkeletonText lines={4} />
             </div>
           </div>
           {/* Sidebar */}
           <div className="space-y-6">
-            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
+            <div className="rounded-md border border-border bg-white p-5">
               <Skeleton height={18} width={120} className="mb-4" />
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, index) => (
@@ -291,7 +291,7 @@ const SkeletonDetailPage = React.forwardRef<HTMLDivElement, SkeletonDetailPagePr
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
+            <div className="rounded-md border border-border bg-white p-5">
               <Skeleton height={18} width={100} className="mb-4" />
               <SkeletonButton width="100%" size="lg" />
             </div>
@@ -302,7 +302,7 @@ const SkeletonDetailPage = React.forwardRef<HTMLDivElement, SkeletonDetailPagePr
 
     return (
       <div ref={ref} className={cn("space-y-6", className)} {...props}>
-        <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6">
+        <div className="rounded-md border border-border bg-white p-6">
           <Skeleton height={24} width={250} className="mb-2" />
           <Skeleton height={14} width={180} className="mb-6" />
           <div className="grid grid-cols-3 gap-6">
@@ -314,7 +314,7 @@ const SkeletonDetailPage = React.forwardRef<HTMLDivElement, SkeletonDetailPagePr
             ))}
           </div>
         </div>
-        <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6">
+        <div className="rounded-md border border-border bg-white p-6">
           <Skeleton height={20} width={180} className="mb-4" />
           <SkeletonText lines={5} />
         </div>

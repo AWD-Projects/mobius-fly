@@ -37,7 +37,7 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
       <div
         ref={ref}
         className={cn(
-          "bg-[#E5E5E5]",
+          "bg-border",
           variantClasses[variant],
           animationClasses[animation],
           className
@@ -178,7 +178,7 @@ const SkeletonImage = React.forwardRef<HTMLDivElement, SkeletonImageProps>(
       <Skeleton
         ref={ref}
         className={cn(
-          "rounded-lg",
+          "rounded-sm",
           aspectRatio && aspectRatioClasses[aspectRatio],
           className
         )}
