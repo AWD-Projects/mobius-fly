@@ -31,7 +31,7 @@ export const OneWay: Story = {
     const [tripType, setTripType] = React.useState<"roundtrip" | "oneway">("oneway");
     const [origin, setOrigin] = React.useState("COK");
     const [destination, setDestination] = React.useState("BLR");
-    const [departureDate, setDepartureDate] = React.useState("15 dec");
+    const [departureDate, setDepartureDate] = React.useState("2024-12-15");
     const [passengers, setPassengers] = React.useState(2);
 
     return (
@@ -61,8 +61,8 @@ export const RoundTrip: Story = {
     const [tripType, setTripType] = React.useState<"roundtrip" | "oneway">("roundtrip");
     const [origin, setOrigin] = React.useState("COK");
     const [destination, setDestination] = React.useState("BLR");
-    const [departureDate, setDepartureDate] = React.useState("15 dec");
-    const [returnDate, setReturnDate] = React.useState("22 dec");
+    const [departureDate, setDepartureDate] = React.useState("2024-12-15");
+    const [returnDate, setReturnDate] = React.useState("2024-12-22");
     const [passengers, setPassengers] = React.useState(2);
 
     return (
@@ -94,8 +94,8 @@ export const Interactive: Story = {
     const [tripType, setTripType] = React.useState<"roundtrip" | "oneway">("oneway");
     const [origin, setOrigin] = React.useState("COK");
     const [destination, setDestination] = React.useState("BLR");
-    const [departureDate, setDepartureDate] = React.useState("15 dec");
-    const [returnDate, setReturnDate] = React.useState("22 dec");
+    const [departureDate, setDepartureDate] = React.useState("2024-12-15");
+    const [returnDate, setReturnDate] = React.useState("2024-12-22");
     const [passengers, setPassengers] = React.useState(2);
 
     const handleSwap = () => {
@@ -120,6 +120,7 @@ export const Interactive: Story = {
           onReturnDateChange={setReturnDate}
           onPassengersChange={setPassengers}
           onSwapClick={handleSwap}
+          onSearch={(params) => console.log("Search:", params)}
         />
 
         <div className="text-sm text-gray-600 space-y-1 bg-white p-4 rounded">
@@ -143,7 +144,7 @@ export const BothVariants: Story = {
           tripType="oneway"
           originCode="COK"
           destinationCode="BLR"
-          departureDate="15 dec"
+          departureDate="2024-12-15"
           passengers={2}
         />
       </div>
@@ -153,8 +154,8 @@ export const BothVariants: Story = {
           tripType="roundtrip"
           originCode="COK"
           destinationCode="BLR"
-          departureDate="15 dec"
-          returnDate="22 dec"
+          departureDate="2024-12-15"
+          returnDate="2024-12-22"
           passengers={2}
         />
       </div>

@@ -1,7 +1,8 @@
 import * as React from "react";
 import { ArrowRight } from "lucide-react";
-import { cn, fontFamily } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Pills } from "@/components/atoms/Pills";
+import { NumericCounter } from "@/components/molecules/NumericCounter";
 
 export interface Airport {
   code: string;
@@ -9,21 +10,37 @@ export interface Airport {
   city: string;
 }
 
+/** Typed params passed to onSearch — ready to send to the API */
+export interface FlightSearchParams {
+  tripType: "roundtrip" | "oneway";
+  originCode: string;
+  destinationCode: string;
+  departureDate: string;  // ISO: YYYY-MM-DD
+  returnDate?: string;    // ISO: YYYY-MM-DD — only present for roundtrip
+  passengers: number;
+}
+
 export interface FlightSearchCardProps {
   tripType?: "roundtrip" | "oneway";
   originCode?: string;
   destinationCode?: string;
+  /** ISO date string: YYYY-MM-DD */
   departureDate?: string;
+  /** ISO date string: YYYY-MM-DD */
   returnDate?: string;
   passengers?: number;
   airports?: Airport[];
   onTripTypeChange?: (type: "roundtrip" | "oneway") => void;
   onOriginChange?: (code: string) => void;
   onDestinationChange?: (code: string) => void;
+  /** Receives ISO date string: YYYY-MM-DD */
   onDepartureDateChange?: (date: string) => void;
+  /** Receives ISO date string: YYYY-MM-DD */
   onReturnDateChange?: (date: string) => void;
   onPassengersChange?: (passengers: number) => void;
   onSwapClick?: () => void;
+  /** Called when user submits the search — receives validated params */
+  onSearch?: (params: FlightSearchParams) => void;
   className?: string;
 }
 
@@ -33,9 +50,9 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
       tripType = "roundtrip",
       originCode = "COK",
       destinationCode = "BLR",
-      departureDate = "15 dec",
-      returnDate = "15 dec",
-      passengers = 2,
+      departureDate = "",
+      returnDate = "",
+      passengers = 1,
       airports = [
         { code: "COK", name: "Cochin International", city: "Kochi" },
         { code: "BLR", name: "Kempegowda International", city: "Bangalore" },
@@ -50,16 +67,46 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
       onReturnDateChange,
       onPassengersChange,
       onSwapClick,
+      onSearch,
       className,
     },
     ref
   ) => {
     const [showOriginSelect, setShowOriginSelect] = React.useState(false);
     const [showDestinationSelect, setShowDestinationSelect] = React.useState(false);
-    const [showPassengerSelect, setShowPassengerSelect] = React.useState(false);
+    const [internalPassengers, setInternalPassengers] = React.useState(passengers);
+
+    const handlePassengersChange = (val: number) => {
+      setInternalPassengers(val);
+      onPassengersChange?.(val);
+    };
 
     const departureDateRef = React.useRef<HTMLInputElement>(null);
     const returnDateRef = React.useRef<HTMLInputElement>(null);
+
+    /** Format ISO date (YYYY-MM-DD) to display string (e.g. "15 dic") */
+    const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    const formatDate = (iso?: string) => {
+      if (!iso) return "Seleccionar";
+      const parts = iso.split("-");
+      if (parts.length !== 3) return "Seleccionar";
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      if (isNaN(month) || isNaN(day) || month < 1 || month > 12) return "Seleccionar";
+      return `${day} ${MONTHS[month - 1]}`;
+    };
+
+    const handleSearch = () => {
+      if (!originCode || !destinationCode || !departureDate) return;
+      onSearch?.({
+        tripType,
+        originCode,
+        destinationCode,
+        departureDate,
+        returnDate: tripType === "roundtrip" ? returnDate : undefined,
+        passengers: internalPassengers,
+      });
+    };
 
     const handleSwap = () => {
       if (onSwapClick) {
@@ -76,7 +123,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
         ref={ref}
         className={cn("relative", className)}
         style={{
-          width: "878px",
+          width: "920px",
           height: "208px",
           borderRadius: "15px",
           backgroundColor: "#FBFAF9",
@@ -100,14 +147,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
 
         {/* Origen Label */}
         <div className="absolute" style={{ left: "46px", top: "93px" }}>
-          <span
-            style={{
-              fontFamily,
-              fontSize: "13px",
-              fontWeight: 400,
-              color: "#C9CBCD",
-            }}
-          >
+          <span className="text-small font-normal text-muted">
             Origen
           </span>
         </div>
@@ -118,10 +158,9 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
             onClick={() => setShowOriginSelect(!showOriginSelect)}
             className="hover:opacity-80 transition-opacity text-left cursor-pointer"
             style={{
-              fontFamily,
               fontSize: "50px",
               fontWeight: 600,
-              color: "#BF9A62",
+              color: "var(--color-primary)",
             }}
           >
             {originCode}
@@ -131,7 +170,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowOriginSelect(false)} />
               <div
-                className="absolute z-20 mt-2 rounded-lg overflow-hidden"
+                className="absolute z-20 mt-2 rounded-sm overflow-hidden"
                 style={{
                   backgroundColor: "#FBFAF9",
                   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
@@ -147,27 +186,17 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                       onOriginChange?.(airport.code);
                       setShowOriginSelect(false);
                     }}
-                    className="block w-full px-4 py-3 text-left hover:bg-[#EDE7DC] transition-colors"
-                    style={{ borderBottom: "1px solid #f0f0f0" }}
+                    className="block w-full px-4 py-3 text-left hover:bg-primary/10 transition-colors border-b border-border"
                   >
                     <div
+                      className="text-body font-semibold"
                       style={{
-                        fontFamily,
-                        fontSize: "16px",
-                        fontWeight: 600,
-                        color: originCode === airport.code ? "#BF9A62" : "#333",
+                        color: originCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
                       }}
                     >
                       {airport.code}
                     </div>
-                    <div
-                      style={{
-                        fontFamily,
-                        fontSize: "12px",
-                        fontWeight: 400,
-                        color: "#999",
-                      }}
-                    >
+                    <div className="text-caption font-normal text-muted">
                       {airport.city} - {airport.name}
                     </div>
                   </button>
@@ -183,19 +212,12 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
           className="absolute hover:opacity-80 transition-opacity"
           style={{ left: "246px", top: "132px" }}
         >
-          <ArrowRight size={22} style={{ color: "#C39C64" }} />
+          <ArrowRight size={22} className="text-primary" />
         </button>
 
         {/* Destino Label */}
         <div className="absolute" style={{ left: "356px", top: "93px" }}>
-          <span
-            style={{
-              fontFamily,
-              fontSize: "13px",
-              fontWeight: 400,
-              color: "#C9CBCD",
-            }}
-          >
+          <span className="text-small font-normal text-muted">
             Destino
           </span>
         </div>
@@ -206,10 +228,9 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
             onClick={() => setShowDestinationSelect(!showDestinationSelect)}
             className="hover:opacity-80 transition-opacity text-left cursor-pointer"
             style={{
-              fontFamily,
               fontSize: "50px",
               fontWeight: 600,
-              color: "#BF9A62",
+              color: "var(--color-primary)",
             }}
           >
             {destinationCode}
@@ -219,7 +240,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowDestinationSelect(false)} />
               <div
-                className="absolute z-20 mt-2 rounded-lg overflow-hidden"
+                className="absolute z-20 mt-2 rounded-sm overflow-hidden"
                 style={{
                   backgroundColor: "#FBFAF9",
                   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
@@ -235,27 +256,17 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                       onDestinationChange?.(airport.code);
                       setShowDestinationSelect(false);
                     }}
-                    className="block w-full px-4 py-3 text-left hover:bg-[#EDE7DC] transition-colors"
-                    style={{ borderBottom: "1px solid #f0f0f0" }}
+                    className="block w-full px-4 py-3 text-left hover:bg-primary/10 transition-colors border-b border-border"
                   >
                     <div
+                      className="text-body font-semibold"
                       style={{
-                        fontFamily,
-                        fontSize: "16px",
-                        fontWeight: 600,
-                        color: destinationCode === airport.code ? "#BF9A62" : "#333",
+                        color: destinationCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
                       }}
                     >
                       {airport.code}
                     </div>
-                    <div
-                      style={{
-                        fontFamily,
-                        fontSize: "12px",
-                        fontWeight: 400,
-                        color: "#999",
-                      }}
-                    >
+                    <div className="text-caption font-normal text-muted">
                       {airport.city} - {airport.name}
                     </div>
                   </button>
@@ -267,14 +278,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
 
         {/* Salida Label */}
         <div className="absolute" style={{ left: "528px", top: "91px" }}>
-          <span
-            style={{
-              fontFamily,
-              fontSize: "13px",
-              fontWeight: 400,
-              color: "#C9CBCD",
-            }}
-          >
+          <span className="text-small font-normal text-muted">
             Salida
           </span>
         </div>
@@ -284,24 +288,15 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
           <input
             ref={departureDateRef}
             type="date"
-            onChange={(e) => {
-              const date = new Date(e.target.value);
-              const formatted = `${date.getDate()} ${date.toLocaleDateString("es", { month: "short" })}`;
-              onDepartureDateChange?.(formatted);
-            }}
+            onChange={(e) => onDepartureDateChange?.(e.target.value)}
             className="opacity-0 pointer-events-none absolute"
           />
           <button
             onClick={() => departureDateRef.current?.showPicker()}
-            className="hover:opacity-80 transition-opacity text-left cursor-pointer"
-            style={{
-              fontFamily,
-              fontSize: "17px",
-              fontWeight: 400,
-              color: "#BF9A62",
-            }}
+            className="hover:opacity-80 transition-opacity text-left cursor-pointer text-body font-normal"
+            style={{ color: "var(--color-primary)" }}
           >
-            {departureDate}
+            {formatDate(departureDate)}
           </button>
         </div>
 
@@ -309,14 +304,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
         {tripType === "roundtrip" && (
           <>
             <div className="absolute" style={{ left: "642px", top: "91px" }}>
-              <span
-                style={{
-                  fontFamily,
-                  fontSize: "13px",
-                  fontWeight: 400,
-                  color: "#C9CBCD",
-                }}
-              >
+              <span className="text-small font-normal text-muted">
                 Llegada
               </span>
             </div>
@@ -325,24 +313,15 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
               <input
                 ref={returnDateRef}
                 type="date"
-                onChange={(e) => {
-                  const date = new Date(e.target.value);
-                  const formatted = `${date.getDate()} ${date.toLocaleDateString("es", { month: "short" })}`;
-                  onReturnDateChange?.(formatted);
-                }}
+                onChange={(e) => onReturnDateChange?.(e.target.value)}
                 className="opacity-0 pointer-events-none absolute"
               />
               <button
                 onClick={() => returnDateRef.current?.showPicker()}
-                className="hover:opacity-80 transition-opacity text-left cursor-pointer"
-                style={{
-                  fontFamily,
-                  fontSize: "17px",
-                  fontWeight: 400,
-                  color: "#BF9A62",
-                }}
+                className="hover:opacity-80 transition-opacity text-left cursor-pointer text-body font-normal"
+                style={{ color: "var(--color-primary)" }}
               >
-                {returnDate}
+                {formatDate(returnDate)}
               </button>
             </div>
           </>
@@ -350,66 +329,34 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
 
         {/* Pasajeros Label */}
         <div className="absolute" style={{ left: "755px", top: "91px" }}>
-          <span
-            style={{
-              fontFamily,
-              fontSize: "13px",
-              fontWeight: 400,
-              color: "#C9CBCD",
-            }}
-          >
-            Pasajeros
-          </span>
+          <span className="text-small font-normal text-muted">Pasajeros</span>
         </div>
 
-        {/* Pasajeros Select */}
+        {/* Pasajeros Counter */}
         <div className="absolute" style={{ left: "755px", top: "147px" }}>
+          <NumericCounter
+            value={internalPassengers}
+            onChange={handlePassengersChange}
+            min={1}
+            max={12}
+          />
+        </div>
+        {/* Search Button */}
+        {onSearch && (
           <button
-            onClick={() => setShowPassengerSelect(!showPassengerSelect)}
-            className="hover:opacity-80 transition-opacity text-left cursor-pointer"
+            onClick={handleSearch}
+            disabled={!originCode || !destinationCode || !departureDate}
+            className="absolute hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed rounded-sm px-5 py-2 text-small font-semibold"
             style={{
-              fontFamily,
-              fontSize: "17px",
-              fontWeight: 400,
-              color: "#BF9A62",
+              right: "24px",
+              bottom: "24px",
+              backgroundColor: "var(--color-primary)",
+              color: "#ffffff",
             }}
           >
-            {passengers}
+            Buscar vuelos
           </button>
-
-          {showPassengerSelect && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowPassengerSelect(false)} />
-              <div
-                className="absolute z-20 mt-1 rounded-lg overflow-hidden"
-                style={{
-                  backgroundColor: "#FBFAF9",
-                  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
-                  minWidth: "60px",
-                }}
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => {
-                      onPassengersChange?.(num);
-                      setShowPassengerSelect(false);
-                    }}
-                    className="block w-full px-4 py-2 text-left hover:bg-[#EDE7DC] transition-colors"
-                    style={{
-                      fontFamily,
-                      fontSize: "15px",
-                      fontWeight: 400,
-                      color: passengers === num ? "#BF9A62" : "#666",
-                    }}
-                  >
-                    {num}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        )}
       </div>
     );
   }
