@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -128,14 +128,12 @@ export async function POST(request: Request) {
 </html>
     `;
 
-    const msg = {
-      to: process.env.CONTACT_EMAIL || "contact@mobiusfly.com",
-      from: process.env.SENDGRID_FROM_EMAIL || "noreply@mobiusfly.com",
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || "noreply@amoxtli.tech",
+      to: process.env.CONTACT_EMAIL || "contact@amoxtli.tech",
       subject: `Nuevo contacto de ${name} - Mobius Fly`,
       html: htmlContent,
-    };
-
-    await sgMail.send(msg);
+    });
 
     return NextResponse.json(
       { message: "Email sent successfully" },
