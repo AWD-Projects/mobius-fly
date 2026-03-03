@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn, fontFamily } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export interface Pill {
   label: string;
@@ -30,7 +30,7 @@ const Pills = React.forwardRef<HTMLDivElement, PillsProps>(
     ref
   ) => {
     return (
-      <div ref={ref} className={cn("flex items-center", className)} style={{ gap: "16px" }}>
+      <div ref={ref} className={cn("flex items-center gap-4", className)}>
         {pills.map((pill, index) => {
           const isActive = value === pill.value;
           const borderRadius = index === 0 ? "8px" : "10px";
@@ -49,10 +49,8 @@ const Pills = React.forwardRef<HTMLDivElement, PillsProps>(
               }}
             >
               <span
+                className={cn("text-small", isActive ? "font-medium" : "font-normal")}
                 style={{
-                  fontFamily,
-                  fontSize: "13px",
-                  fontWeight: isActive ? 500 : 400,
                   color: isActive ? activeColor : inactiveColor,
                 }}
               >

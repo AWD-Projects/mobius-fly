@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 export type StatusBadgeVariant =
   | "active"
+  | "inactive"
   | "pending"
   | "scheduled"
   | "in-review"
@@ -22,6 +23,11 @@ export interface StatusBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const statusConfig: Record<StatusBadgeVariant, { dot: string; text: string; bg: string }> = {
+  inactive: {
+    dot: "bg-neutral",
+    text: "text-muted",
+    bg: "bg-background",
+  },
   active: {
     dot: "bg-[#2E7D32]",
     text: "text-[#2E7D32]",

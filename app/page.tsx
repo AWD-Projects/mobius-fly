@@ -44,19 +44,7 @@ export default function Home() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   // Flight search state
-  const [flightTripType, setFlightTripType] = useState<"roundtrip" | "oneway">("roundtrip");
 
-  // Contact form state
-  const [contactStep, setContactStep] = useState(1);
-  const [contactData, setContactData] = useState({
-    userType: "",
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Features data por tipo de usuario
   const featuresData = {
@@ -206,45 +194,15 @@ export default function Home() {
   }, []);
 
   // Memoized handlers for better performance
-  const handleContactPrev = useCallback(() => {
-    setContactStep((prev) => Math.max(1, prev - 1));
-    setSubmitError(null);
-  }, []);
-
-  const handleContactNext = useCallback(async () => {
-    setSubmitError(null);
-
-    if (contactStep === 3) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch("/api/contact", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(contactData),
-        });
-
-        if (response.ok) {
-          setContactStep(4);
-        } else {
-          setSubmitError("Error al enviar el formulario. Por favor, intenta de nuevo.");
-        }
-      } catch (error) {
-        setSubmitError("Error de conexión. Verifica tu internet e intenta de nuevo.");
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else if (contactStep < 4) {
-      setContactStep((prev) => prev + 1);
+  const handleContactSubmit = useCallback(async (data: import("./sections/ContactSection").ContactFormData) => {
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error("Error al enviar el formulario. Por favor, intenta de nuevo.");
     }
-  }, [contactStep, contactData]);
-
-  const handleContactTypeSelect = useCallback((type: string) => {
-    setContactData(prev => ({ ...prev, userType: type }));
-    setContactStep(2);
-  }, []);
-
-  const handleContactDataChange = useCallback((data: typeof contactData) => {
-    setContactData(data);
   }, []);
 
   const handleExploreClick = useCallback(() => {
@@ -388,8 +346,6 @@ export default function Home() {
       {/* Flight Search Section */}
       <FlightSearchSection
         sectionPadding={sectionPadding}
-        flightTripType={flightTripType}
-        onTripTypeChange={setFlightTripType}
       />
 
       {/* Features Section */}
@@ -422,14 +378,7 @@ export default function Home() {
       {/* Contact Section */}
       <ContactSection
         sectionPadding={sectionPadding}
-        contactStep={contactStep}
-        contactData={contactData}
-        isSubmitting={isSubmitting}
-        submitError={submitError}
-        onContactDataChange={handleContactDataChange}
-        onPrevClick={handleContactPrev}
-        onNextClick={handleContactNext}
-        onContactTypeSelect={handleContactTypeSelect}
+        onSubmit={handleContactSubmit}
       />
 
       {/* Footer Section */}

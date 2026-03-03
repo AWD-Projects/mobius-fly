@@ -37,14 +37,14 @@ const SkeletonTable = React.forwardRef<HTMLDivElement, SkeletonTableProps>(
       <div
         ref={ref}
         className={cn(
-          "w-full overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white",
+          "w-full overflow-hidden rounded-md border border-border bg-white",
           className
         )}
         {...props}
       >
         {/* Header */}
         {showHeader && (
-          <div className="flex items-center bg-[#FAFAFA] px-6 py-3.5 border-b border-[#E5E5E5]">
+          <div className="flex items-center bg-background px-6 py-3.5 border-b border-border">
             {Array.from({ length: columns }).map((_, index) => (
               <div
                 key={`header-${index}`}
@@ -67,7 +67,7 @@ const SkeletonTable = React.forwardRef<HTMLDivElement, SkeletonTableProps>(
               key={`row-${rowIndex}`}
               className={cn(
                 "flex items-center px-6 py-[18px]",
-                rowIndex !== rows - 1 && "border-b border-[#F0F0F0]"
+                rowIndex !== rows - 1 && "border-b border-border"
               )}
             >
               {Array.from({ length: columns }).map((_, colIndex) => (
@@ -123,7 +123,7 @@ const SkeletonTableRow = React.forwardRef<HTMLDivElement, SkeletonTableRowProps>
         ref={ref}
         className={cn(
           "flex items-center px-6 py-[18px]",
-          !isLast && "border-b border-[#F0F0F0]",
+          !isLast && "border-b border-border",
           className
         )}
         {...props}

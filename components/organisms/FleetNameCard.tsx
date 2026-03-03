@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Input } from '../atoms/Input';
+import { Button } from '../atoms/Button';
 
 export interface FleetNameCardProps {
   /** Card title */
@@ -28,12 +29,12 @@ export const FleetNameCard: React.FC<FleetNameCardProps> = ({
   };
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-6 flex flex-col gap-4">
+    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-4">
       {/* Title */}
-      <h3 className="text-[#0A0A0A] text-sm font-semibold">{title}</h3>
+      <h3 className="text-text text-small font-semibold">{title}</h3>
 
       {/* Label */}
-      <p className="text-[#999999] text-xs font-normal">{label}</p>
+      <p className="text-muted text-caption font-normal">{label}</p>
 
       {/* Input */}
       <Input
@@ -44,12 +45,14 @@ export const FleetNameCard: React.FC<FleetNameCardProps> = ({
       />
 
       {/* Save Button */}
-      <button
+      <Button
+        variant="secondary"
+        size="md"
         onClick={handleSave}
-        className="w-40 h-10 bg-[#0A0A0A] text-white text-[13px] font-semibold rounded-xl hover:bg-[#1a1a1a] transition-colors"
+        className="w-40"
       >
         {buttonText}
-      </button>
+      </Button>
     </div>
   );
 };

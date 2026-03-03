@@ -18,31 +18,31 @@ export interface AttentionSectionCardProps {
 }
 
 export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
-  title = 'Requiere atención',
+  title = 'Requiere atencion',
   items,
   onItemClick,
 }) => {
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-6 flex flex-col gap-5">
+    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-5">
       {/* Header */}
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-[#FFF8E1] flex items-center justify-center">
-          <TriangleAlert className="w-4 h-4 text-[#F57F17]" strokeWidth={1} />
+        <div className="w-8 h-8 rounded-sm bg-[#FFF8E1] flex items-center justify-center">
+          <TriangleAlert className="w-4 h-4 text-warning" strokeWidth={1} />
         </div>
-        <h3 className="text-[#0A0A0A] text-[15px] font-semibold">{title}</h3>
+        <h3 className="text-text text-body font-semibold">{title}</h3>
       </div>
 
       {/* Attention List */}
       <div className="flex flex-col gap-3">
         {items.map((item, index) => {
           const ItemIcon = item.icon;
-          const iconColor = item.iconColor || '#F57F17';
+          const iconColor = item.iconColor || 'var(--color-warning)';
 
           return (
             <button
               key={index}
               onClick={() => onItemClick?.(index)}
-              className="w-full bg-[#FAFAFA] rounded-xl px-4 py-3.5 flex items-center gap-3 hover:bg-gray-100 transition-colors"
+              className="w-full bg-background rounded-sm px-4 py-3.5 flex items-center gap-3 hover:bg-neutral/30 transition-colors"
             >
               <ItemIcon
                 className="w-[18px] h-[18px] flex-shrink-0"
@@ -50,14 +50,14 @@ export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
                 strokeWidth={1}
               />
               <div className="flex flex-col gap-0.5 flex-1 text-left min-w-0">
-                <span className="text-[#0A0A0A] text-[13px] font-medium leading-tight">
+                <span className="text-text text-small font-medium leading-tight">
                   {item.title}
                 </span>
-                <span className="text-[#999999] text-xs font-normal leading-tight">
+                <span className="text-muted text-caption font-normal leading-tight">
                   {item.subtitle}
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#CCCCCC] flex-shrink-0" strokeWidth={1} />
+              <ChevronRight className="w-4 h-4 text-neutral flex-shrink-0" strokeWidth={1} />
             </button>
           );
         })}

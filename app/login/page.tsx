@@ -1,22 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Link from "next/link";
 import Image from "next/image";
 import { LazyMotion, domAnimation, m } from "framer-motion";
-import { Input } from "@/components/atoms/Input";
+import { InputGroup } from "@/components/molecules/InputGroup";
 import { Button } from "@/components/atoms/Button";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const loginSchema = z.object({
+  email: z.string().min(1, "Correo requerido").refine(
+    (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    { message: "Correo no válido" }
+  ),
+  password: z.string().min(1, "Contraseña requerida"),
+});
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+type LoginFormData = z.infer<typeof loginSchema>;
+
+export default function LoginPage() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (_data: LoginFormData) => {
     // TODO: Implement login logic
-    setTimeout(() => setIsLoading(false), 1000);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
   return (
@@ -56,49 +70,33 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-            onSubmit={handleSubmit}
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
             className="w-full space-y-6"
           >
-          {/* Email Input */}
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm text-text">
-              Correo electrónico
-            </label>
-            <Input
-              id="email"
+            <InputGroup
+              label="Correo electrónico"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full"
-              required
+              error={errors.email?.message}
+              {...register("email")}
             />
-          </div>
 
-          {/* Password Input */}
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm text-text">
-              Contraseña
-            </label>
-            <Input
-              id="password"
+            <InputGroup
+              label="Contraseña"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full"
-              required
+              error={errors.password?.message}
+              {...register("password")}
             />
-          </div>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            variant="secondary"
-            size="lg"
-            isLoading={isLoading}
-            className="w-full mt-8"
-          >
-            Iniciar sesión
-          </Button>
+            <Button
+              type="submit"
+              variant="secondary"
+              size="lg"
+              isLoading={isSubmitting}
+              className="w-full mt-8"
+            >
+              Iniciar sesión
+            </Button>
           </m.form>
 
           {/* Forgot Password Link */}
@@ -108,10 +106,7 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
             className="text-center mt-4"
           >
-            <Link
-              href="/recover-password"
-              className="text-sm text-text hover:underline"
-            >
+            <Link href="/recover-password" className="text-sm text-text hover:underline">
               ¿Olvidaste tu contraseña?
             </Link>
           </m.div>

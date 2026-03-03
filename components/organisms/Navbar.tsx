@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn, fontFamily } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/atoms/Avatar";
 import {
   DropdownMenu,
@@ -83,7 +83,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
       logoText = "Mobius Fly",
       navLinks = [
         { label: "Vuelos", href: "/flights" },
-        { label: "Cómo funciona", href: "/how-it-works" },
+        { label: "Como funciona", href: "/how-it-works" },
         { label: "Beneficios", href: "/benefits" },
         { label: "Preguntas frecuentes", href: "/faq" },
         { label: "Contacto", href: "/contact" },
@@ -92,7 +92,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
       userType = "buyer",
       userInitials = "CP",
       backgroundColor = "#1a1a2e",
-      loginButtonText = "Iniciar Sesión",
+      loginButtonText = "Iniciar Sesion",
       signUpButtonText = "Crear cuenta",
       contentPadding = "px-8 2xl:px-80",
       activeHref = "",
@@ -123,7 +123,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
       setMounted(true);
     }, []);
 
-    // Bloquear scroll cuando el menú móvil esté abierto
+    // Bloquear scroll cuando el menu movil este abierto
     React.useEffect(() => {
       if (isMobileMenuOpen) {
         document.body.style.overflow = "hidden";
@@ -136,7 +136,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
       };
     }, [isMobileMenuOpen]);
 
-    // Componente del menú móvil
+    // Componente del menu movil
     const mobileMenu = (
       <LazyMotion features={domAnimation} strict>
       <AnimatePresence>
@@ -146,8 +146,11 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0"
-            style={{ backgroundColor: isHero ? "#090E11" : "#F6F6F4", zIndex: 99999 }}
+            className={cn(
+              "lg:hidden fixed inset-0",
+              isHero ? "bg-secondary" : "bg-background"
+            )}
+            style={{ zIndex: 99999 }}
           >
             <m.div
               initial={{ y: -20, opacity: 0 }}
@@ -158,22 +161,26 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               onClick={(e) => e.stopPropagation()}
             >
             {/* Header with close button */}
-            <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: isHero ? "rgba(246, 246, 244, 0.1)" : "#E0E0DE" }}>
+            <div
+              className={cn(
+                "flex items-center justify-between p-6 border-b",
+                isHero ? "border-white/10" : "border-border"
+              )}
+            >
               <span
-                className="font-bold text-lg"
-                style={{
-                  color: isHero ? "#F6F6F4" : "#39424E",
-                  fontFamily,
-                }}
+                className={cn(
+                  "font-bold text-lg",
+                  isHero ? "text-white" : "text-secondary"
+                )}
               >
                 Menu
               </span>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 transition-opacity hover:opacity-80"
-                style={{
-                  color: isHero ? "#F6F6F4" : "#39424E",
-                }}
+                className={cn(
+                  "p-2 transition-opacity hover:opacity-80",
+                  isHero ? "text-white" : "text-secondary"
+                )}
               >
                 <X size={24} />
               </button>
@@ -191,28 +198,24 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                       setIsMobileMenuOpen(false);
                     }}
                     className={cn(
-                      "text-left px-4 py-3 rounded-lg transition-all",
+                      "text-left px-4 py-3 rounded-sm transition-all text-body",
                       isActive
                         ? isHero
                           ? "bg-white/10"
                           : "bg-primary/10"
                         : isHero
                           ? "hover:bg-white/5"
-                          : "hover:bg-secondary/5"
-                    )}
-                    style={{
-                      color: isActive
+                          : "hover:bg-secondary/5",
+                      isActive ? "font-semibold" : "font-normal",
+                      !isActive && "opacity-80",
+                      isActive
                         ? isHero
-                          ? "#F6F6F4"
-                          : "#C4A77D"
+                          ? "text-white"
+                          : "text-primary"
                         : isHero
-                          ? "#F6F6F4"
-                          : "#39424E",
-                      fontFamily,
-                      fontSize: "15px",
-                      fontWeight: isActive ? 600 : 400,
-                      opacity: isActive ? 1 : 0.8,
-                    }}
+                          ? "text-white"
+                          : "text-secondary"
+                    )}
                   >
                     {link.label}
                   </button>
@@ -221,17 +224,23 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
             </nav>
 
             {/* Bottom CTA Buttons */}
-            <div className="p-6 border-t flex flex-col gap-3" style={{ borderColor: isHero ? "rgba(246, 246, 244, 0.1)" : "#E0E0DE" }}>
+            <div
+              className={cn(
+                "p-6 border-t flex flex-col gap-3",
+                isHero ? "border-white/10" : "border-border"
+              )}
+            >
               <button
                 onClick={() => {
                   onSignUpClick?.();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full px-4 py-3 rounded-lg transition-opacity hover:opacity-90 text-sm font-semibold"
-                style={{
-                  color: isHero ? "#F6F6F4" : "#39424E",
-                  fontFamily,
-                }}
+                className={cn(
+                  "w-full px-4 py-3 rounded-sm transition-all text-small font-semibold",
+                  isHero
+                    ? "text-white hover:bg-white/10"
+                    : "text-secondary hover:bg-secondary/10"
+                )}
               >
                 {signUpButtonText}
               </button>
@@ -240,22 +249,12 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                   onLoginClick?.();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full px-4 py-3 rounded-lg transition-all hover:opacity-90 text-sm font-semibold"
-                style={
+                className={cn(
+                  "w-full px-4 py-3 rounded-sm transition-all text-small font-semibold border",
                   isHero
-                    ? {
-                        color: "#F6F6F4",
-                        fontFamily,
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                      }
-                    : {
-                        color: "#39424E",
-                        fontFamily,
-                        backgroundColor: "transparent",
-                        border: "1px solid #39424E",
-                      }
-                }
+                    ? "text-white bg-white/10 border-white/20 hover:bg-white/20"
+                    : "text-secondary bg-transparent border-secondary hover:bg-secondary/10"
+                )}
               >
                 {loginButtonText}
               </button>
@@ -279,7 +278,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
           {...props}
         >
           {/* Menu Container with proper padding */}
-          <div className={cn("w-full h-[60px] flex items-center justify-between rounded-2xl py-3", contentPadding)}>
+          <div className={cn("w-full h-[60px] flex items-center justify-between rounded-md py-3", contentPadding)}>
 
             {/* Left: Company Logo + Name */}
             <button
@@ -291,14 +290,9 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               </div>
               <span
                 className={cn(
-                  "font-bold whitespace-nowrap text-base sm:text-lg md:text-xl",
-                  isHero ? "" : "text-secondary"
+                  "font-bold whitespace-nowrap text-body sm:text-lg md:text-xl tracking-tight",
+                  isHero ? "text-white" : "text-secondary"
                 )}
-                style={{
-                  color: isHero ? "#F6F6F4" : undefined,
-                  fontFamily,
-                  letterSpacing: "-0.4px",
-                }}
               >
                 {logoText}
               </span>
@@ -313,30 +307,22 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                   key={link.href}
                   onClick={() => onNavLinkClick?.(link.href)}
                   className={cn(
-                    "text-center whitespace-nowrap transition-all relative",
+                    "text-center whitespace-nowrap transition-all relative text-small leading-5 tracking-tight",
                     isHero
-                      ? ""
+                      ? "text-white"
                       : isActive
                         ? "text-primary"
                         : "text-secondary",
-                    isActive ? "opacity-100" : "opacity-70 hover:opacity-100"
+                    isActive ? "opacity-100 font-semibold" : "opacity-70 hover:opacity-100 font-normal"
                   )}
-                  style={{
-                    color: isHero ? "#F6F6F4" : undefined,
-                    fontFamily,
-                    fontSize: "14px",
-                    fontWeight: isActive ? 600 : 400,
-                    letterSpacing: "-0.07px",
-                    lineHeight: "20px",
-                  }}
                 >
                   {link.label}
                   {isActive && (
                     <span
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full"
-                      style={{
-                        backgroundColor: isHero ? "#F6F6F4" : "#C4A77D",
-                      }}
+                      className={cn(
+                        "absolute -bottom-1 left-0 right-0 h-0.5 rounded-full",
+                        isHero ? "bg-white" : "bg-primary"
+                      )}
                     />
                   )}
                 </button>
@@ -352,15 +338,11 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                 <button
                   onClick={onSignUpClick}
                   className={cn(
-                    "hidden md:flex items-center justify-center px-3 md:px-4 py-2 rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity text-sm",
-                    isHero ? "" : "text-secondary"
+                    "hidden md:flex items-center justify-center px-3 md:px-4 py-2 rounded-sm whitespace-nowrap transition-all text-small font-semibold tracking-tight",
+                    isHero
+                      ? "text-white hover:bg-white/10"
+                      : "text-secondary hover:bg-secondary/10"
                   )}
-                  style={{
-                    color: isHero ? "#F6F6F4" : undefined,
-                    fontFamily,
-                    fontWeight: 600,
-                    letterSpacing: "-0.07px",
-                  }}
                 >
                   {signUpButtonText}
                 </button>
@@ -369,25 +351,20 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                 <button
                   onClick={onLoginClick}
                   className={cn(
-                    "hidden sm:flex items-center justify-center px-3 md:px-4 py-2 whitespace-nowrap transition-all rounded-md text-sm",
-                    isHero ? "hover:bg-white/10" : "hover:bg-secondary/10 text-secondary border border-secondary"
+                    "hidden sm:flex items-center justify-center px-3 md:px-4 py-2 whitespace-nowrap transition-all rounded-sm text-small font-medium tracking-tight",
+                    isHero
+                      ? "text-white hover:bg-white/10"
+                      : "hover:bg-secondary/10 text-secondary border border-secondary"
                   )}
                   style={
                     isHero
                       ? {
-                          color: "#F6F6F4",
-                          fontFamily,
-                          fontWeight: 500,
-                          letterSpacing: "-0.07px",
                           backgroundColor: "rgba(255, 255, 255, 0.05)",
                           backdropFilter: "blur(10px)",
                           WebkitBackdropFilter: "blur(10px)",
                           border: "1px solid rgba(255, 255, 255, 0.15)",
                         }
                       : {
-                          fontFamily,
-                          fontWeight: 600,
-                          letterSpacing: "-0.07px",
                           backgroundColor: "transparent",
                         }
                   }
@@ -400,11 +377,8 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   className={cn(
                     "lg:hidden flex items-center justify-center p-2 transition-opacity hover:opacity-80",
-                    isHero ? "" : "text-secondary"
+                    isHero ? "text-white" : "text-secondary"
                   )}
-                  style={{
-                    color: isHero ? "#F6F6F4" : undefined,
-                  }}
                   aria-label="Toggle menu"
                 >
                   {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -440,27 +414,27 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                         Mis aviones
                       </DropdownMenuItem>
                       <DropdownMenuItem icon={BarChart3} onClick={onAnalyticsClick}>
-                        Analíticas
+                        Analiticas
                       </DropdownMenuItem>
                       <DropdownMenuItem icon={Users} onClick={onCrewManagementClick}>
-                        Gestión de tripulación
+                        Gestion de tripulacion
                       </DropdownMenuItem>
                     </>
                   )}
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem icon={CreditCard} onClick={onBillingClick}>
-                    Facturación
+                    Facturacion
                   </DropdownMenuItem>
                   <DropdownMenuItem icon={Bell} onClick={onNotificationsClick}>
                     Notificaciones
                   </DropdownMenuItem>
                   <DropdownMenuItem icon={Settings} onClick={onSettingsClick}>
-                    Configuración
+                    Configuracion
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem icon={LogOut} variant="danger" onClick={onLogoutClick}>
-                    Cerrar sesión
+                    Cerrar sesion
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

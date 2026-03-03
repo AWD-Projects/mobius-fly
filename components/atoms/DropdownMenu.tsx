@@ -107,7 +107,7 @@ const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTrig
         ref={localRef}
         type="button"
         className={cn(
-          "inline-flex items-center justify-center p-1 rounded text-[#666666] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-colors",
+          "inline-flex items-center justify-center p-1 rounded-sm text-muted hover:text-text hover:bg-background transition-colors",
           className
         )}
         onClick={handleClick}
@@ -146,7 +146,7 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
         ref={ref}
         data-dropdown-content
         className={cn(
-          "absolute z-50 min-w-[160px] overflow-hidden rounded-lg border border-[#E5E5E5] bg-white py-1 shadow-lg",
+          "absolute z-50 min-w-[160px] overflow-hidden rounded-sm border border-border bg-white py-1 shadow-lg",
           alignmentClasses[align],
           className
         )}
@@ -183,9 +183,9 @@ const DropdownMenuItem = React.forwardRef<HTMLButtonElement, DropdownMenuItemPro
         type="button"
         role="menuitem"
         className={cn(
-          "flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium transition-colors",
-          variant === "default" && "text-[#666666] hover:bg-[#F5F5F5] hover:text-[#0A0A0A]",
-          variant === "danger" && "text-[#D32F2F] hover:bg-[#FFEBEE]",
+          "flex w-full items-center gap-2 px-3 py-2 text-left text-small font-medium transition-colors",
+          variant === "default" && "text-muted hover:bg-background hover:text-text",
+          variant === "danger" && "text-error hover:bg-error/10",
           className
         )}
         onClick={handleClick}
@@ -207,7 +207,7 @@ const DropdownMenuSeparator = React.forwardRef<HTMLDivElement, DropdownMenuSepar
     return (
       <div
         ref={ref}
-        className={cn("my-1 h-px bg-[#E5E5E5]", className)}
+        className={cn("my-1 h-px bg-border", className)}
         role="separator"
         {...props}
       />

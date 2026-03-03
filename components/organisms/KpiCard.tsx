@@ -1,6 +1,5 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
-import { fontFamily } from '@/lib/utils';
 
 export interface KpiData {
   value: string | number;
@@ -41,16 +40,16 @@ export interface KpiCardProps {
 }
 
 const variantStyles = {
-  dark: '#39424e',
+  dark: 'var(--color-secondary)',
   primary: '#2563eb',
   secondary: '#4b5563',
 };
 
 const badgeColorStyles = {
-  success: 'text-[#4ADE80]',
-  warning: 'text-[#F59E0B]',
-  error: 'text-[#EF4444]',
-  info: 'text-[#3B82F6]',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-error',
+  info: 'text-secondary',
 };
 
 export const KpiCard: React.FC<KpiCardProps> = ({
@@ -81,17 +80,17 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   if (isLoading) {
     return (
       <div
-        className="rounded-2xl p-6 w-[280px] flex flex-col animate-pulse"
-        style={{ backgroundColor: bgColor, gap: '16px' }}
+        className="rounded-md p-6 w-[280px] flex flex-col gap-4 animate-pulse"
+        style={{ backgroundColor: bgColor }}
       >
-        <div className="flex items-center justify-between w-full" style={{ gap: '12px' }}>
-          <div className="w-10 h-10 rounded-[10px] bg-gray-600" />
-          <div className="h-6 w-16 bg-gray-600 rounded-md" />
+        <div className="flex items-center justify-between w-full gap-3">
+          <div className="w-10 h-10 rounded-sm bg-white/10" />
+          <div className="h-6 w-16 bg-white/10 rounded-sm" />
         </div>
-        <div className="h-12 w-20 bg-gray-600 rounded-md" />
-        <div className="flex flex-col" style={{ gap: '2px' }}>
-          <div className="h-4 w-32 bg-gray-600 rounded-md" />
-          <div className="h-3 w-40 bg-gray-600 rounded-md" />
+        <div className="h-12 w-20 bg-white/10 rounded-sm" />
+        <div className="flex flex-col gap-0.5">
+          <div className="h-4 w-32 bg-white/10 rounded-sm" />
+          <div className="h-3 w-40 bg-white/10 rounded-sm" />
         </div>
       </div>
     );
@@ -99,18 +98,18 @@ export const KpiCard: React.FC<KpiCardProps> = ({
 
   return (
     <div
-      className={`rounded-2xl p-6 w-[280px] flex flex-col ${
+      className={`rounded-md p-6 w-[280px] flex flex-col gap-4 ${
         onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''
       }`}
-      style={{ backgroundColor: bgColor, gap: '16px' }}
+      style={{ backgroundColor: bgColor }}
       onClick={onClick}
     >
       {/* Header with Icon and Badge */}
-      <div className="flex items-center justify-between w-full" style={{ gap: '12px' }}>
+      <div className="flex items-center justify-between w-full gap-3">
         {/* Icon Container */}
         {Icon && (
           <div
-            className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: iconBackgroundColor }}
           >
             <Icon className="w-[18px] h-[18px] text-white" strokeWidth={1} />
@@ -120,13 +119,10 @@ export const KpiCard: React.FC<KpiCardProps> = ({
         {/* Badge */}
         {badgeText && (
           <div
-            className="rounded-md"
-            style={{ backgroundColor: badgeBackgroundColor, padding: '4px 8px' }}
+            className="rounded-sm px-2 py-1"
+            style={{ backgroundColor: badgeBackgroundColor }}
           >
-            <span
-              className={`${badgeColorStyles[badgeColor]}`}
-              style={{ fontFamily, fontSize: '11px', fontWeight: 500 }}
-            >
+            <span className={`${badgeColorStyles[badgeColor]} text-caption font-medium`}>
               {badgeText}
             </span>
           </div>
@@ -134,26 +130,17 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       </div>
 
       {/* Main Value */}
-      <div
-        className="text-white leading-none"
-        style={{ fontFamily, fontSize: '48px', fontWeight: 600, letterSpacing: '-2px' }}
-      >
+      <div className="text-white text-h1 font-semibold leading-none tracking-tight">
         {value}
       </div>
 
       {/* Footer */}
-      <div className="flex flex-col" style={{ gap: '2px' }}>
-        <div
-          className="text-white leading-tight"
-          style={{ fontFamily, fontSize: '14px', fontWeight: 500 }}
-        >
+      <div className="flex flex-col gap-0.5">
+        <div className="text-white text-small font-medium leading-tight">
           {title}
         </div>
         {subtitle && (
-          <div
-            className="text-[#999999] leading-tight"
-            style={{ fontFamily, fontSize: '12px', fontWeight: 400 }}
-          >
+          <div className="text-muted text-caption font-normal leading-tight">
             {subtitle}
           </div>
         )}

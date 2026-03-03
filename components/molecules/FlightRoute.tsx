@@ -26,13 +26,13 @@ const FlightRoute = React.forwardRef<HTMLDivElement, FlightRouteProps>(
       >
         {/* Origin */}
         <div className="flex flex-col gap-2 flex-1">
-          <span className="text-[28px] font-bold text-text leading-none">
+          <span className="text-h3 font-bold text-text leading-none">
             {origin.code}
           </span>
-          <span className="text-sm font-normal text-muted">
+          <span className="text-small font-normal text-muted">
             {origin.city}
           </span>
-          <span className="text-xs font-normal text-neutral">
+          <span className="text-caption font-normal text-neutral">
             {origin.airport}
           </span>
         </div>
@@ -44,13 +44,13 @@ const FlightRoute = React.forwardRef<HTMLDivElement, FlightRouteProps>(
 
         {/* Destination */}
         <div className="flex flex-col gap-2 flex-1">
-          <span className="text-[28px] font-bold text-text leading-none">
+          <span className="text-h3 font-bold text-text leading-none">
             {destination.code}
           </span>
-          <span className="text-sm font-normal text-muted">
+          <span className="text-small font-normal text-muted">
             {destination.city}
           </span>
-          <span className="text-xs font-normal text-neutral">
+          <span className="text-caption font-normal text-neutral">
             {destination.airport}
           </span>
         </div>

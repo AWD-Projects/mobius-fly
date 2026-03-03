@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Star } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ComparisonFeature {
@@ -22,71 +22,20 @@ const ComparisonTable = React.forwardRef<HTMLDivElement, ComparisonTableProps>(
         <div className="min-w-[900px]">
           <div>
             {/* Table Header */}
-            <div
-              className="grid grid-cols-5"
-              style={{
-                gap: "24px",
-                padding: "16px 0",
-                borderBottom: "1px solid #E0E0DE",
-                alignItems: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "#39424E",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Característica
+            <div className="grid grid-cols-5 gap-6 py-4 border-b border-border items-center">
+              <div className="text-text text-small font-semibold tracking-tight">
+                Caracteristica
               </div>
-              <div
-                style={{
-                  fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "#C4A77D",
-                  letterSpacing: "-0.01em",
-                }}
-              >
+              <div className="text-primary text-small font-semibold tracking-tight">
                 Mobius Fly
               </div>
-              <div
-                style={{
-                  fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "#39424E",
-                  letterSpacing: "-0.01em",
-                  opacity: 0.6,
-                }}
-              >
+              <div className="text-text/60 text-small font-semibold tracking-tight">
                 Charter Tradicional
               </div>
-              <div
-                style={{
-                  fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "#39424E",
-                  letterSpacing: "-0.01em",
-                  opacity: 0.6,
-                }}
-              >
+              <div className="text-text/60 text-small font-semibold tracking-tight">
                 Tarjeta de Jets
               </div>
-              <div
-                style={{
-                  fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "#39424E",
-                  letterSpacing: "-0.01em",
-                  opacity: 0.6,
-                }}
-              >
+              <div className="text-text/60 text-small font-semibold tracking-tight">
                 Charter Completo
               </div>
             </div>
@@ -95,73 +44,25 @@ const ComparisonTable = React.forwardRef<HTMLDivElement, ComparisonTableProps>(
             {features.map((row, index) => (
               <div
                 key={index}
-                className="grid grid-cols-5"
-                style={{
-                  gap: "24px",
-                  padding: "20px 0",
-                  borderBottom:
-                    index !== features.length - 1 ? "1px solid #E0E0DE" : "none",
-                  alignItems: "center",
-                }}
+                className={cn(
+                  "grid grid-cols-5 gap-6 py-5 items-center",
+                  index !== features.length - 1 && "border-b border-border"
+                )}
               >
-                <div
-                  style={{
-                    fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    color: "#39424E",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
+                <div className="text-text text-small font-medium tracking-tight">
                   {row.feature}
                 </div>
-                <div
-                  className="flex items-center gap-2"
-                  style={{
-                    fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    color: "#C4A77D",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
+                <div className="flex items-center gap-2 text-primary text-small font-medium tracking-tight">
                   <Check size={16} strokeWidth={1} />
                   {row.mobius}
                 </div>
-                <div
-                  style={{
-                    fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                    fontSize: "14px",
-                    fontWeight: 400,
-                    color: "#39424E",
-                    letterSpacing: "-0.01em",
-                    opacity: 0.7,
-                  }}
-                >
+                <div className="text-text/70 text-small font-normal tracking-tight">
                   {row.traditional}
                 </div>
-                <div
-                  style={{
-                    fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                    fontSize: "14px",
-                    fontWeight: 400,
-                    color: "#39424E",
-                    letterSpacing: "-0.01em",
-                    opacity: 0.7,
-                  }}
-                >
+                <div className="text-text/70 text-small font-normal tracking-tight">
                   {row.jetCard}
                 </div>
-                <div
-                  style={{
-                    fontFamily: '"SF Pro Text", "SF Pro Display", -apple-system, sans-serif',
-                    fontSize: "14px",
-                    fontWeight: 400,
-                    color: "#39424E",
-                    letterSpacing: "-0.01em",
-                    opacity: 0.7,
-                  }}
-                >
+                <div className="text-text/70 text-small font-normal tracking-tight">
                   {row.fullCharter}
                 </div>
               </div>

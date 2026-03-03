@@ -1,5 +1,6 @@
 import React from 'react';
 import { Download } from 'lucide-react';
+import { Button } from '../atoms/Button';
 
 export interface SummaryStats {
   total: number;
@@ -41,54 +42,54 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
   onSecondaryAction,
 }) => {
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] shadow-sm overflow-hidden flex flex-col">
+    <div className="w-full bg-surface rounded-md border border-border shadow-soft overflow-hidden flex flex-col">
       {/* Summary Section */}
-      <div className="px-6 py-6 border-b border-[#E5E5E5] flex flex-col gap-4">
-        <h3 className="text-[#0A0A0A] text-[13px] font-semibold">
-          Resumen de ocupación
+      <div className="px-6 py-6 border-b border-border flex flex-col gap-4">
+        <h3 className="text-text text-small font-semibold">
+          Resumen de ocupacion
         </h3>
         <div className="flex gap-4">
-          <div className="flex-1 bg-[#FAFAFA] rounded-md p-4 flex flex-col gap-1">
-            <span className="text-[#0A0A0A] text-[28px] font-medium leading-none">
+          <div className="flex-1 bg-background rounded-sm p-4 flex flex-col gap-1">
+            <span className="text-text text-h3 font-medium leading-none">
               {summary.total}
             </span>
-            <span className="text-[#999999] text-[11px] font-medium">
+            <span className="text-muted text-caption font-medium">
               Asientos totales
             </span>
           </div>
-          <div className="flex-1 bg-[#FAFAFA] rounded-md p-4 flex flex-col gap-1">
-            <span className="text-[#2E7D32] text-[28px] font-medium leading-none">
+          <div className="flex-1 bg-background rounded-sm p-4 flex flex-col gap-1">
+            <span className="text-success text-h3 font-medium leading-none">
               {summary.sold}
             </span>
-            <span className="text-[#999999] text-[11px] font-medium">
+            <span className="text-muted text-caption font-medium">
               Vendidos
             </span>
           </div>
-          <div className="flex-1 bg-[#FAFAFA] rounded-md p-4 flex flex-col gap-1">
-            <span className="text-[#0A0A0A] text-[28px] font-medium leading-none">
+          <div className="flex-1 bg-background rounded-sm p-4 flex flex-col gap-1">
+            <span className="text-text text-h3 font-medium leading-none">
               {summary.available}
             </span>
-            <span className="text-[#999999] text-[11px] font-medium">
+            <span className="text-muted text-caption font-medium">
               Disponibles
             </span>
           </div>
         </div>
-        <div className="bg-[#FAFAFA] rounded-md px-4 py-3 flex items-center justify-between">
-          <span className="text-[#666666] text-[13px] font-normal">
+        <div className="bg-background rounded-sm px-4 py-3 flex items-center justify-between">
+          <span className="text-muted text-small font-normal">
             Precio por asiento
           </span>
-          <span className="text-[#0A0A0A] text-[15px] font-semibold">
+          <span className="text-text text-body font-semibold">
             {summary.pricePerSeat} {summary.currency}
           </span>
         </div>
       </div>
 
       {/* Manifest Section */}
-      <div className="px-6 py-6 border-b border-[#E5E5E5] flex flex-col gap-4">
+      <div className="px-6 py-6 border-b border-border flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-[#0A0A0A] text-[13px] font-semibold">Pasajeros</h3>
-          <div className="bg-[#F5F5F5] rounded px-2 py-1">
-            <span className="text-[#666666] text-[11px] font-medium">
+          <h3 className="text-text text-small font-semibold">Pasajeros</h3>
+          <div className="bg-background rounded-sm px-2 py-1">
+            <span className="text-muted text-caption font-medium">
               {passengers.length} de {summary.total}
             </span>
           </div>
@@ -100,14 +101,14 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
               <div
                 key={index}
                 className={`flex items-center justify-between py-3 ${
-                  !isLast ? 'border-b border-[#F0F0F0]' : ''
+                  !isLast ? 'border-b border-border' : ''
                 }`}
               >
-                <span className="text-[#0A0A0A] text-xs font-medium">
+                <span className="text-text text-caption font-medium">
                   {passenger.name}
                 </span>
                 {passenger.seat && (
-                  <span className="text-[#666666] text-xs font-normal">
+                  <span className="text-muted text-caption font-normal">
                     {passenger.seat}
                   </span>
                 )}
@@ -115,32 +116,36 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
             );
           })}
         </div>
-        <button
+        <Button
+          variant="link"
+          size="sm"
           onClick={onDownloadManifest}
-          className="flex items-center justify-center gap-1.5 pt-3"
+          icon={<Download className="w-3.5 h-3.5" strokeWidth={1} />}
+          className="text-muted"
         >
-          <Download className="w-3.5 h-3.5 text-[#666666]" strokeWidth={1} />
-          <span className="text-[#666666] text-xs font-medium">
-            Descargar manifiesto PDF
-          </span>
-        </button>
+          Descargar manifiesto PDF
+        </Button>
       </div>
 
       {/* Actions Section */}
       <div className="px-6 py-6 flex flex-col gap-4">
-        <h3 className="text-[#0A0A0A] text-[13px] font-semibold">Acciones</h3>
-        <button
+        <h3 className="text-text text-small font-semibold">Acciones</h3>
+        <Button
+          variant="secondary"
+          size="lg"
           onClick={onPrimaryAction}
-          className="w-full h-12 bg-[#0A0A0A] text-white text-sm font-medium rounded-xl hover:bg-[#1a1a1a] transition-colors"
+          className="w-full"
         >
           {primaryActionText}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
+          size="lg"
           onClick={onSecondaryAction}
-          className="w-full h-12 border border-[#E5E5E5] text-[#666666] text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+          className="w-full"
         >
           {secondaryActionText}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import "../styles/globals.css";
 import { baseMetadata } from "@/lib/seo/metadata";
 import { JsonLdMultiple } from "@/components/seo/JsonLd";
 import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo/json-ld";
+import { ToastProvider } from "@/components/atoms/Toast";
 
 // ============================================================================
 // METADATA
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
+        <ToastProvider position="bottom-right" />
       </body>
     </html>
   );
