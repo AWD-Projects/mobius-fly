@@ -58,7 +58,8 @@ const CrewMemberRow = React.forwardRef<HTMLDivElement, CrewMemberRowProps>(
             initials={displayInitials}
             src={avatarUrl}
             size="md"
-            style={{ backgroundColor: avatarColor }}
+            color="#ffffff"
+            bgColor={avatarColor}
           />
           <div className="flex flex-col gap-0.5">
             <span className="text-body font-medium text-text">{name}</span>

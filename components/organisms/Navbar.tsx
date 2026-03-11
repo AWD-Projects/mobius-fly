@@ -387,51 +387,38 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="rounded-full transition-all hover:ring-2 hover:ring-white/20 focus:outline-none focus:ring-2 focus:ring-white/30">
-                    <Avatar initials={userInitials} size="md" />
+                  <button
+                    className="rounded-full transition-all focus:outline-none"
+                    style={isHero ? {
+                      backgroundColor: "rgba(255, 255, 255, 0.05)",
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                    } : undefined}
+                  >
+                    <Avatar
+                      initials={userInitials}
+                      size="md"
+                      bgColor="var(--color-secondary)"
+                      color="#ffffff"
+                    />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem icon={User} onClick={onProfileClick}>
-                    Mi perfil
-                  </DropdownMenuItem>
-
                   {userType === "buyer" ? (
                     <>
-                      <DropdownMenuItem icon={Plane} onClick={onMyFlightsClick}>
-                        Mis vuelos
-                      </DropdownMenuItem>
                       <DropdownMenuItem icon={Calendar} onClick={onMyBookingsClick}>
                         Mis reservas
-                      </DropdownMenuItem>
-                      <DropdownMenuItem icon={FileText} onClick={onDocumentsClick}>
-                        Mis documentos
                       </DropdownMenuItem>
                     </>
                   ) : (
                     <>
                       <DropdownMenuItem icon={Plane} onClick={onMyPlanesClick}>
-                        Mis aviones
-                      </DropdownMenuItem>
-                      <DropdownMenuItem icon={BarChart3} onClick={onAnalyticsClick}>
-                        Analiticas
-                      </DropdownMenuItem>
-                      <DropdownMenuItem icon={Users} onClick={onCrewManagementClick}>
-                        Gestion de tripulacion
+                        Mi Dashboard
                       </DropdownMenuItem>
                     </>
                   )}
 
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem icon={CreditCard} onClick={onBillingClick}>
-                    Facturacion
-                  </DropdownMenuItem>
-                  <DropdownMenuItem icon={Bell} onClick={onNotificationsClick}>
-                    Notificaciones
-                  </DropdownMenuItem>
-                  <DropdownMenuItem icon={Settings} onClick={onSettingsClick}>
-                    Configuracion
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem icon={LogOut} variant="danger" onClick={onLogoutClick}>
                     Cerrar sesion
