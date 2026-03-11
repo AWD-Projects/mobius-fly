@@ -128,10 +128,10 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                 </m.div>
 
                 {/* Main Content — 2 columns */}
-                <div className={`w-full ${sectionPadding} pb-12 flex gap-8 items-start`}>
+                <div className={`w-full ${sectionPadding} pb-12 flex flex-col gap-6 lg:flex-row lg:gap-8 lg:items-start`}>
                     {/* Left Column */}
                     <div className="flex-1 flex flex-col gap-6 min-w-0">
-                        <m.div {...fadeUp(0.1)} className="bg-surface rounded-md border border-border p-8 flex flex-col gap-8">
+                        <m.div {...fadeUp(0.1)} className="bg-surface rounded-md border border-border p-5 sm:p-8 flex flex-col gap-6 sm:gap-8">
                             <FlightRoute
                                 origin={{
                                     code: flight.departure_airport.iata_code,
@@ -177,8 +177,8 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                         </m.div>
                     </div>
 
-                    {/* Right Column — 380px */}
-                    <div className="w-[380px] flex-shrink-0 flex flex-col gap-6">
+                    {/* Right Column */}
+                    <div className="w-full lg:w-[380px] lg:flex-shrink-0 flex flex-col gap-6">
                         <m.div {...fadeUp(0.2)}>
                             <AircraftCardWithImage
                                 model={`${aircraft.manufacturer} ${aircraft.model}`}

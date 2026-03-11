@@ -21,7 +21,7 @@ export const AirportFBOCard: React.FC<AirportFBOCardProps> = ({
   arrival,
 }) => {
   return (
-    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-4">
+    <div className="w-full bg-surface rounded-md border border-border p-4 sm:p-6 flex flex-col gap-4">
       {/* Title */}
       <h3 className="text-text text-body font-semibold">{title}</h3>
 
