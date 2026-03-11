@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { StatusBadge, type StatusBadgeVariant } from '../molecules/StatusBadge';
 
@@ -37,6 +38,7 @@ export const PastFlightCard: React.FC<PastFlightCardProps> = ({
   onDetailsClick,
   buttonText = 'Ver detalles',
 }) => {
+  const [origin, destination] = route.split(' → ');
 
   return (
     <div className="w-full max-w-full h-[140px] rounded-md bg-surface border border-border overflow-hidden flex">
@@ -58,9 +60,13 @@ export const PastFlightCard: React.FC<PastFlightCardProps> = ({
         <div className="flex items-start justify-between gap-4">
           {/* Route Section */}
           <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-            <h3 className="text-text text-body font-semibold leading-tight">
-              {route}
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-text text-body font-semibold leading-tight">{origin}</h3>
+              <ArrowRight size={16} className="text-muted flex-shrink-0" />
+              {destination && (
+                <h3 className="text-text text-body font-semibold leading-tight">{destination}</h3>
+              )}
+            </div>
             <div className="flex items-center gap-3 text-muted">
               <span className="text-caption font-normal">{date}</span>
               <span className="text-neutral text-caption font-normal">&#8226;</span>
