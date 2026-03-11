@@ -62,7 +62,7 @@ export const UpcomingFlightCard: React.FC<UpcomingFlightCardProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-7 pt-6 pb-7 flex flex-col gap-5">
+      <div className="flex-1 px-4 pt-5 pb-5 sm:px-7 sm:pt-6 sm:pb-7 flex flex-col gap-5">
         {/* Route + Status */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-3 flex-1 min-w-0">

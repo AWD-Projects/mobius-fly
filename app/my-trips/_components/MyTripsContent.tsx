@@ -94,7 +94,7 @@ export function MyTripsContent({ upcoming, past }: MyTripsContentProps) {
                 {/* Page Header */}
                 <m.div {...fadeUp(0)} className={`w-full ${sectionPadding} py-10`}>
                     <div className="flex flex-col gap-3">
-                        <h1 className="text-[2rem] font-bold text-text">Mis viajes</h1>
+                        <h1 className="text-2xl sm:text-[2rem] font-bold text-text">Mis viajes</h1>
                         <p className="text-small text-muted">
                             Explora tus próximas aventuras y experiencias privadas de vuelo
                         </p>

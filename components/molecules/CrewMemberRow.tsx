@@ -53,7 +53,7 @@ const CrewMemberRow = React.forwardRef<HTMLDivElement, CrewMemberRowProps>(
         )}
       >
         {/* Left side: Avatar and info */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <Avatar
             initials={displayInitials}
             src={avatarUrl}
@@ -61,19 +61,19 @@ const CrewMemberRow = React.forwardRef<HTMLDivElement, CrewMemberRowProps>(
             color="#ffffff"
             bgColor={avatarColor}
           />
-          <div className="flex flex-col gap-0.5">
-            <span className="text-body font-medium text-text">{name}</span>
-            <span className="text-caption text-muted">{role}</span>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-body font-medium text-text truncate">{name}</span>
+            <span className="text-caption text-muted truncate">{role}</span>
           </div>
         </div>
 
         {/* Right side: License info */}
         {licenseValue && (
-          <div className="flex flex-col items-end gap-0.5">
+          <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-2">
             <span className="text-caption font-medium text-muted">
               {licenseLabel}
             </span>
-            <span className="text-small font-medium text-text">
+            <span className="text-small font-medium text-text text-right break-all max-w-[100px] sm:max-w-none">
               {licenseValue}
             </span>
           </div>

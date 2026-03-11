@@ -45,12 +45,12 @@ export const AircraftCardWithImage: React.FC<AircraftCardWithImageProps> = ({
   const badgeStyle = badgeStyles[badgeVariant];
 
   return (
-    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-5">
+    <div className="w-full bg-surface rounded-md border border-border p-4 sm:p-6 flex flex-col gap-5">
       {/* Title */}
       <h3 className="text-text text-body font-semibold">Aeronave</h3>
 
       {/* Image */}
-      <div className="w-full h-60 rounded-sm overflow-hidden">
+      <div className="w-full h-48 sm:h-60 rounded-sm overflow-hidden">
         {imageUrl ? (
           <div
             className="w-full h-full bg-cover bg-center"
