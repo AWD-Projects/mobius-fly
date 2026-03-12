@@ -93,11 +93,11 @@ export const ContactSection = React.memo<ContactSectionProps>(({
   return (
     <section
       id="contacto"
-      className={`snap-start h-screen relative flex flex-col justify-center ${sectionPadding}`}
+      className={`snap-start min-h-screen relative flex flex-col justify-center py-16 sm:py-0 sm:h-screen ${sectionPadding}`}
       style={{ backgroundColor: "#F6F6F4" }}
     >
       <form onSubmit={handleSubmit(onFormSubmit)} noValidate>
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-12">
+        <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-8 sm:gap-12 md:gap-16">
 
           {/* Header */}
           {step !== 4 && (
@@ -110,7 +110,7 @@ export const ContactSection = React.memo<ContactSectionProps>(({
           )}
 
           {/* Form Container */}
-          <div className="w-full relative flex items-center gap-8">
+          <div className="w-full relative flex items-center gap-3 sm:gap-8 md:gap-12">
 
             {/* Left Arrow */}
             {step !== 4 && (
@@ -118,13 +118,14 @@ export const ContactSection = React.memo<ContactSectionProps>(({
                 type="button"
                 onClick={handlePrev}
                 disabled={step === 1 || isSubmitting}
-                icon={<ChevronLeft size={32} strokeWidth={1} style={{ color: "#39424E" }} />}
+                className="!w-10 !h-10 sm:!w-16 sm:!h-16 md:!w-20 md:!h-20 flex-shrink-0"
+                icon={<ChevronLeft className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16" strokeWidth={1} style={{ color: "#39424E" }} />}
                 tooltip="Anterior"
               />
             )}
 
             {/* Form Content */}
-            <div className="flex-1 min-h-[400px] flex flex-col items-center justify-center">
+            <div className="flex-1 min-h-[320px] sm:min-h-[420px] md:min-h-[460px] flex flex-col items-center justify-center">
 
               {/* Step 1: User Type Selection */}
               {step === 1 && (
@@ -273,23 +274,31 @@ export const ContactSection = React.memo<ContactSectionProps>(({
             </div>
 
             {/* Right Arrow */}
-            {step !== 4 && (
-              <IconButton
-                type={step === 3 ? "submit" : "button"}
-                onClick={step < 3 ? handleNext : undefined}
-                disabled={step === 1 && !userType}
-                icon={
-                  isSubmitting ? (
-                    <div className="animate-spin">
-                      <Loader2 size={32} strokeWidth={1} style={{ color: "#C4A77D" }} />
-                    </div>
-                  ) : (
-                    <ChevronRight size={32} strokeWidth={1} style={{ color: "#39424E" }} />
-                  )
-                }
-                tooltip={step === 3 ? "Enviar" : "Siguiente"}
-              />
-            )}
+            {step !== 4 && (() => {
+              const blocked = step === 1 && !userType;
+              return (
+                <IconButton
+                  type={step === 3 ? "submit" : "button"}
+                  onClick={step < 3 ? handleNext : undefined}
+                  disabled={blocked}
+                  className="!w-10 !h-10 sm:!w-16 sm:!h-16 md:!w-20 md:!h-20 flex-shrink-0"
+                  icon={
+                    isSubmitting ? (
+                      <div className="animate-spin">
+                        <Loader2 className="w-7 h-7 sm:w-10 sm:h-10" strokeWidth={1} style={{ color: "var(--color-primary)" }} />
+                      </div>
+                    ) : (
+                      <ChevronRight
+                        className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16"
+                        strokeWidth={1}
+                        style={{ color: blocked ? "#39424E" : "var(--color-primary)" }}
+                      />
+                    )
+                  }
+                  tooltip={step === 3 ? "Enviar" : "Siguiente"}
+                />
+              );
+            })()}
           </div>
         </div>
       </form>
