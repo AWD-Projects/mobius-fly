@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Button } from "@/components/atoms/Button";
+import { IconButton } from "@/components/atoms/IconButton";
 import { TypeBadge } from "@/components/atoms/TypeBadge";
 import { FlightDetailsGrid } from "@/components/molecules/FlightDetailsGrid";
 import { FlightRoute } from "@/components/molecules/FlightRoute";
@@ -112,13 +113,13 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                 {/* Back + Title */}
                 <m.div {...fadeUp(0)} className={`w-full ${sectionPadding} py-8`}>
                     <div className="flex items-center gap-4">
-                        <button
+                        <IconButton
+                            icon={<ArrowLeft size={24} />}
+                            variant="ghost"
+                            size="md"
                             onClick={() => router.push("/my-trips")}
-                            className="text-text hover:opacity-70 transition-opacity flex-shrink-0"
                             aria-label="Volver a mis viajes"
-                        >
-                            <ArrowLeft size={24} />
-                        </button>
+                        />
                         <SectionHeader
                             title={`${flight.departure_airport.city} → ${flight.arrival_airport.city}`}
                             subtitle={formatHeaderDate(flight.departure_datetime)}

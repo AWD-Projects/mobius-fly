@@ -171,6 +171,7 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
               document={document}
               onUpload={onDocumentUpload}
               onRemove={onDocumentRemove}
+              accept=".pdf"
               pendingTitle="Sube tu documento"
               pendingDescription="Haz clic o arrastra tu archivo aquí"
               variant="compact"
