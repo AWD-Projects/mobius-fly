@@ -42,6 +42,7 @@ const NumericCounter = React.forwardRef<HTMLDivElement, NumericCounterProps>(
         )}
         <div className="inline-flex items-center gap-3">
           <IconButton
+            type="button"
             icon={<Minus size={14} className="text-text" />}
             onClick={handleDecrement}
             disabled={!canDecrement}
@@ -53,6 +54,7 @@ const NumericCounter = React.forwardRef<HTMLDivElement, NumericCounterProps>(
             {value}
           </span>
           <IconButton
+            type="button"
             icon={<Plus size={14} className="text-text" />}
             onClick={handleIncrement}
             disabled={!canIncrement}

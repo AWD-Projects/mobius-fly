@@ -131,3 +131,10 @@ export interface ReservationDetail extends ReservationListItem {
     contact_phone: string;
     payment: ReservationPayment | null;
 }
+
+export interface RoundTripPair {
+    id: string;
+    outbound: FlightListItem;
+    inbound: FlightListItem;
+    currency: "MXN";
+}

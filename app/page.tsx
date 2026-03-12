@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet } from "lucide-react";
 import { HeroSection } from "./sections/HeroSection";
 import { FlightSearchSection } from "./sections/FlightSearchSection";
+import type { FlightSearchParams } from "@/components/organisms/FlightSearchCard";
 import { FeaturesSection } from "./sections/FeaturesSection";
 import { ComparisonSection } from "./sections/ComparisonSection";
 import { BenefitsSection } from "./sections/BenefitsSection";
@@ -240,6 +241,20 @@ export default function Home() {
     router.push("/register");
   }, [router]);
 
+  const handleSearch = useCallback((params: FlightSearchParams) => {
+    const qp = new URLSearchParams({
+      origin: params.originCode,
+      destination: params.destinationCode,
+      date: params.departureDate,
+      type: params.tripType === "roundtrip" ? "round_trip" : "one_way",
+      passengers: String(params.passengers),
+    });
+    if (params.tripType === "roundtrip" && params.returnDate) {
+      qp.set("returnDate", params.returnDate);
+    }
+    router.push(`/flights?${qp.toString()}`);
+  }, [router]);
+
   const handleMyBookingsClick = useCallback(() => {
     router.push("/my-trips");
   }, [router]);
@@ -374,6 +389,7 @@ export default function Home() {
       {/* Flight Search Section */}
       <FlightSearchSection
         sectionPadding={sectionPadding}
+        onSearch={handleSearch}
       />
 
       {/* Features Section */}
