@@ -17,6 +17,28 @@ export const FlightSearchSection = React.memo<FlightSearchSectionProps>(({
   const [destinationCode, setDestinationCode] = React.useState("BLR");
   const [departureDate, setDepartureDate] = React.useState("");
   const [returnDate, setReturnDate] = React.useState("");
+  const [passengers, setPassengers] = React.useState(1);
+
+  const todayISO = new Date().toISOString().split("T")[0];
+
+  const canSearch =
+    !!originCode &&
+    !!destinationCode &&
+    !!departureDate &&
+    departureDate >= todayISO &&
+    (tripType === "oneway" || (!!returnDate && returnDate >= departureDate));
+
+  const handleSearch = () => {
+    if (!canSearch) return;
+    onSearch?.({
+      tripType,
+      originCode,
+      destinationCode,
+      departureDate,
+      returnDate: tripType === "roundtrip" ? returnDate : undefined,
+      passengers,
+    });
+  };
 
   return (
     <section
@@ -40,12 +62,13 @@ export const FlightSearchSection = React.memo<FlightSearchSectionProps>(({
           />
         </m.div>
 
-        {/* Flight Search Card */}
+        {/* Flight Search Card — onSearch NOT passed to preserve original layout */}
         <m.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           viewport={{ once: true, amount: 0.8 }}
+          className="flex flex-col items-center gap-4 w-full"
         >
           <FlightSearchCard
             tripType={tripType}
@@ -53,17 +76,35 @@ export const FlightSearchSection = React.memo<FlightSearchSectionProps>(({
             destinationCode={destinationCode}
             departureDate={departureDate}
             returnDate={returnDate}
+            passengers={passengers}
+            minDepartureDate={todayISO}
+            minReturnDate={departureDate || todayISO}
             onTripTypeChange={setTripType}
             onOriginChange={setOriginCode}
             onDestinationChange={setDestinationCode}
             onDepartureDateChange={setDepartureDate}
             onReturnDateChange={setReturnDate}
+            onPassengersChange={setPassengers}
             onSwapClick={() => {
               setOriginCode(destinationCode);
               setDestinationCode(originCode);
             }}
-            onSearch={onSearch}
           />
+
+          {/* Search button lives outside the card to preserve card layout */}
+          {onSearch && (
+            <button
+              onClick={handleSearch}
+              disabled={!canSearch}
+              className="hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed rounded-sm px-5 py-2 text-small font-semibold"
+              style={{
+                backgroundColor: "var(--color-primary)",
+                color: "#ffffff",
+              }}
+            >
+              Buscar vuelos
+            </button>
+          )}
         </m.div>
 
         {/* Trust badges */}

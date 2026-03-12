@@ -1,4 +1,5 @@
 import React from 'react';
+import { StatusBadge } from '../molecules';
 
 export interface AircraftCardWithImageProps {
   /** Aircraft model name */
@@ -44,12 +45,12 @@ export const AircraftCardWithImage: React.FC<AircraftCardWithImageProps> = ({
   const badgeStyle = badgeStyles[badgeVariant];
 
   return (
-    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-5">
+    <div className="w-full bg-surface rounded-md border border-border p-4 sm:p-6 flex flex-col gap-5">
       {/* Title */}
       <h3 className="text-text text-body font-semibold">Aeronave</h3>
 
       {/* Image */}
-      <div className="w-full h-60 rounded-sm overflow-hidden">
+      <div className="w-full h-48 sm:h-60 rounded-sm overflow-hidden">
         {imageUrl ? (
           <div
             className="w-full h-full bg-cover bg-center"
@@ -66,10 +67,10 @@ export const AircraftCardWithImage: React.FC<AircraftCardWithImageProps> = ({
       <div className="flex flex-col gap-4">
         {/* Badge */}
         <div className="flex items-center gap-2">
-          <div className={`${badgeStyle.bg} rounded-sm h-7 px-3 flex items-center justify-center`}>
-            <span className={`${badgeStyle.text} text-caption font-semibold`}>
+          <div className={`${badgeStyle.bg} rounded-sm h-7 flex items-center justify-center`}>
+            <StatusBadge status="info" showDot={false}>
               {badgeText}
-            </span>
+            </StatusBadge>
           </div>
         </div>
 

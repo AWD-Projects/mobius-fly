@@ -13,12 +13,12 @@ interface Feature {
 
 interface FeaturesSectionProps {
   sectionPadding: string;
-  userType: "pasajero" | "propietario";
+  userType: "buyer" | "owner";
   featuresData: {
-    pasajero: Feature[];
-    propietario: Feature[];
+    buyer: Feature[];
+    owner: Feature[];
   };
-  onUserTypeChange: (type: "pasajero" | "propietario") => void;
+  onUserTypeChange: (type: "buyer" | "owner") => void;
 }
 
 export const FeaturesSection = React.memo<FeaturesSectionProps>(({
@@ -52,11 +52,11 @@ export const FeaturesSection = React.memo<FeaturesSectionProps>(({
           {/* Pills */}
           <Pills
             pills={[
-              { label: "Pasajero", value: "pasajero" },
-              { label: "Propietario", value: "propietario" },
+              { label: "Pasajero", value: "buyer" },
+              { label: "Propietario", value: "owner" },
             ]}
             value={userType}
-            onChange={(value) => onUserTypeChange(value as "pasajero" | "propietario")}
+            onChange={(value) => onUserTypeChange(value as "buyer" | "owner")}
           />
         </m.div>
 

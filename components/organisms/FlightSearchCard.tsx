@@ -30,6 +30,10 @@ export interface FlightSearchCardProps {
   returnDate?: string;
   passengers?: number;
   airports?: Airport[];
+  /** ISO date (YYYY-MM-DD) — earliest selectable departure date */
+  minDepartureDate?: string;
+  /** ISO date (YYYY-MM-DD) — earliest selectable return date */
+  minReturnDate?: string;
   onTripTypeChange?: (type: "roundtrip" | "oneway") => void;
   onOriginChange?: (code: string) => void;
   onDestinationChange?: (code: string) => void;
@@ -60,6 +64,8 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
         { code: "BOM", name: "Chhatrapati Shivaji", city: "Mumbai" },
         { code: "MAA", name: "Chennai International", city: "Chennai" },
       ],
+      minDepartureDate,
+      minReturnDate,
       onTripTypeChange,
       onOriginChange,
       onDestinationChange,
@@ -288,6 +294,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
           <input
             ref={departureDateRef}
             type="date"
+            min={minDepartureDate}
             onChange={(e) => onDepartureDateChange?.(e.target.value)}
             className="opacity-0 pointer-events-none absolute"
           />
@@ -313,6 +320,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
               <input
                 ref={returnDateRef}
                 type="date"
+                min={minReturnDate}
                 onChange={(e) => onReturnDateChange?.(e.target.value)}
                 className="opacity-0 pointer-events-none absolute"
               />

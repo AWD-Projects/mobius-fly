@@ -3,11 +3,13 @@
 import { Navbar } from "@/components/organisms/Navbar";
 import { LazyMotion, domAnimation } from "framer-motion";
 import Image from "next/image";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { useRouter } from "next/navigation";
 import { Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet } from "lucide-react";
 import { HeroSection } from "./sections/HeroSection";
 import { FlightSearchSection } from "./sections/FlightSearchSection";
+import type { FlightSearchParams } from "@/components/organisms/FlightSearchCard";
 import { FeaturesSection } from "./sections/FeaturesSection";
 import { ComparisonSection } from "./sections/ComparisonSection";
 import { BenefitsSection } from "./sections/BenefitsSection";
@@ -28,14 +30,27 @@ const sectionMap: Record<string, string> = {
 
 export default function Home() {
   const router = useRouter();
+  const { user, isLoggedIn, logout } = useLocalAuth();
 
   // Padding consistente para toda la landing
   const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
 
+  // Auth-derived values — swap these out when Supabase auth is integrated
+  const userInitials = useMemo(() => {
+    if (!user) return undefined;
+    return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+  }, [user]);
+
+  const navUserType = useMemo((): "buyer" | "owner" => {
+    return user?.role === "OWNER" ? "owner" : "buyer";
+  }, [user]);
+
+  // Toggle independiente para la sección de features (no relacionado con el auth)
+  const [featuresUserType, setFeaturesUserType] = useState<"buyer" | "owner">("buyer");
+
   // Estado para trackear si hemos scrolleado más allá del hero
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
-  const [userType, setUserType] = useState<"pasajero" | "propietario">("pasajero");
   const [isInFooter, setIsInFooter] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +63,7 @@ export default function Home() {
 
   // Features data por tipo de usuario
   const featuresData = {
-    pasajero: [
+    buyer: [
       {
         icon: Compass,
         title: "Descubre oportunidades únicas",
@@ -70,7 +85,7 @@ export default function Home() {
         description: "Salta las filas y vive la aviación privada. Tu vuelo, tus reglas.",
       },
     ],
-    propietario: [
+    owner: [
       {
         icon: TrendingUp,
         title: "Monetiza cada vuelo vacío",
@@ -226,6 +241,24 @@ export default function Home() {
     router.push("/register");
   }, [router]);
 
+  const handleSearch = useCallback((params: FlightSearchParams) => {
+    const qp = new URLSearchParams({
+      origin: params.originCode,
+      destination: params.destinationCode,
+      date: params.departureDate,
+      type: params.tripType === "roundtrip" ? "round_trip" : "one_way",
+      passengers: String(params.passengers),
+    });
+    if (params.tripType === "roundtrip" && params.returnDate) {
+      qp.set("returnDate", params.returnDate);
+    }
+    router.push(`/flights?${qp.toString()}`);
+  }, [router]);
+
+  const handleMyBookingsClick = useCallback(() => {
+    router.push("/my-trips");
+  }, [router]);
+
   // Comparison table data
   const comparisonFeatures = [
     { feature: "Modelo de compra", mobius: "Por asiento", traditional: "Vuelo completo", jetCard: "Membresía anual", fullCharter: "Vuelo completo" },
@@ -323,10 +356,15 @@ export default function Home() {
           loginButtonText="Iniciar Sesión"
           signUpButtonText="Crear cuenta"
           activeHref={activeSection}
+          isLoggedIn={isLoggedIn}
+          userInitials={userInitials}
+          userType={navUserType}
           onLogoClick={handleLogoClick}
           onNavLinkClick={handleNavLinkClick}
           onLoginClick={handleLoginClick}
           onSignUpClick={handleSignUpClick}
+          onLogoutClick={logout}
+          onMyBookingsClick={handleMyBookingsClick}
         />
       </div>
 
@@ -336,24 +374,30 @@ export default function Home() {
         currentWordIndex={currentWordIndex}
         rotatingWords={rotatingWords}
         activeSection={activeSection}
+        isLoggedIn={isLoggedIn}
+        userInitials={userInitials}
+        userType={navUserType}
         onLogoClick={handleLogoClick}
         onNavLinkClick={handleNavLinkClick}
         onLoginClick={handleLoginClick}
         onSignUpClick={handleSignUpClick}
         onExploreClick={handleExploreClick}
+        onLogoutClick={logout}
+        onMyBookingsClick={handleMyBookingsClick}
       />
 
       {/* Flight Search Section */}
       <FlightSearchSection
         sectionPadding={sectionPadding}
+        onSearch={handleSearch}
       />
 
       {/* Features Section */}
       <FeaturesSection
         sectionPadding={sectionPadding}
-        userType={userType}
+        userType={featuresUserType}
         featuresData={featuresData}
-        onUserTypeChange={setUserType}
+        onUserTypeChange={setFeaturesUserType}
       />
 
       {/* Comparison Section */}

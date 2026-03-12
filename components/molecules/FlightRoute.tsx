@@ -19,7 +19,7 @@ const FlightRoute = React.forwardRef<HTMLDivElement, FlightRouteProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-between gap-6 w-full",
+          "flex items-center justify-between gap-3 sm:gap-6 w-full",
           className
         )}
         {...props}
@@ -38,8 +38,8 @@ const FlightRoute = React.forwardRef<HTMLDivElement, FlightRouteProps>(
         </div>
 
         {/* Arrow */}
-        <div className="flex items-center justify-center w-[60px]">
-          <ArrowRight className="h-8 w-8 text-neutral" aria-hidden="true" />
+        <div className="flex items-center justify-center w-8 sm:w-[60px] flex-shrink-0">
+          <ArrowRight className="h-5 w-5 sm:h-8 sm:w-8 text-neutral" aria-hidden="true" />
         </div>
 
         {/* Destination */}

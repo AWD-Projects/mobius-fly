@@ -1,9 +1,10 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { StatusBadge, type StatusBadgeVariant } from '../molecules/StatusBadge';
 
 export interface UpcomingFlightCardProps {
-  /** Flight route (e.g., "Madrid -> Nueva York") */
+  /** Flight route (e.g., "Madrid → Nueva York") */
   route: string;
   /** Flight date */
   date: string;
@@ -41,10 +42,11 @@ export const UpcomingFlightCard: React.FC<UpcomingFlightCardProps> = ({
   onDetailsClick,
   buttonText = 'Ver detalles del vuelo',
 }) => {
+  const [origin, destination] = route.split(' → ');
 
   return (
-    <div className="w-full max-w-full rounded-md bg-surface border border-border overflow-hidden h-[320px] flex flex-col">
-      {/* Image Background with Overlay */}
+    <div className="w-full max-w-full rounded-md bg-surface border border-border overflow-hidden flex flex-col">
+      {/* Image */}
       <div className="relative h-[160px] flex-shrink-0">
         {imageUrl ? (
           <>
@@ -59,40 +61,47 @@ export const UpcomingFlightCard: React.FC<UpcomingFlightCardProps> = ({
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="h-[160px] px-7 py-6 flex flex-col justify-between">
-        {/* Top Row: Route Info and Status */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Route Info */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0">
-            <h3 className="text-text text-h3 font-bold leading-tight">
-              {route}
-            </h3>
-            <div className="flex items-center gap-4 text-muted">
-              <span className="text-small font-normal">{date}</span>
-              <span className="text-small font-medium">{time}</span>
-              <span className="text-neutral text-small font-normal">&#8226;</span>
-              <span className="text-small font-normal">{duration}</span>
+      {/* Content */}
+      <div className="flex-1 px-4 pt-5 pb-5 sm:px-7 sm:pt-6 sm:pb-7 flex flex-col gap-5">
+        {/* Route + Status */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 flex-1 min-w-0">
+            {/* Route with Lucide arrow */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-text text-h3 font-bold leading-tight">{origin}</h3>
+              <ArrowRight size={20} className="text-muted flex-shrink-0" />
+              {destination && (
+                <h3 className="text-text text-h3 font-bold leading-tight">{destination}</h3>
+              )}
+            </div>
+            {/* Meta */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-small font-normal text-muted">{date}</span>
+              <span className="text-neutral text-small">·</span>
+              <span className="text-small font-medium text-muted">{time}</span>
+              {duration && (
+                <>
+                  <span className="text-neutral text-small">·</span>
+                  <span className="text-small font-normal text-muted">{duration}</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Status Badge */}
-          <StatusBadge status={statusVariantMap[statusVariant]} className="flex-shrink-0">
+          <StatusBadge status={statusVariantMap[statusVariant]} className="flex-shrink-0 mt-0.5">
             {status}
           </StatusBadge>
         </div>
 
-        {/* Bottom Row: Button */}
-        <div className="flex items-center justify-between gap-3">
-          <Button
-            variant="secondary"
-            size="lg"
-            onClick={onDetailsClick}
-            className="w-full"
-          >
-            {buttonText}
-          </Button>
-        </div>
+        {/* Button */}
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onDetailsClick}
+          className="w-full"
+        >
+          {buttonText}
+        </Button>
       </div>
     </div>
   );

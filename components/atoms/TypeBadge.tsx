@@ -9,9 +9,9 @@ export interface TypeBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<TypeBadgeVariant, string> = {
-  default: "bg-border text-muted",
-  info: "bg-secondary/10 text-secondary",
-  neutral: "bg-border text-muted",
+  default: "text-muted",
+  info: "text-muted",
+  neutral: "text-muted",
 };
 
 const TypeBadge = React.forwardRef<HTMLSpanElement, TypeBadgeProps>(
@@ -20,7 +20,7 @@ const TypeBadge = React.forwardRef<HTMLSpanElement, TypeBadgeProps>(
       <span
         ref={ref}
         className={cn(
-          "inline-flex items-center rounded-lg px-3 py-1 text-caption font-normal",
+          "inline-flex items-center px-2 py-0.5 rounded-sm bg-background text-[12px] font-normal w-fit",
           variantStyles[variant],
           className
         )}
