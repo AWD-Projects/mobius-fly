@@ -194,7 +194,7 @@ export default function RegisterPage() {
     }, [step, userType, accountForm.formState.isValid, passwordForm.formState.isValid, idDocument, acceptTerms, verificationCode]);
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative">
+        <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8 sm:py-12 relative overflow-y-auto">
             <LazyMotion features={domAnimation} strict>
                 {/* Logo */}
                 <div className="absolute top-8 left-1/2 transform -translate-x-1/2">
@@ -209,21 +209,22 @@ export default function RegisterPage() {
                     </Link>
                 </div>
 
-                <div className="w-full max-w-4xl mt-16">
+                <div className="w-full max-w-4xl mt-12 sm:mt-16">
                     {/* Form Container */}
-                    <div className="w-full relative flex items-center gap-8">
+                    <div className="w-full relative flex items-center gap-3 sm:gap-6 md:gap-8">
                         {/* Left Arrow */}
                         {step !== 6 && (
                             <IconButton
                                 onClick={handlePrev}
                                 disabled={step === 1}
-                                icon={<ChevronLeft size={32} strokeWidth={1} style={{ color: "#39424E" }} />}
+                                className="!w-10 !h-10 sm:!w-16 sm:!h-16 md:!w-20 md:!h-20 flex-shrink-0"
+                                icon={<ChevronLeft className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16" strokeWidth={1} style={{ color: "#39424E" }} />}
                                 tooltip="Anterior"
                             />
                         )}
 
                         {/* Content */}
-                        <div className="flex-1 min-h-[400px] flex flex-col items-center justify-center">
+                        <div className="flex-1 min-h-[300px] sm:min-h-[400px] flex flex-col items-center justify-center">
                             <AnimatePresence mode="wait">
                                 {step === 1 && (
                                     <UserTypeStep
@@ -274,14 +275,24 @@ export default function RegisterPage() {
                         </div>
 
                         {/* Right Arrow */}
-                        {step !== 6 && (
-                            <IconButton
-                                onClick={step === 5 ? handleSubmit : handleNext}
-                                disabled={!canProceed() || isLoading}
-                                icon={<ChevronRight size={32} strokeWidth={1} style={{ color: "#39424E" }} />}
-                                tooltip={step === 5 ? "Enviar" : "Siguiente"}
-                            />
-                        )}
+                        {step !== 6 && (() => {
+                            const can = canProceed() && !isLoading;
+                            return (
+                                <IconButton
+                                    onClick={step === 5 ? handleSubmit : handleNext}
+                                    disabled={!can}
+                                    className="!w-10 !h-10 sm:!w-16 sm:!h-16 md:!w-20 md:!h-20 flex-shrink-0"
+                                    icon={
+                                        <ChevronRight
+                                            className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16"
+                                            strokeWidth={1}
+                                            style={{ color: can ? "var(--color-primary)" : "#39424E" }}
+                                        />
+                                    }
+                                    tooltip={step === 5 ? "Enviar" : "Siguiente"}
+                                />
+                            );
+                        })()}
                     </div>
                 </div>
             </LazyMotion>
