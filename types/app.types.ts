@@ -6,15 +6,15 @@ export interface UserProfile {
     id: string;
     first_name: string;
     last_name: string;
-    date_of_birth: string;
+    date_of_birth: string;       // ISO 8601: "1990-05-15"
     gender: "MALE" | "FEMALE" | "OTHER";
     phone: string | null;
-    country_code: string | null;
-    nationality: string;
+    country_code: string | null; // "+52"
+    nationality: string;         // ISO 3166-1 alpha-2: "MX", "US", etc.
     role: "PASSENGER" | "OWNER";
     email_verified_at: string | null;
     status: "ACTIVE" | "SUSPENDED" | "PENDING";
-    email: string;
+    email: string;               // viene de auth.users, se adjunta en el hook
 }
 
 export type FlightStatusCode =
@@ -33,6 +33,23 @@ export type ReservationStatusCode =
     | "CANCELLED";
 
 export type DocumentStatusCode = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface UserDocument {
+    id: string;
+    user_id: string;
+    document_type: "INE" | "PASSPORT";
+    document_url: string;
+    document_status_id: string;          // FK → document_status.id (lookup table)
+    document_status: DocumentStatusCode; // campo resuelto via join para la UI
+    rejected_reason: string | null;
+}
+
+export interface OwnerProfile {
+    id: string;
+    user_id: string;
+    fleet_name: string | null;
+    status: "PENDING_ONBOARDING" | "ACTIVE" | "SUSPENDED";
+}
 
 export interface Airport {
     id: string;
