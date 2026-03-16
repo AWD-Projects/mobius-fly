@@ -256,8 +256,8 @@ export default function Home() {
   }, [router]);
 
   const handleMyBookingsClick = useCallback(() => {
-    router.push("/my-trips");
-  }, [router]);
+    router.push(user?.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
+  }, [router, user]);
 
   // Comparison table data
   const comparisonFeatures = [
@@ -365,6 +365,7 @@ export default function Home() {
           onSignUpClick={handleSignUpClick}
           onLogoutClick={logout}
           onMyBookingsClick={handleMyBookingsClick}
+          onMyPlanesClick={handleMyBookingsClick}
         />
       </div>
 
@@ -384,6 +385,7 @@ export default function Home() {
         onExploreClick={handleExploreClick}
         onLogoutClick={logout}
         onMyBookingsClick={handleMyBookingsClick}
+        onMyPlanesClick={handleMyBookingsClick}
       />
 
       {/* Flight Search Section */}

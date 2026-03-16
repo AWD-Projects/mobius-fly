@@ -19,6 +19,7 @@ interface HeroSectionProps {
   onExploreClick: () => void;
   onLogoutClick?: () => void;
   onMyBookingsClick?: () => void;
+  onMyPlanesClick?: () => void;
   onMyFlightsClick?: () => void;
 }
 
@@ -37,6 +38,7 @@ export const HeroSection = React.memo<HeroSectionProps>(({
   onExploreClick,
   onLogoutClick,
   onMyBookingsClick,
+  onMyPlanesClick,
   onMyFlightsClick,
 }) => {
   return (
@@ -94,6 +96,7 @@ export const HeroSection = React.memo<HeroSectionProps>(({
           onSignUpClick={onSignUpClick}
           onLogoutClick={onLogoutClick}
           onMyBookingsClick={onMyBookingsClick}
+          onMyPlanesClick={onMyPlanesClick}
           onMyFlightsClick={onMyFlightsClick}
         />
       </div>

@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LazyMotion, domAnimation, m } from "framer-motion";
-import { useLocalAuth } from "@/hooks/useLocalAuth";
-import { Navbar } from "@/components/organisms/Navbar";
+import { AppNavbar } from "@/components/organisms/AppNavbar";
 import { UpcomingFlightCard } from "@/components/organisms/UpcomingFlightCard";
 import { PastFlightCard } from "@/components/organisms/PastFlightCard";
 import type { ReservationListItem, ReservationStatusCode } from "@/types/app.types";
@@ -60,35 +58,17 @@ const fadeUp = (delay = 0) => ({
 
 export function MyTripsContent({ upcoming, past }: MyTripsContentProps) {
     const router = useRouter();
-    const { user, logout } = useLocalAuth();
-
-    const userInitials = user
-        ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
-        : "MB";
 
     return (
         <LazyMotion features={domAnimation} strict>
             <div className="min-h-screen bg-background">
-                <Navbar
-                    isLoggedIn
-                    userType="buyer"
-                    userInitials={userInitials}
-                    logo={
-                        <Image
-                            src="/logo/main-logo.svg"
-                            alt="Mobius Fly"
-                            width={32}
-                            height={32}
-                        />
-                    }
+                <AppNavbar
                     backgroundColor="var(--color-background)"
                     contentPadding={sectionPadding}
                     navLinks={[]}
                     activeHref="/my-trips"
                     onLogoClick={() => router.push("/")}
                     onNavLinkClick={(href) => router.push(href)}
-                    onLogoutClick={logout}
-                    onMyBookingsClick={() => router.push("/my-trips")}
                 />
 
                 {/* Page Header */}

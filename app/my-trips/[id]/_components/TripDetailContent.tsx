@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
@@ -13,8 +12,7 @@ import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { CrewMemberRow } from "@/components/molecules/CrewMemberRow";
 import { AircraftCardWithImage } from "@/components/organisms/AircraftCardWithImage";
 import { AirportFBOCard } from "@/components/organisms/AirportFBOCard";
-import { Navbar } from "@/components/organisms/Navbar";
-import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { AppNavbar } from "@/components/organisms/AppNavbar";
 import type { ReservationDetail } from "@/types/app.types";
 
 interface TripDetailContentProps {
@@ -78,36 +76,18 @@ const fadeUp = (delay = 0) => ({
 
 export function TripDetailContent({ reservation }: TripDetailContentProps) {
     const router = useRouter();
-    const { user, logout } = useLocalAuth();
     const { flight } = reservation;
     const { aircraft, crew } = flight;
-
-    const userInitials = user
-        ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
-        : "MB";
 
     return (
         <LazyMotion features={domAnimation} strict>
             <div className="min-h-screen bg-background">
-                <Navbar
-                    isLoggedIn
-                    userType="buyer"
-                    userInitials={userInitials}
-                    logo={
-                        <Image
-                            src="/logo/main-logo.svg"
-                            alt="Mobius Fly"
-                            width={32}
-                            height={32}
-                        />
-                    }
+                <AppNavbar
                     backgroundColor="var(--color-background)"
                     contentPadding={sectionPadding}
                     navLinks={[]}
                     onLogoClick={() => router.push("/")}
                     onNavLinkClick={(href) => router.push(href)}
-                    onLogoutClick={logout}
-                    onMyBookingsClick={() => router.push("/my-trips")}
                 />
 
                 {/* Back + Title */}

@@ -25,7 +25,7 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { login, isLoggedIn, isHydrated } = useLocalAuth();
+    const { user, login, isLoggedIn, isHydrated } = useLocalAuth();
 
     const [step, setStep] = useState<Step>(1);
     const [userType, setUserType] = useState<"buyer" | "owner" | "">("");
@@ -60,12 +60,12 @@ export default function RegisterPage() {
         },
     });
 
-    // Redirect if already logged in
+    // Redirect if already logged in (before starting registration)
     useEffect(() => {
         if (isHydrated && isLoggedIn) {
-            router.replace("/my-trips");
+            router.replace(user?.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
         }
-    }, [isHydrated, isLoggedIn, router]);
+    }, [isHydrated, isLoggedIn, user, router]);
 
     // Resend code timer
     useEffect(() => {
@@ -162,7 +162,7 @@ export default function RegisterPage() {
         }
 
         login(userProfile);
-        router.push("/my-trips");
+        router.push(userType === "owner" ? "/owner/dashboard" : "/my-trips");
     }, [accountForm, userType, login, router]);
 
     const handleNext = useCallback(() => {
