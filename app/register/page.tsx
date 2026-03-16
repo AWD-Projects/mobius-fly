@@ -19,6 +19,7 @@ import { PasswordStep } from "./components/PasswordStep";
 import { IdentityStep } from "./components/IdentityStep";
 import { VerificationStep } from "./components/VerificationStep";
 import { WelcomeStep } from "./components/WelcomeStep";
+import { FleetNameStep } from "./components/FleetNameStep";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -129,7 +130,7 @@ export default function RegisterPage() {
         }
     }, [canResend]);
 
-    const handleGoToDashboard = useCallback(() => {
+    const handleGoToDashboard = useCallback((fleetName?: string) => {
         const values = accountForm.getValues();
         const nameParts = values.fullName.trim().split(" ");
         const first_name = nameParts[0] ?? "Usuario";
@@ -151,14 +152,18 @@ export default function RegisterPage() {
             phone: values.phone ?? null,
             country_code: null,
             nationality: "MX",
-            role: "PASSENGER",
+            role: userType === "owner" ? "OWNER" : "PASSENGER",
             email_verified_at: new Date().toISOString(),
             status: "ACTIVE",
         };
 
+        if (fleetName) {
+            localStorage.setItem("mobius_owner_fleet_name", fleetName);
+        }
+
         login(userProfile);
         router.push("/my-trips");
-    }, [accountForm, login, router]);
+    }, [accountForm, userType, login, router]);
 
     const handleNext = useCallback(() => {
         if (step < 6) setStep((step + 1) as Step);
@@ -268,8 +273,12 @@ export default function RegisterPage() {
                                     />
                                 )}
 
-                                {step === 6 && (
-                                    <WelcomeStep onGoToDashboard={handleGoToDashboard} />
+                                {step === 6 && userType !== "owner" && (
+                                    <WelcomeStep onGoToDashboard={() => handleGoToDashboard()} />
+                                )}
+
+                                {step === 6 && userType === "owner" && (
+                                    <FleetNameStep onContinue={handleGoToDashboard} />
                                 )}
                             </AnimatePresence>
                         </div>
