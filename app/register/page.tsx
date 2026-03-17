@@ -163,7 +163,6 @@ export default function RegisterPage() {
             country_code: null,
             nationality: "MX",
             role: userType === "owner" ? "OWNER" : "PASSENGER",
-            email_verified_at: new Date().toISOString(),
             status: "ACTIVE",
         };
 
