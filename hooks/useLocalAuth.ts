@@ -53,7 +53,11 @@ export function useLocalAuth() {
         if (!supabase) return;
         const res = await supabase.auth.getSession();
         const session = res.data.session;
-        setUser(session?.user ? buildProfile(session.user) : null);
+        const profile = session?.user ? buildProfile(session.user) : null;
+        setUser(profile);
+        if (profile) {
+            toast.success("Sesión iniciada", `Bienvenid@ de vuelta, ${profile.first_name}`);
+        }
     }, [supabase]);
 
     const logout = useCallback(async () => {
