@@ -25,7 +25,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, isLoggedIn, isHydrated } = useLocalAuth();
+    const { login, isLoggedIn, isHydrated, user } = useLocalAuth();
     const [apiError, setApiError] = useState<string | null>(null);
 
     const {
@@ -38,9 +38,9 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (isHydrated && isLoggedIn) {
-            router.replace("/my-trips");
+            router.replace(user?.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
         }
-    }, [isHydrated, isLoggedIn, router]);
+    }, [isHydrated, isLoggedIn, user, router]);
 
     const onSubmit = async (data: LoginFormData) => {
         setApiError(null);
@@ -58,7 +58,7 @@ export default function LoginPage() {
                 return;
             }
 
-            login(json.user!);
+            await login(json.user!);
             router.push(json.user!.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
         } catch {
             setApiError("Error de conexión. Inténtalo de nuevo.");

@@ -1,13 +1,12 @@
 /**
  * POST /api/auth/login
  *
- * Verifies credentials with Supabase Auth, fetches user_profiles,
- * and returns a UserProfile object for the client to store in localStorage.
+ * Signs in with Supabase Auth (SSR client — sets session cookies),
+ * fetches user_profiles, and returns a UserProfile object.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
     let body: unknown;
@@ -26,16 +25,11 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // ── 1. Verify credentials ─────────────────────────────────────────────────
-    // Use a session-less anon client — we only need to verify the password.
-    const authClient = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+    // ── 1. Sign in — SSR client writes session cookies to the response ─────────
+    const supabase = await createClient();
 
     const { data: authData, error: authError } =
-        await authClient.auth.signInWithPassword({ email, password });
+        await supabase.auth.signInWithPassword({ email, password });
 
     if (authError || !authData.user) {
         return NextResponse.json(

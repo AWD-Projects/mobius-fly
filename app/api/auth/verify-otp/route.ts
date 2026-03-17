@@ -94,6 +94,15 @@ export async function POST(request: NextRequest) {
             email,
             password: pending.password,
             email_confirm: true,
+            user_metadata: {
+                first_name: pending.firstName,
+                last_name: pending.lastName,
+                role,
+                gender: pending.gender,
+                date_of_birth: pending.birthDate,
+                phone: pending.phone ?? null,
+                nationality: "MX",
+            },
         });
 
     if (authError) {
