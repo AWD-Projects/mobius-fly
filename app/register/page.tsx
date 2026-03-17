@@ -30,6 +30,10 @@ export default function RegisterPage() {
     const [step, setStep] = useState<Step>(1);
     const [userType, setUserType] = useState<"buyer" | "owner" | "">("");
     const [isLoading, setIsLoading] = useState(false);
+    const [apiError, setApiError] = useState<string | null>(null);
+    const [idFile, setIdFile] = useState<File | undefined>(undefined);
+    const [registeredEmail, setRegisteredEmail] = useState("");
+    const [registeredUserId, setRegisteredUserId] = useState("");
     const [idDocument, setIdDocument] = useState<UploadedDocument | undefined>(undefined);
     const [acceptTerms, setAcceptTerms] = useState(false);
     const [verificationCode, setVerificationCode] = useState(["", "", "", "", "", ""]);
@@ -90,6 +94,7 @@ export default function RegisterPage() {
     }, []);
 
     const handleDocumentUpload = useCallback((file: File) => {
+        setIdFile(file);
         setIdDocument({
             name: file.name,
             size: formatFileSize(file.size),
@@ -97,6 +102,7 @@ export default function RegisterPage() {
     }, []);
 
     const handleDocumentRemove = useCallback(() => {
+        setIdFile(undefined);
         setIdDocument(undefined);
     }, []);
 
@@ -123,14 +129,18 @@ export default function RegisterPage() {
         }
     }, []);
 
-    const handleResendCode = useCallback(() => {
-        if (canResend) {
-            setResendTimer(60);
-            setVerificationCode(["", "", "", "", "", ""]);
-        }
-    }, [canResend]);
+    const handleResendCode = useCallback(async () => {
+        if (!canResend) return;
+        setResendTimer(60);
+        setVerificationCode(["", "", "", "", "", ""]);
+        await fetch("/api/auth/resend-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: registeredEmail }),
+        }).catch((err) => console.error("[resend-otp]", err));
+    }, [canResend, registeredEmail]);
 
-    const handleGoToDashboard = useCallback((fleetName?: string) => {
+    const handleGoToDashboard = useCallback(async (fleetName?: string) => {
         const values = accountForm.getValues();
         const nameParts = values.fullName.trim().split(" ");
         const first_name = nameParts[0] ?? "Usuario";
@@ -143,7 +153,7 @@ export default function RegisterPage() {
         };
 
         const userProfile: UserProfile = {
-            id: "mock-register-user",
+            id: registeredUserId || "mock-register-user",
             first_name,
             last_name,
             email: values.email,
@@ -153,33 +163,102 @@ export default function RegisterPage() {
             country_code: null,
             nationality: "MX",
             role: userType === "owner" ? "OWNER" : "PASSENGER",
-            email_verified_at: new Date().toISOString(),
             status: "ACTIVE",
         };
 
-        if (fleetName) {
-            localStorage.setItem("mobius_owner_fleet_name", fleetName);
+        if (fleetName && registeredUserId) {
+            await fetch("/api/owners/fleet-name", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: registeredUserId, fleetName }),
+            }).catch((err) => console.error("[fleet-name]", err));
         }
 
         login(userProfile);
         router.push(userType === "owner" ? "/owner/dashboard" : "/my-trips");
-    }, [accountForm, userType, login, router]);
+    }, [accountForm, userType, login, router, registeredUserId]);
 
-    const handleNext = useCallback(() => {
-        if (step < 6) setStep((step + 1) as Step);
-    }, [step]);
+    const handleNext = useCallback(async () => {
+        setApiError(null);
+        if (step === 4) {
+            if (!idFile) return;
+            setIsLoading(true);
+            try {
+                const values = accountForm.getValues();
+                const passwordValues = passwordForm.getValues();
+                const arrayBuffer = await idFile.arrayBuffer();
+                const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+                const res = await fetch("/api/auth/signup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: values.email,
+                        password: passwordValues.password,
+                        fullName: values.fullName,
+                        birthDate: values.birthDate,
+                        gender: values.gender,
+                        phone: values.phone || undefined,
+                        userType,
+                        documentBase64: base64,
+                        documentMimeType: idFile.type,
+                        documentFileName: idFile.name,
+                    }),
+                });
+
+                const data = await res.json() as { userId?: string; email?: string; error?: string };
+
+                if (!res.ok) {
+                    setApiError(data.error ?? "Error al crear la cuenta");
+                    return;
+                }
+
+                setRegisteredUserId(data.userId ?? "");
+                setRegisteredEmail(data.email ?? values.email);
+                setStep(5);
+            } catch {
+                setApiError("Error de conexión. Inténtalo de nuevo.");
+            } finally {
+                setIsLoading(false);
+            }
+        } else if (step < 6) {
+            setStep((step + 1) as Step);
+        }
+    }, [step, idFile, accountForm, passwordForm, userType]);
 
     const handlePrev = useCallback(() => {
+        setApiError(null);
         if (step > 1) setStep((step - 1) as Step);
     }, [step]);
 
     const handleSubmit = useCallback(async () => {
+        setApiError(null);
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            const res = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: registeredEmail,
+                    token: verificationCode.join(""),
+                }),
+            });
+
+            const data = await res.json() as { error?: string; userId?: string };
+
+            if (!res.ok) {
+                setApiError(data.error ?? "Código incorrecto");
+                return;
+            }
+
+            if (data.userId) setRegisteredUserId(data.userId);
             setStep(6);
-        }, 1500);
-    }, []);
+        } catch {
+            setApiError("Error de conexión. Inténtalo de nuevo.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [registeredEmail, verificationCode]);
 
     const canProceed = useCallback(() => {
         switch (step) {
@@ -215,6 +294,11 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="w-full max-w-4xl mt-12 sm:mt-16">
+                    {/* API error */}
+                    {apiError && (
+                        <p className="text-center text-sm text-error mb-4">{apiError}</p>
+                    )}
+
                     {/* Form Container */}
                     <div className="w-full relative flex items-center gap-3 sm:gap-6 md:gap-8">
                         {/* Left Arrow */}

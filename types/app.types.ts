@@ -12,7 +12,6 @@ export interface UserProfile {
     country_code: string | null; // "+52"
     nationality: string;         // ISO 3166-1 alpha-2: "MX", "US", etc.
     role: "PASSENGER" | "OWNER";
-    email_verified_at: string | null;
     status: "ACTIVE" | "SUSPENDED" | "PENDING";
     email: string;               // viene de auth.users, se adjunta en el hook
 }
