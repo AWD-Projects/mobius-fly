@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/atoms/Toast";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { UserProfile } from "@/types/app.types";
 
 function buildProfile(user: User): UserProfile {
@@ -28,17 +28,18 @@ export function useLocalAuth() {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isHydrated, setIsHydrated] = useState(false);
     const router = useRouter();
-    // createBrowserClient is a singleton internally — safe to call here
-    const supabase = useMemo(() => createClient(), []);
+    // Returns null during SSR prerender — all auth logic runs inside useEffect (browser only)
+    const supabase = useMemo<SupabaseClient | null>(() => createClient(), []);
 
     useEffect(() => {
-        // Check session on mount
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!supabase) return;
+
+        supabase.auth.getSession().then((res) => {
+            const session = res.data.session;
             setUser(session?.user ? buildProfile(session.user) : null);
             setIsHydrated(true);
         });
 
-        // Keep state in sync with Supabase auth events (sign-in, sign-out, token refresh)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (_event, session) => {
                 setUser(session?.user ? buildProfile(session.user) : null);
@@ -48,13 +49,10 @@ export function useLocalAuth() {
         return () => subscription.unsubscribe();
     }, [supabase]);
 
-    /**
-     * Call after a successful login API response to sync the new session
-     * into client state immediately. Accepts an optional UserProfile for
-     * backwards-compatibility with existing callers (ignored internally).
-     */
     const login = useCallback(async (_userData?: UserProfile) => {
-        const { data: { session } } = await supabase.auth.getSession();
+        if (!supabase) return;
+        const res = await supabase.auth.getSession();
+        const session = res.data.session;
         setUser(session?.user ? buildProfile(session.user) : null);
     }, [supabase]);
 
@@ -62,7 +60,7 @@ export function useLocalAuth() {
         await toast.promise(
             (async () => {
                 await fetch("/api/auth/logout", { method: "POST" });
-                await supabase.auth.signOut();
+                await supabase?.auth.signOut();
                 setUser(null);
             })(),
             {
