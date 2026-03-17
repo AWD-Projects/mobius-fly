@@ -12,7 +12,8 @@
  *     b. Waits for the DB trigger to create the user_profiles row.
  *     c. Updates user_profiles with the real signup data.
  *     d. Inserts the user_documents record.
- *     e. Deletes the signup_otps row.
+ *     e. If userType === "owner", inserts a row into the owners table.
+ *     f. Deletes the signup_otps row.
  *  5. Returns { userId, email }.
  */
 
@@ -157,9 +158,29 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // ── 8. Delete the signup_otps row ─────────────────────────────────────────
+    // ── 8. Create owners row for owner registrations ──────────────────────────
+    if (pending.userType === "owner") {
+        const { error: ownerError } = await admin.from("owners").insert({
+            user_id: userId,
+            status: "PENDING_ONBOARDING",
+        });
+
+        if (ownerError) {
+            await admin.storage
+                .from("identity-documents")
+                .remove([pending.storagePath]);
+            await admin.auth.admin.deleteUser(userId);
+            console.error("[verify-otp] owners insert:", ownerError.message);
+            return NextResponse.json(
+                { error: "Error al registrar el propietario" },
+                { status: 500 },
+            );
+        }
+    }
+
+    // ── 9. Delete the signup_otps row ─────────────────────────────────────────
     await admin.from("signup_otps").delete().eq("email", email);
 
-    // ── 9. Return success ─────────────────────────────────────────────────────
+    // ── 10. Return success ────────────────────────────────────────────────────
     return NextResponse.json({ userId, email }, { status: 200 });
 }
