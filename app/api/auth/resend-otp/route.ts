@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         console.log(`[resend-otp] DEV OTP for ${email}: ${newOtp}`);
     }
 
-    const resendKey = process.env.RESEND_API_KEY ?? "";
+    const resendKey = process.env.OTP_RESEND_API_KEY ?? "";
     if (process.env.NODE_ENV !== "production" && (!resendKey || resendKey.startsWith("your-"))) {
         return NextResponse.json({ ok: true }, { status: 200 });
     }
