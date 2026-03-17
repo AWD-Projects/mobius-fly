@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,6 +26,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
     const router = useRouter();
     const { login, isLoggedIn, isHydrated } = useLocalAuth();
+    const [apiError, setApiError] = useState<string | null>(null);
 
     const {
         register,
@@ -42,22 +43,26 @@ export default function LoginPage() {
     }, [isHydrated, isLoggedIn, router]);
 
     const onSubmit = async (data: LoginFormData) => {
-        const mockUser: UserProfile = {
-            id: "mock-login-user",
-            first_name: "Usuario",
-            last_name: "Mobius",
-            email: data.email,
-            date_of_birth: "1990-01-01",
-            gender: "OTHER",
-            phone: null,
-            country_code: null,
-            nationality: "MX",
-            role: "PASSENGER",
-            email_verified_at: new Date().toISOString(),
-            status: "ACTIVE",
-        };
-        login(mockUser);
-        router.push("/my-trips");
+        setApiError(null);
+        try {
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: data.email, password: data.password }),
+            });
+
+            const json = await res.json() as { user?: UserProfile; error?: string };
+
+            if (!res.ok) {
+                setApiError(json.error ?? "Error al iniciar sesión");
+                return;
+            }
+
+            login(json.user!);
+            router.push(json.user!.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
+        } catch {
+            setApiError("Error de conexión. Inténtalo de nuevo.");
+        }
     };
 
     return (
@@ -91,6 +96,11 @@ export default function LoginPage() {
                     >
                         Iniciar Sesión
                     </m.h1>
+
+                    {/* API error */}
+                    {apiError && (
+                        <p className="text-sm text-error text-center mb-4 -mt-4">{apiError}</p>
+                    )}
 
                     {/* Form */}
                     <m.form
