@@ -6,9 +6,10 @@ import { Button } from "@/components/atoms/Button";
 
 interface FleetNameStepProps {
   onContinue: (fleetName: string) => void;
+  isLoading?: boolean;
 }
 
-export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue }) => {
+export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue, isLoading }) => {
   const [fleetName, setFleetName] = React.useState("");
 
   return (
@@ -43,6 +44,7 @@ export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue }) => 
         variant="outline"
         size="lg"
         onClick={() => onContinue(fleetName)}
+        isLoading={isLoading}
         className="mx-auto"
         icon={<ArrowRight size={18} />}
         iconPosition="end"

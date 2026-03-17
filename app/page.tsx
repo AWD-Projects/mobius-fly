@@ -1,7 +1,7 @@
 "use client";
 
 import { Navbar } from "@/components/organisms/Navbar";
-import { LazyMotion, domAnimation } from "framer-motion";
+import { LazyMotion, domAnimation, AnimatePresence, m } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
@@ -30,7 +30,7 @@ const sectionMap: Record<string, string> = {
 
 export default function Home() {
   const router = useRouter();
-  const { user, isLoggedIn, logout } = useLocalAuth();
+  const { user, isLoggedIn, isHydrated, logout } = useLocalAuth();
 
   // Padding consistente para toda la landing
   const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
@@ -320,6 +320,30 @@ export default function Home() {
 
   return (
     <LazyMotion features={domAnimation} strict>
+    <AnimatePresence>
+      {!isHydrated && (
+        <m.div
+          key="page-loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background"
+        >
+          <m.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Image
+              src="/logo/main-logo.svg"
+              alt="Mobius Fly"
+              width={56}
+              height={56}
+              priority
+            />
+          </m.div>
+        </m.div>
+      )}
+    </AnimatePresence>
     <div ref={scrollContainerRef} className="lg:snap-y lg:snap-mandatory overflow-y-scroll h-screen">
       {/* Fixed Navbar - Aparece después del scroll */}
       <div
@@ -435,4 +459,5 @@ export default function Home() {
     </div>
     </LazyMotion>
   );
+
 }

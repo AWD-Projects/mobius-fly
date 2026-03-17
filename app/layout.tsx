@@ -47,7 +47,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
-        <ToastProvider position="bottom-right" />
+        <ToastProvider position="top-right" />
       </body>
     </html>
   );

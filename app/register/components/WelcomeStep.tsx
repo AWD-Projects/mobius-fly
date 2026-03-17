@@ -5,9 +5,10 @@ import { Button } from "@/components/atoms/Button";
 
 interface WelcomeStepProps {
   onGoToDashboard: () => void;
+  isLoading?: boolean;
 }
 
-export const WelcomeStep = React.memo<WelcomeStepProps>(({ onGoToDashboard }) => {
+export const WelcomeStep = React.memo<WelcomeStepProps>(({ onGoToDashboard, isLoading }) => {
   return (
     <m.div
       key="step6"
@@ -28,6 +29,7 @@ export const WelcomeStep = React.memo<WelcomeStepProps>(({ onGoToDashboard }) =>
         variant="outline"
         size="lg"
         onClick={onGoToDashboard}
+        isLoading={isLoading}
         className="mx-auto"
         icon={<ArrowRight size={18} />}
         iconPosition="end"

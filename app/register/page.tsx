@@ -12,7 +12,7 @@ import { IconButton } from "@/components/atoms/IconButton";
 import { accountSchema, passwordSchema, type AccountFormData, type PasswordFormData } from "@/lib/validations/register";
 import { formatFileSize, type UploadedDocument } from "@/components/molecules/DocumentUpload";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
-import type { UserProfile } from "@/types/app.types";
+import { toast } from "@/components/atoms/Toast";
 import { UserTypeStep } from "./components/UserTypeStep";
 import { AccountStep } from "./components/AccountStep";
 import { PasswordStep } from "./components/PasswordStep";
@@ -30,6 +30,7 @@ export default function RegisterPage() {
     const [step, setStep] = useState<Step>(1);
     const [userType, setUserType] = useState<"buyer" | "owner" | "">("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isFinalStepLoading, setIsFinalStepLoading] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [idFile, setIdFile] = useState<File | undefined>(undefined);
     const [registeredEmail, setRegisteredEmail] = useState("");
@@ -141,42 +142,42 @@ export default function RegisterPage() {
     }, [canResend, registeredEmail]);
 
     const handleGoToDashboard = useCallback(async (fleetName?: string) => {
-        const values = accountForm.getValues();
-        const nameParts = values.fullName.trim().split(" ");
-        const first_name = nameParts[0] ?? "Usuario";
-        const last_name = nameParts.slice(1).join(" ") || "Mobius";
+        setIsFinalStepLoading(true);
+        try {
+            // Save fleet name for owner registrations
+            if (fleetName && registeredUserId) {
+                await toast.promise(
+                    fetch("/api/owners/fleet-name", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: registeredUserId, fleetName }),
+                    }),
+                    {
+                        loading: { title: "Guardando nombre de flota..." },
+                        success: { title: "¡Todo listo!", description: "Bienvenido a Mobius Fly" },
+                        error: { title: "No se pudo guardar el nombre", description: "Podrás cambiarlo desde tu perfil" },
+                    }
+                );
+            }
 
-        const genderMap: Record<AccountFormData["gender"], UserProfile["gender"]> = {
-            male: "MALE",
-            female: "FEMALE",
-            other: "OTHER",
-        };
-
-        const userProfile: UserProfile = {
-            id: registeredUserId || "mock-register-user",
-            first_name,
-            last_name,
-            email: values.email,
-            date_of_birth: values.birthDate,
-            gender: genderMap[values.gender],
-            phone: values.phone ?? null,
-            country_code: null,
-            nationality: "MX",
-            role: userType === "owner" ? "OWNER" : "PASSENGER",
-            status: "ACTIVE",
-        };
-
-        if (fleetName && registeredUserId) {
-            await fetch("/api/owners/fleet-name", {
-                method: "PATCH",
+            // Establish a real Supabase session (sets cookies via SSR login route)
+            const values = accountForm.getValues();
+            const passwordValues = passwordForm.getValues();
+            const loginRes = await fetch("/api/auth/login", {
+                method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId: registeredUserId, fleetName }),
-            }).catch((err) => console.error("[fleet-name]", err));
-        }
+                body: JSON.stringify({ email: values.email, password: passwordValues.password }),
+            });
 
-        login(userProfile);
-        router.push(userType === "owner" ? "/owner/dashboard" : "/my-trips");
-    }, [accountForm, userType, login, router, registeredUserId]);
+            if (loginRes.ok) {
+                await login(); // sync new session into hook state
+            }
+
+            router.push(userType === "owner" ? "/owner/dashboard" : "/my-trips");
+        } finally {
+            setIsFinalStepLoading(false);
+        }
+    }, [accountForm, passwordForm, userType, login, router, registeredUserId]);
 
     const handleNext = useCallback(async () => {
         setApiError(null);
@@ -189,7 +190,7 @@ export default function RegisterPage() {
                 const arrayBuffer = await idFile.arrayBuffer();
                 const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-                const res = await fetch("/api/auth/signup", {
+                const signupPromise = fetch("/api/auth/signup", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -204,20 +205,23 @@ export default function RegisterPage() {
                         documentMimeType: idFile.type,
                         documentFileName: idFile.name,
                     }),
+                }).then(async (res) => {
+                    const data = await res.json() as { userId?: string; email?: string; error?: string };
+                    if (!res.ok) throw new Error(data.error ?? "Error al crear la cuenta");
+                    return data;
                 });
 
-                const data = await res.json() as { userId?: string; email?: string; error?: string };
-
-                if (!res.ok) {
-                    setApiError(data.error ?? "Error al crear la cuenta");
-                    return;
-                }
+                const data = await toast.promise(signupPromise, {
+                    loading: { title: "Creando tu cuenta...", description: "Esto puede tardar unos segundos" },
+                    success: { title: "¡Código enviado!", description: "Revisa tu correo electrónico" },
+                    error: (err) => ({ title: err instanceof Error ? err.message : "Error al crear la cuenta" }),
+                });
 
                 setRegisteredUserId(data.userId ?? "");
                 setRegisteredEmail(data.email ?? values.email);
                 setStep(5);
-            } catch {
-                setApiError("Error de conexión. Inténtalo de nuevo.");
+            } catch (err) {
+                setApiError(err instanceof Error ? err.message : "Error de conexión. Inténtalo de nuevo.");
             } finally {
                 setIsLoading(false);
             }
@@ -235,26 +239,29 @@ export default function RegisterPage() {
         setApiError(null);
         setIsLoading(true);
         try {
-            const res = await fetch("/api/auth/verify-otp", {
+            const verifyPromise = fetch("/api/auth/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: registeredEmail,
                     token: verificationCode.join(""),
                 }),
+            }).then(async (res) => {
+                const data = await res.json() as { error?: string; userId?: string };
+                if (!res.ok) throw new Error(data.error ?? "Código incorrecto");
+                return data;
             });
 
-            const data = await res.json() as { error?: string; userId?: string };
-
-            if (!res.ok) {
-                setApiError(data.error ?? "Código incorrecto");
-                return;
-            }
+            const data = await toast.promise(verifyPromise, {
+                loading: { title: "Verificando código...", description: "Confirmando tu cuenta" },
+                success: { title: "¡Cuenta verificada!", description: "Tu correo ha sido confirmado" },
+                error: (err) => ({ title: err instanceof Error ? err.message : "Código incorrecto" }),
+            });
 
             if (data.userId) setRegisteredUserId(data.userId);
             setStep(6);
-        } catch {
-            setApiError("Error de conexión. Inténtalo de nuevo.");
+        } catch (err) {
+            setApiError(err instanceof Error ? err.message : "Error de conexión. Inténtalo de nuevo.");
         } finally {
             setIsLoading(false);
         }
@@ -358,11 +365,11 @@ export default function RegisterPage() {
                                 )}
 
                                 {step === 6 && userType !== "owner" && (
-                                    <WelcomeStep onGoToDashboard={() => handleGoToDashboard()} />
+                                    <WelcomeStep onGoToDashboard={() => handleGoToDashboard()} isLoading={isFinalStepLoading} />
                                 )}
 
                                 {step === 6 && userType === "owner" && (
-                                    <FleetNameStep onContinue={handleGoToDashboard} />
+                                    <FleetNameStep onContinue={handleGoToDashboard} isLoading={isFinalStepLoading} />
                                 )}
                             </AnimatePresence>
                         </div>
