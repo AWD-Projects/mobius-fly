@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
             country_code: profile.country_code,
             nationality: profile.nationality,
             role: profile.role,
-            email_verified_at: profile.email_verified_at,
             status: profile.status,
         },
     }, { status: 200 });
