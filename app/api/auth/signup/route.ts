@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Skip actual email in dev when no real key is configured
-    const resendKey = process.env.RESEND_API_KEY ?? "";
+    const resendKey = process.env.OTP_RESEND_API_KEY ?? "";
     if (process.env.NODE_ENV !== "production" && (!resendKey || resendKey.startsWith("your-"))) {
         return NextResponse.json({ email }, { status: 201 });
     }
