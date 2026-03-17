@@ -140,7 +140,7 @@ export default function RegisterPage() {
         }).catch((err) => console.error("[resend-otp]", err));
     }, [canResend, registeredEmail]);
 
-    const handleGoToDashboard = useCallback((fleetName?: string) => {
+    const handleGoToDashboard = useCallback(async (fleetName?: string) => {
         const values = accountForm.getValues();
         const nameParts = values.fullName.trim().split(" ");
         const first_name = nameParts[0] ?? "Usuario";
@@ -166,8 +166,12 @@ export default function RegisterPage() {
             status: "ACTIVE",
         };
 
-        if (fleetName) {
-            localStorage.setItem("mobius_owner_fleet_name", fleetName);
+        if (fleetName && registeredUserId) {
+            await fetch("/api/owners/fleet-name", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: registeredUserId, fleetName }),
+            }).catch((err) => console.error("[fleet-name]", err));
         }
 
         login(userProfile);
