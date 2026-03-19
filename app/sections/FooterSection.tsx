@@ -186,7 +186,7 @@ export const FooterSection = React.memo<FooterSectionProps>(({
               </h3>
               <nav className="flex flex-col gap-2 sm:gap-3 items-center">
                 <a
-                  href="/privacidad"
+                  href="/privacy"
                   className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
                   style={{
                     color: "#F6F6F4",
@@ -196,7 +196,7 @@ export const FooterSection = React.memo<FooterSectionProps>(({
                   Privacidad
                 </a>
                 <a
-                  href="/terminos"
+                  href="/terms"
                   className="text-center transition-all hover:opacity-100 text-xs sm:text-sm font-normal"
                   style={{
                     color: "#F6F6F4",

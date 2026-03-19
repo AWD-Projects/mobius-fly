@@ -378,7 +378,7 @@ export default function TerminosPage() {
                             <h2 className="text-xl font-medium mb-4">14. Privacidad, Datos Personales y Cookies</h2>
                             <p className="text-text/80 leading-relaxed mb-3">
                                 El tratamiento de datos personales realizado por Mobius se rige por el{" "}
-                                <a href="/privacidad" className="text-primary underline">Aviso de Privacidad</a>{" "}
+                                <a href="/privacy" className="text-primary underline">Aviso de Privacidad</a>{" "}
                                 vigente, el cual forma parte integrante de estos TyC Generales por referencia.
                             </p>
                             <p className="text-text/80 leading-relaxed mb-3">
