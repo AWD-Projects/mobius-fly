@@ -57,7 +57,7 @@ export const IdentityStep = React.memo<IdentityStepProps>(({
           />
           <span className="text-sm text-text">
             Acepto los{" "}
-            <Link href="/terms" className="font-semibold underline">
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold underline">
               Términos y Condiciones
             </Link>
           </span>

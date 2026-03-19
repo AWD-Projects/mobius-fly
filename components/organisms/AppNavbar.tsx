@@ -17,7 +17,7 @@ type AppNavbarProps = Omit<
  * Usar este componente en todas las páginas de la app en lugar de <Navbar> directamente.
  */
 export const AppNavbar = React.memo<AppNavbarProps>((props) => {
-    const { user, isLoggedIn, logout } = useLocalAuth();
+    const { user, isLoggedIn, isHydrated, logout } = useLocalAuth();
     const router = useRouter();
 
     const userInitials = user
@@ -36,6 +36,7 @@ export const AppNavbar = React.memo<AppNavbarProps>((props) => {
                     height={32}
                 />
             }
+            isAuthLoading={!isHydrated}
             isLoggedIn={isLoggedIn}
             userType={userType}
             userInitials={userInitials}
