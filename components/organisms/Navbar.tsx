@@ -49,6 +49,7 @@ export interface NavbarProps
   logo?: React.ReactNode;
   logoText?: string;
   navLinks?: NavLink[];
+  isAuthLoading?: boolean;
   isLoggedIn?: boolean;
   userType?: "buyer" | "owner";
   userInitials?: string;
@@ -88,6 +89,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
         { label: "Preguntas frecuentes", href: "/faq" },
         { label: "Contacto", href: "/contact" },
       ],
+      isAuthLoading = false,
       isLoggedIn = false,
       userType = "buyer",
       userInitials = "CP",
@@ -332,7 +334,12 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
 
           {/* Right: CTA Buttons or User Avatar */}
           <div className="flex items-center gap-2 shrink-0">
-            {!isLoggedIn ? (
+            {isAuthLoading ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <div className={cn("h-8 w-20 rounded-sm animate-pulse", isHero ? "bg-white/10" : "bg-secondary/10")} />
+                <div className={cn("h-8 w-24 rounded-sm animate-pulse", isHero ? "bg-white/10" : "bg-secondary/10")} />
+              </div>
+            ) : !isLoggedIn ? (
               <>
                 {/* Sign up button */}
                 <button
@@ -427,6 +434,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               </DropdownMenu>
             )}
           </div>
+
         </div>
         </nav>
 
