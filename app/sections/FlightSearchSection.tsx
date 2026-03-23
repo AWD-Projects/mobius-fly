@@ -3,6 +3,17 @@ import { m } from "framer-motion";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { FlightSearchCard, type FlightSearchParams } from "@/components/organisms/FlightSearchCard";
 
+const MOCK_AIRPORTS = [
+  { code: "MEX", name: "Benito Juárez Internacional", city: "Ciudad de México" },
+  { code: "CUN", name: "Aeropuerto Internacional de Cancún", city: "Cancún" },
+  { code: "MTY", name: "Mariano Escobedo Internacional", city: "Monterrey" },
+  { code: "MAD", name: "Adolfo Suárez Madrid-Barajas", city: "Madrid" },
+  { code: "MIA", name: "Miami International Airport", city: "Miami" },
+  { code: "JFK", name: "John F. Kennedy International", city: "Nueva York" },
+  { code: "CDG", name: "Charles de Gaulle", city: "París" },
+  { code: "BCN", name: "El Prat", city: "Barcelona" },
+];
+
 interface FlightSearchSectionProps {
   sectionPadding: string;
   onSearch?: (params: FlightSearchParams) => void;
@@ -13,8 +24,8 @@ export const FlightSearchSection = React.memo<FlightSearchSectionProps>(({
   onSearch,
 }) => {
   const [tripType, setTripType] = React.useState<"roundtrip" | "oneway">("roundtrip");
-  const [originCode, setOriginCode] = React.useState("COK");
-  const [destinationCode, setDestinationCode] = React.useState("BLR");
+  const [originCode, setOriginCode] = React.useState("MEX");
+  const [destinationCode, setDestinationCode] = React.useState("MTY");
   const [departureDate, setDepartureDate] = React.useState("");
   const [returnDate, setReturnDate] = React.useState("");
   const [passengers, setPassengers] = React.useState(1);
@@ -77,6 +88,7 @@ export const FlightSearchSection = React.memo<FlightSearchSectionProps>(({
             departureDate={departureDate}
             returnDate={returnDate}
             passengers={passengers}
+            airports={MOCK_AIRPORTS}
             minDepartureDate={todayISO}
             minReturnDate={departureDate || todayISO}
             onTripTypeChange={setTripType}
