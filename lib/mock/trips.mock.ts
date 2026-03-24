@@ -266,6 +266,7 @@ export const MOCK_RESERVATION_DETAIL: ReservationDetail = {
             },
         ],
         flight_plan_url: null,
+        return_departure_datetime: null,
     },
     passengers: [
         {

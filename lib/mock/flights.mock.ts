@@ -274,6 +274,7 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
             { id: "crew-004", first_name: "Sofía", last_name: "Hernández", crew_role: "FIRST_OFFICER", license_number: "CPL-A 2748391" },
         ],
         flight_plan_url: null,
+        return_departure_datetime: null,
     },
     "flight-006": {
         id: "flight-006",
@@ -309,6 +310,7 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
             { id: "crew-006", first_name: "Valentina", last_name: "Cruz", crew_role: "FIRST_OFFICER", license_number: "CPL-A 3847201" },
         ],
         flight_plan_url: null,
+        return_departure_datetime: null,
     },
     "flight-007": {
         id: "flight-007",
@@ -342,9 +344,10 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
         crew: [
             { id: "crew-007", first_name: "Pierre", last_name: "Dubois", crew_role: "CAPTAIN", license_number: "ATPL-A 5829017" },
             { id: "crew-008", first_name: "Claire", last_name: "Martin", crew_role: "FIRST_OFFICER", license_number: "CPL-A 4738290" },
-            { id: "crew-009", first_name: "Marie", last_name: "Lefebvre", crew_role: "CREW", license_number: "FCL-CC 8829201" },
+            { id: "crew-009", first_name: "Marie", last_name: "Lefebvre", crew_role: "FLIGHT_ATTENDANT", license_number: "FCL-CC 8829201" },
         ],
         flight_plan_url: null,
+        return_departure_datetime: null,
     },
     "flight-rt-001-out": {
         id: "flight-rt-001-out",
@@ -371,6 +374,7 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
             { id: "crew-002", first_name: "Laura", last_name: "García", crew_role: "FIRST_OFFICER", license_number: "CPL-A 1938472" },
         ],
         flight_plan_url: null,
+        return_departure_datetime: null,
     },
 };
 

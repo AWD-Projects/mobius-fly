@@ -87,6 +87,14 @@ export function FlightDetailContent({
     const { user, logout } = useLocalAuth();
     const { setFlight, setPurchaseType, setTotalPassengers, setTotalPrice, initPassengers } = useBookingStore();
 
+    // Sync server-fetched flight to the Zustand store so that the passengers page
+    // always has the flight detail available — even after a hard refresh on that page.
+    React.useEffect(() => {
+        setFlight(flightId, flight);
+        setTotalPassengers(initialPassengers);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [flightId, initialPassengers]);
+
     const { aircraft, crew } = flight;
     const seats = seatsText(flight.available_seats);
     const isFullAvailable = flight.available_seats === flight.total_seats;

@@ -74,7 +74,7 @@ export interface CrewMemberPublic {
     id: string;
     first_name: string;
     last_name: string;
-    crew_role: "CAPTAIN" | "FIRST_OFFICER" | "CREW";
+    crew_role: "CAPTAIN" | "FIRST_OFFICER" | "FLIGHT_ATTENDANT";
     license_number: string;
 }
 
@@ -103,6 +103,7 @@ export interface FlightDetail extends FlightListItem {
     aircraft: AircraftPublic;
     crew: CrewMemberPublic[];
     flight_plan_url: string | null;
+    return_departure_datetime: string | null;
 }
 
 export interface ReservationPassenger {

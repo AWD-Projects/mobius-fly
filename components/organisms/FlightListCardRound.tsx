@@ -109,6 +109,13 @@ export const FlightListCardRound: React.FC<FlightListCardRoundProps> = ({
     className,
 }) => {
     const isReservable = pair.outbound.is_reservable && pair.inbound.is_reservable;
+    const [isSelecting, setIsSelecting] = React.useState(false);
+
+    const handleSelect = () => {
+        if (isSelecting) return;
+        setIsSelecting(true);
+        onSelect?.(pair);
+    };
     const totalPricePerSeat = pair.outbound.price_per_seat + pair.inbound.price_per_seat;
 
     return (
@@ -156,10 +163,11 @@ export const FlightListCardRound: React.FC<FlightListCardRoundProps> = ({
                 <Button
                     variant="secondary"
                     size="sm"
-                    disabled={!isReservable}
-                    onClick={() => onSelect?.(pair)}
+                    disabled={!isReservable || isSelecting}
+                    isLoading={isSelecting}
+                    onClick={handleSelect}
                 >
-                    Seleccionar
+                    {isSelecting ? "Seleccionando..." : "Seleccionar"}
                 </Button>
             </div>
         </div>
