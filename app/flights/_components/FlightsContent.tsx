@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowUpDown, SearchX } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { IconButton } from "@/components/atoms/IconButton";
@@ -13,10 +13,10 @@ import { SearchSummaryCard } from "@/components/organisms/SearchSummaryCard";
 import { ModifySearchModal, type ModifySearchValues } from "@/components/organisms/ModifySearchModal";
 import { Pagination } from "@/components/molecules/Pagination";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
-import { MOCK_ONE_WAY_FLIGHTS, MOCK_ROUND_TRIP_PAIRS } from "@/lib/mock/flights.mock";
 import type { FlightListItem, RoundTripPair } from "@/types/app.types";
+import type { SearchFlightsParams, SearchFlightsResult } from "@/app/actions/flights";
 
-const FLIGHTS_PER_PAGE = 4;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
@@ -34,52 +34,62 @@ const fadeUp = (delay = 0) => ({
 
 const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
 
-export function FlightsContent() {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface FlightsContentProps {
+    searchState: SearchFlightsParams;
+    initialData: SearchFlightsResult;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function FlightsContent({ searchState, initialData }: FlightsContentProps) {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const { user, logout } = useLocalAuth();
-
-    // ─── URL params ───────────────────────────────────────────────────────────
-    const origin = searchParams.get("origin") ?? "";
-    const destination = searchParams.get("destination") ?? "";
-    const date = searchParams.get("date") ?? "";
-    const returnDate = searchParams.get("returnDate") ?? undefined;
-    const type = (searchParams.get("type") ?? "one_way") as "one_way" | "round_trip";
-    const passengers = parseInt(searchParams.get("passengers") ?? "1");
-
-    // ─── Local state ──────────────────────────────────────────────────────────
-    const [currentPage, setCurrentPage] = React.useState(1);
-    const [sortAsc, setSortAsc] = React.useState(true);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-    // ─── Filtered + sorted data ───────────────────────────────────────────────
-    const allFlights: (FlightListItem | RoundTripPair)[] = React.useMemo(() => {
-        if (type === "round_trip") {
-            return [...MOCK_ROUND_TRIP_PAIRS].sort((a, b) => {
-                const priceA = a.outbound.price_per_seat + a.inbound.price_per_seat;
-                const priceB = b.outbound.price_per_seat + b.inbound.price_per_seat;
-                return sortAsc ? priceA - priceB : priceB - priceA;
-            });
-        }
-        return [...MOCK_ONE_WAY_FLIGHTS].sort((a, b) => {
-            const fa = a as FlightListItem;
-            const fb = b as FlightListItem;
-            return sortAsc
-                ? fa.price_per_seat - fb.price_per_seat
-                : fb.price_per_seat - fa.price_per_seat;
+    const {
+        origin,
+        destination,
+        date,
+        returnDate,
+        type,
+        passengers,
+        page,
+        sortBy,
+        pageSize = 4,
+    } = searchState;
+
+    const { items, totalCount, totalPages } = initialData;
+
+    // ─── URL builder ─────────────────────────────────────────────────────────
+
+    function buildUrl(overrides: Partial<SearchFlightsParams>): string {
+        const merged = { ...searchState, ...overrides };
+        const qp = new URLSearchParams({
+            origin: merged.origin,
+            destination: merged.destination,
+            date: merged.date ?? "",
+            type: merged.type,
+            passengers: String(merged.passengers),
+            page: String(merged.page ?? 1),
+            sort: merged.sortBy ?? "price_asc",
         });
-    }, [type, sortAsc]);
+        if (merged.returnDate) qp.set("returnDate", merged.returnDate);
+        return `/flights?${qp.toString()}`;
+    }
 
-    const totalPages = Math.ceil(allFlights.length / FLIGHTS_PER_PAGE);
-    const paginated = allFlights.slice(
-        (currentPage - 1) * FLIGHTS_PER_PAGE,
-        currentPage * FLIGHTS_PER_PAGE
-    );
+    // ─── Handlers ────────────────────────────────────────────────────────────
 
-    // Reset page when type changes
-    React.useEffect(() => { setCurrentPage(1); }, [type]);
+    const handleSortToggle = () => {
+        const newSort = sortBy === "price_asc" ? "price_desc" : "price_asc";
+        router.push(buildUrl({ sortBy: newSort, page: 1 }));
+    };
 
-    // ─── Navigation helpers ───────────────────────────────────────────────────
+    const handlePageChange = (newPage: number) => {
+        router.push(buildUrl({ page: newPage }));
+    };
+
     const handleSelectFlight = (flight: FlightListItem) => {
         const qp = new URLSearchParams({ passengers: String(passengers) });
         router.push(`/flights/${flight.id}?${qp.toString()}`);
@@ -97,6 +107,8 @@ export function FlightsContent() {
             date: values.date,
             type: values.type,
             passengers: String(values.passengers),
+            page: "1",
+            sort: "price_asc",
         });
         if (values.type === "round_trip" && values.returnDate) {
             qp.set("returnDate", values.returnDate);
@@ -105,13 +117,14 @@ export function FlightsContent() {
         setIsModalOpen(false);
     };
 
+    // ─── Display helpers ──────────────────────────────────────────────────────
+
     const userInitials = user
         ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
         : undefined;
 
-    const pageTitle = origin && destination
-        ? `${origin} → ${destination}`
-        : "Vuelos disponibles";
+    const pageTitle =
+        origin && destination ? `${origin} → ${destination}` : "Vuelos disponibles";
 
     const pageSubtitle = [
         date ? fmtDateShort(date) : null,
@@ -120,6 +133,10 @@ export function FlightsContent() {
     ]
         .filter(Boolean)
         .join(" · ");
+
+    const currentPage = page ?? 1;
+    const startItem = (currentPage - 1) * pageSize + 1;
+    const endItem = Math.min(currentPage * pageSize, totalCount);
 
     return (
         <LazyMotion features={domAnimation} strict>
@@ -178,21 +195,37 @@ export function FlightsContent() {
                             className="flex items-center justify-between gap-4"
                         >
                             <span className="text-small text-muted font-normal">
-                                {allFlights.length}{" "}
-                                {allFlights.length === 1 ? "vuelo encontrado" : "vuelos encontrados"}
+                                {totalCount}{" "}
+                                {totalCount === 1 ? "vuelo encontrado" : "vuelos encontrados"}
                             </span>
                             <button
-                                onClick={() => setSortAsc((v) => !v)}
+                                onClick={handleSortToggle}
                                 className="flex items-center gap-1.5 text-small text-muted font-medium hover:text-text transition-colors"
                             >
                                 <ArrowUpDown size={14} />
-                                Precio {sortAsc ? "↑" : "↓"}
+                                Precio {sortBy === "price_asc" ? "↑" : "↓"}
                             </button>
                         </m.div>
 
+                        {/* Empty state */}
+                        {items.length === 0 && (
+                            <m.div
+                                {...fadeUp(0.1)}
+                                className="flex flex-col items-center justify-center gap-3 py-16 text-center"
+                            >
+                                <SearchX size={40} className="text-muted opacity-40" />
+                                <p className="text-body font-medium text-text">
+                                    No encontramos vuelos disponibles
+                                </p>
+                                <p className="text-small text-muted max-w-xs">
+                                    Intenta con otras fechas, origen o destino.
+                                </p>
+                            </m.div>
+                        )}
+
                         {/* Cards */}
                         <div className="flex flex-col gap-4">
-                            {paginated.map((item, i) => {
+                            {items.map((item, i) => {
                                 if (type === "round_trip") {
                                     const pair = item as RoundTripPair;
                                     return (
@@ -217,22 +250,21 @@ export function FlightsContent() {
                         </div>
 
                         {/* Pagination */}
-                        <m.div
-                            {...fadeUp(0.2)}
-                            className="flex items-center justify-between gap-4 pt-2 flex-wrap"
-                        >
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={Math.max(totalPages, 1)}
-                                onPageChange={setCurrentPage}
-                            />
-                            <span className="text-caption text-muted">
-                                Mostrando{" "}
-                                {(currentPage - 1) * FLIGHTS_PER_PAGE + 1}–
-                                {Math.min(currentPage * FLIGHTS_PER_PAGE, allFlights.length)}{" "}
-                                de {allFlights.length} vuelos
-                            </span>
-                        </m.div>
+                        {totalPages > 1 && (
+                            <m.div
+                                {...fadeUp(0.2)}
+                                className="flex items-center justify-between gap-4 pt-2 flex-wrap"
+                            >
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={handlePageChange}
+                                />
+                                <span className="text-caption text-muted">
+                                    Mostrando {startItem}–{endItem} de {totalCount} vuelos
+                                </span>
+                            </m.div>
+                        )}
                     </div>
 
                     {/* Right — search summary sidebar */}
@@ -256,7 +288,14 @@ export function FlightsContent() {
                 <ModifySearchModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    initialValues={{ origin, destination, date, returnDate, type, passengers }}
+                    initialValues={{
+                        origin,
+                        destination,
+                        date,
+                        returnDate,
+                        type,
+                        passengers,
+                    }}
                     onSearch={handleModifySearch}
                 />
             </div>

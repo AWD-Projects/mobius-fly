@@ -37,6 +37,7 @@ export const FlightPurchaseSidebarCard: React.FC<FlightPurchaseSidebarCardProps>
     const [purchaseType, setPurchaseType] = React.useState<"seats" | "full_aircraft" | null>(null);
     const [adults, setAdults] = React.useState(Math.min(initialPassengers, availableSeats || 1));
     const [minors, setMinors] = React.useState(0);
+    const [isContinuing, setIsContinuing] = React.useState(false);
 
     const isFullAircraftAvailable = availableSeats === totalSeats;
 
@@ -51,7 +52,8 @@ export const FlightPurchaseSidebarCard: React.FC<FlightPurchaseSidebarCardProps>
     const canContinue = purchaseType !== null && adults >= 1 && seatsValid;
 
     const handleContinue = () => {
-        if (!canContinue) return;
+        if (!canContinue || isContinuing) return;
+        setIsContinuing(true);
         const pax = purchaseType === "full_aircraft" ? totalSeats : totalPax;
         onContinue(purchaseType!, pax, totalPrice, adults, minors);
     };
@@ -126,10 +128,11 @@ export const FlightPurchaseSidebarCard: React.FC<FlightPurchaseSidebarCardProps>
                 variant="secondary"
                 size="lg"
                 className="w-full"
-                disabled={!canContinue}
+                disabled={!canContinue || isContinuing}
+                isLoading={isContinuing}
                 onClick={handleContinue}
             >
-                Continuar
+                {isContinuing ? "Cargando..." : "Continuar"}
             </Button>
         </div>
     );

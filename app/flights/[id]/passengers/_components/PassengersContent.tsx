@@ -7,7 +7,10 @@ import { ArrowLeft } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { PassengerNavigationCard } from "@/components/organisms/PassengerNavigationCard";
-import { PassengerForm, type PassengerFormData } from "@/components/molecules/PassengerForm";
+import {
+    PassengerForm,
+    type PassengerFormData,
+} from "@/components/molecules/PassengerForm";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { Button } from "@/components/atoms/Button";
 import { IconButton } from "@/components/atoms/IconButton";
@@ -19,8 +22,29 @@ import type { UploadedDocument } from "@/components/molecules/DocumentUpload";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DAYS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-const MONTHS_FULL = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const DAYS = [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+];
+const MONTHS_FULL = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+];
 
 function fmtDayDate(iso: string): string {
     const d = new Date(iso);
@@ -43,7 +67,10 @@ function fmtDuration(minutes: number | null): string {
 }
 
 function fmtPrice(n: number): string {
-    return n.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return n.toLocaleString("es-MX", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    });
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -67,20 +94,28 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     const { user, logout } = useLocalAuth();
     const store = useBookingStore();
 
-    // ─── Redirect if store is empty ───────────────────────────────────────────
+    // ─── Redirect if store is empty (wait for hydration first) ───────────────
     React.useEffect(() => {
+        if (!store._hasHydrated) return; // localStorage not loaded yet — wait
         if (!store.flightDetail) {
-            router.replace(`/flights/${flightId}`);
+            router.replace(`/flights/${flightId}?passengers=${store.totalPassengers || 1}`);
         }
-    }, [store.flightDetail, flightId, router]);
+    }, [store._hasHydrated, store.flightDetail, store.totalPassengers, flightId, router]);
 
     // ─── Passenger forms ──────────────────────────────────────────────────────
     const [activeIndex, setActiveIndex] = React.useState(0);
-    const [documents, setDocuments] = React.useState<Record<number, UploadedDocument>>({});
-    const [responsibleSelections, setResponsibleSelections] = React.useState<Record<number, number>>({});
-    const [erroredPassengers, setErroredPassengers] = React.useState<Set<number>>(new Set());
+    const [documents, setDocuments] = React.useState<
+        Record<number, UploadedDocument>
+    >({});
+    const [responsibleSelections, setResponsibleSelections] = React.useState<
+        Record<number, number>
+    >({});
+    const [erroredPassengers, setErroredPassengers] = React.useState<
+        Set<number>
+    >(new Set());
 
-    const activePassenger: StoredPassenger | undefined = store.passengers[activeIndex];
+    const activePassenger: StoredPassenger | undefined =
+        store.passengers[activeIndex];
 
     // Build adult name list for the responsible adult selector
     const adultNames: { index: number; label: string }[] = store.passengers
@@ -93,7 +128,11 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
 
     const handlePassengerSubmit = (data: PassengerFormData) => {
         const documentUrl = documents[activeIndex]?.url ?? "";
-        store.updatePassenger(activeIndex, { ...data, documentUrl, isCompleted: true });
+        store.updatePassenger(activeIndex, {
+            ...data,
+            documentUrl,
+            isCompleted: true,
+        });
         // Clear error state for this passenger
         setErroredPassengers((prev) => {
             const next = new Set(prev);
@@ -102,7 +141,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         });
         // Auto-advance to next incomplete passenger
         const nextIndex = store.passengers.findIndex(
-            (p, i) => i > activeIndex && !p.isCompleted
+            (p, i) => i > activeIndex && !p.isCompleted,
         );
         if (nextIndex !== -1) {
             setActiveIndex(nextIndex);
@@ -129,9 +168,13 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     };
 
     const allCompleted =
-        store.passengers.length > 0 && store.passengers.every((p) => p.isCompleted);
+        store.passengers.length > 0 &&
+        store.passengers.every((p) => p.isCompleted);
 
-    const handleNavigatePassenger = (groupType: "adult" | "minor", index: number) => {
+    const handleNavigatePassenger = (
+        groupType: "adult" | "minor",
+        index: number,
+    ) => {
         // Mark current as errored if not completed
         if (!store.passengers[activeIndex]?.isCompleted) {
             setErroredPassengers((prev) => new Set(prev).add(activeIndex));
@@ -233,12 +276,15 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                 />
 
                 {/* Header */}
-                <m.div {...fadeUp(0)} className={`w-full ${sectionPadding} py-8`}>
+                <m.div
+                    {...fadeUp(0)}
+                    className={`w-full ${sectionPadding} py-8`}
+                >
                     <div className="flex items-center gap-4">
                         <IconButton
-                            icon={<ArrowLeft size={22} />}
+                            icon={<ArrowLeft size={24} />}
                             variant="ghost"
-                            size="sm"
+                            size="md"
                             onClick={() => router.back()}
                             aria-label="Volver"
                         />
@@ -283,27 +329,47 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                             Selecciona un adulto
                                         </label>
                                         <Select
-                                            value={responsibleSelections[activeIndex] ?? ""}
+                                            value={
+                                                responsibleSelections[
+                                                    activeIndex
+                                                ] ?? ""
+                                            }
                                             onChange={(e) => {
-                                                const idx = parseInt(e.target.value);
-                                                setResponsibleSelections((prev) => ({
-                                                    ...prev,
-                                                    [activeIndex]: idx,
-                                                }));
-                                                const adult = store.passengers[idx];
+                                                const idx = parseInt(
+                                                    e.target.value,
+                                                );
+                                                setResponsibleSelections(
+                                                    (prev) => ({
+                                                        ...prev,
+                                                        [activeIndex]: idx,
+                                                    }),
+                                                );
+                                                const adult =
+                                                    store.passengers[idx];
                                                 if (adult?.fullName) {
-                                                    store.updatePassenger(activeIndex, {
-                                                        responsibleName: adult.fullName,
-                                                    });
+                                                    store.updatePassenger(
+                                                        activeIndex,
+                                                        {
+                                                            responsibleName:
+                                                                adult.fullName,
+                                                        },
+                                                    );
                                                 }
                                             }}
                                         >
-                                            <option value="">Selecciona un adulto</option>
-                                            {adultNames.map(({ index, label }) => (
-                                                <option key={index} value={index}>
-                                                    {label}
-                                                </option>
-                                            ))}
+                                            <option value="">
+                                                Selecciona un adulto
+                                            </option>
+                                            {adultNames.map(
+                                                ({ index, label }) => (
+                                                    <option
+                                                        key={index}
+                                                        value={index}
+                                                    >
+                                                        {label}
+                                                    </option>
+                                                ),
+                                            )}
                                         </Select>
                                     </div>
                                 </div>
@@ -312,12 +378,18 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                             <PassengerForm
                                 key={`passenger-${activeIndex}`}
                                 title={getFormTitle()}
-                                passengerType={activePassenger?.slotType ?? "adult"}
+                                passengerType={
+                                    activePassenger?.slotType ?? "adult"
+                                }
                                 defaultValues={activeDefaults}
                                 document={documents[activeIndex]}
                                 onSubmit={handlePassengerSubmit}
-                                onDocumentUpload={(file) => handleDocumentUpload(activeIndex, file)}
-                                onDocumentRemove={() => handleDocumentRemove(activeIndex)}
+                                onDocumentUpload={(file) =>
+                                    handleDocumentUpload(activeIndex, file)
+                                }
+                                onDocumentRemove={() =>
+                                    handleDocumentRemove(activeIndex)
+                                }
                                 submitLabel={
                                     activeIndex < store.passengers.length - 1
                                         ? "Guardar y continuar"
@@ -341,7 +413,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                     <span className="text-h3 font-bold text-text">
                                         {flight.departure_airport.iata_code}
                                     </span>
-                                    <span className="text-muted text-small">→</span>
+                                    <span className="text-muted text-small">
+                                        →
+                                    </span>
                                     <span className="text-h3 font-bold text-text">
                                         {flight.arrival_airport.iata_code}
                                     </span>
@@ -361,7 +435,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 </div>
 
                                 <TypeBadge variant="neutral">
-                                    {flight.flight_type === "ONE_WAY" ? "Sencillo" : "Redondo"}
+                                    {flight.flight_type === "ONE_WAY"
+                                        ? "Sencillo"
+                                        : "Redondo"}
                                 </TypeBadge>
 
                                 <div className="w-full h-px bg-border" />
@@ -369,13 +445,21 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 {/* Passengers breakdown */}
                                 <div className="flex flex-col gap-1.5">
                                     <div className="flex justify-between text-small">
-                                        <span className="text-muted">Adultos</span>
-                                        <span className="text-text font-medium">{store.adults}</span>
+                                        <span className="text-muted">
+                                            Adultos
+                                        </span>
+                                        <span className="text-text font-medium">
+                                            {store.adults}
+                                        </span>
                                     </div>
                                     {store.minors > 0 && (
                                         <div className="flex justify-between text-small">
-                                            <span className="text-muted">Menores</span>
-                                            <span className="text-text font-medium">{store.minors}</span>
+                                            <span className="text-muted">
+                                                Menores
+                                            </span>
+                                            <span className="text-text font-medium">
+                                                {store.minors}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -386,12 +470,16 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-h3 font-bold text-text">
                                         ${fmtPrice(store.totalPrice)}{" "}
-                                        <span className="text-small font-normal text-muted">MXN</span>
+                                        <span className="text-small font-normal text-muted">
+                                            MXN
+                                        </span>
                                     </span>
                                     {store.purchaseType === "seats" && (
                                         <span className="text-caption text-muted">
                                             por {store.totalPassengers}{" "}
-                                            {store.totalPassengers === 1 ? "asiento" : "asientos"}
+                                            {store.totalPassengers === 1
+                                                ? "asiento"
+                                                : "asientos"}
                                         </span>
                                     )}
                                 </div>
@@ -402,7 +490,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 size="lg"
                                 className="w-full"
                                 disabled={!allCompleted}
-                                onClick={() => router.push(`/flights/${flightId}/payment`)}
+                                onClick={() =>
+                                    router.push(`/flights/${flightId}/payment`)
+                                }
                             >
                                 Continuar con el pago
                             </Button>

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { getMockFlightDetail } from "@/lib/mock/flights.mock";
+import { redirect } from "next/navigation";
+import { getFlightById } from "@/app/actions/flights";
 import { FlightDetailContent } from "./_components/FlightDetailContent";
 
 interface Props {
@@ -10,14 +11,19 @@ interface Props {
 export default async function FlightDetailPage({ params, searchParams }: Props) {
     const { id } = await params;
     const { passengers } = await searchParams;
-    const flightDetail = getMockFlightDetail(id);
+
+    const flightDetail = await getFlightById(id);
+
+    if (!flightDetail) {
+        redirect("/flights");
+    }
 
     return (
         <Suspense>
             <FlightDetailContent
                 flightId={id}
                 flightDetail={flightDetail}
-                initialPassengers={parseInt(passengers ?? "1")}
+                initialPassengers={Math.max(1, parseInt(passengers ?? "1") || 1)}
             />
         </Suspense>
     );
