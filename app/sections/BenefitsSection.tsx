@@ -72,7 +72,7 @@ export const BenefitsSection = React.memo<BenefitsSectionProps>(({
   return (
     <section
       id="beneficios"
-      className={`lg:snap-start min-h-screen lg:h-screen relative flex flex-col py-12 lg:py-0 lg:justify-center ${sectionPadding}`}
+      className={`lg:snap-start min-h-screen relative flex flex-col py-12 lg:py-16 lg:justify-center ${sectionPadding}`}
       style={{ backgroundColor: "#F6F6F4" }}
     >
       <div className="w-full flex flex-col items-center gap-12">
@@ -110,7 +110,7 @@ export const BenefitsSection = React.memo<BenefitsSectionProps>(({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl items-center"
+            className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 max-w-6xl items-center"
           >
             {/* Left Column - Benefits List */}
             <div className="flex flex-col gap-5">
@@ -157,7 +157,7 @@ export const BenefitsSection = React.memo<BenefitsSectionProps>(({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-              className="relative overflow-hidden rounded-2xl w-full aspect-square"
+              className="relative overflow-hidden rounded-2xl w-full aspect-[4/3] lg:aspect-auto lg:h-[420px]"
             >
               <Image
                 src={benefitsData[userType].image}

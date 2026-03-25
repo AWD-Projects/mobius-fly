@@ -6,9 +6,11 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/atoms/Button";
-import { InputGroup } from "@/components/molecules/InputGroup";
 import { SelectGroup } from "@/components/molecules/SelectGroup";
+import { InputGroup } from "@/components/molecules/InputGroup";
 import { NumericCounter } from "@/components/molecules/NumericCounter";
+import { getAirports } from "@/app/actions/flights";
+import type { Airport } from "@/types/app.types";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -23,18 +25,22 @@ const schema = z
         type: z.enum(["one_way", "round_trip"]),
         passengers: z.number().min(1, "Mínimo 1 pasajero").max(20),
     })
-    .refine(
-        (data) => !data.date || data.date >= todayISO(),
-        { message: "La fecha de salida no puede ser anterior a hoy", path: ["date"] }
-    )
-    .refine(
-        (data) => data.type !== "round_trip" || !!data.returnDate,
-        { message: "Fecha de vuelta requerida para vuelo redondo", path: ["returnDate"] }
-    )
-    .refine(
-        (data) => !data.returnDate || !data.date || data.returnDate >= data.date,
-        { message: "La fecha de vuelta no puede ser anterior a la de salida", path: ["returnDate"] }
-    );
+    .refine((d) => d.origin !== d.destination, {
+        message: "El origen y destino no pueden ser iguales",
+        path: ["destination"],
+    })
+    .refine((d) => !d.date || d.date >= todayISO(), {
+        message: "La fecha de salida no puede ser anterior a hoy",
+        path: ["date"],
+    })
+    .refine((d) => d.type !== "round_trip" || !!d.returnDate, {
+        message: "Fecha de vuelta requerida para vuelo redondo",
+        path: ["returnDate"],
+    })
+    .refine((d) => !d.returnDate || !d.date || d.returnDate >= d.date, {
+        message: "La fecha de vuelta no puede ser anterior a la de salida",
+        path: ["returnDate"],
+    });
 
 export type ModifySearchValues = z.infer<typeof schema>;
 
@@ -55,6 +61,12 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
     initialValues,
     onSearch,
 }) => {
+    const [airports, setAirports] = React.useState<Airport[]>([]);
+
+    React.useEffect(() => {
+        getAirports().then(setAirports);
+    }, []);
+
     const {
         register,
         handleSubmit,
@@ -74,11 +86,16 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
         },
     });
 
-    const watchedType = watch("type"); // eslint-disable-line react-hooks/incompatible-library
+    const [isSearching, setIsSearching] = React.useState(false);
+
+    const watchedType = watch("type");
     const watchedDate = watch("date");
+    const watchedOrigin = watch("origin");
+    const watchedDestination = watch("destination");
 
     React.useEffect(() => {
         if (isOpen) {
+            setIsSearching(false);
             reset({
                 origin: initialValues?.origin ?? "",
                 destination: initialValues?.destination ?? "",
@@ -91,6 +108,9 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!isOpen) return null;
+
+    const originOptions = airports.filter((a) => a.iata_code !== watchedDestination);
+    const destinationOptions = airports.filter((a) => a.iata_code !== watchedOrigin);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -118,28 +138,43 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
 
                 {/* Form */}
                 <form
-                    onSubmit={handleSubmit(onSearch)}
+                    onSubmit={handleSubmit((values) => {
+                        setIsSearching(true);
+                        onSearch(values);
+                    })}
                     noValidate
                     className="flex flex-col gap-5"
                 >
                     {/* Origen + Destino */}
                     <div className="flex gap-4">
-                        <InputGroup
+                        <SelectGroup
                             label="Origen"
-                            placeholder="IATA o ciudad"
                             required
                             className="flex-1"
                             error={errors.origin?.message}
                             {...register("origin")}
-                        />
-                        <InputGroup
+                        >
+                            <option value="">Selecciona origen</option>
+                            {originOptions.map((a) => (
+                                <option key={a.id} value={a.iata_code}>
+                                    {a.iata_code} — {a.city}
+                                </option>
+                            ))}
+                        </SelectGroup>
+                        <SelectGroup
                             label="Destino"
-                            placeholder="IATA o ciudad"
                             required
                             className="flex-1"
                             error={errors.destination?.message}
                             {...register("destination")}
-                        />
+                        >
+                            <option value="">Selecciona destino</option>
+                            {destinationOptions.map((a) => (
+                                <option key={a.id} value={a.iata_code}>
+                                    {a.iata_code} — {a.city}
+                                </option>
+                            ))}
+                        </SelectGroup>
                     </div>
 
                     {/* Fechas */}
@@ -216,8 +251,10 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
                             variant="secondary"
                             size="md"
                             className="flex-1"
+                            disabled={isSearching}
+                            isLoading={isSearching}
                         >
-                            Buscar vuelos
+                            {isSearching ? "Buscando..." : "Buscar vuelos"}
                         </Button>
                     </div>
                 </form>

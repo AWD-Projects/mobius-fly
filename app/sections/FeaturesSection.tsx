@@ -8,6 +8,7 @@ import { FeatureCard } from "@/components/molecules/FeatureCard";
 interface Feature {
   icon: LucideIcon;
   title: string;
+  subtitle?: string;
   description: string;
 }
 
@@ -43,8 +44,8 @@ export const FeaturesSection = React.memo<FeaturesSectionProps>(({
           className="flex flex-col items-center gap-8"
         >
           <SectionHeader
-            title="Así funciona Mobius Fly"
-            subtitle="Una plataforma. Dos formas de volar"
+            title="Así funciona MobiusFly"
+            subtitle="Donde cada vuelo encuentra a quien lo necesita."
             align="center"
             size="page"
           />
@@ -65,6 +66,7 @@ export const FeaturesSection = React.memo<FeaturesSectionProps>(({
           {featuresData[userType].map((feature, index) => (
             <m.div
               key={`${userType}-${index}`}
+              className="h-full"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{
@@ -77,7 +79,9 @@ export const FeaturesSection = React.memo<FeaturesSectionProps>(({
               <FeatureCard
                 icon={feature.icon}
                 title={feature.title}
+                subtitle={feature.subtitle}
                 description={feature.description}
+                className="h-full"
               />
             </m.div>
           ))}

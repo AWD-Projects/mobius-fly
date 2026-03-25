@@ -185,7 +185,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                   overflowY: "auto",
                 }}
               >
-                {airports.map((airport) => (
+                {airports.filter((a) => a.code !== destinationCode).map((airport) => (
                   <button
                     key={airport.code}
                     onClick={() => {
@@ -255,7 +255,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                   overflowY: "auto",
                 }}
               >
-                {airports.map((airport) => (
+                {airports.filter((a) => a.code !== originCode).map((airport) => (
                   <button
                     key={airport.code}
                     onClick={() => {

@@ -50,6 +50,13 @@ export const FlightListCardSimple: React.FC<FlightListCardSimpleProps> = ({
     className,
 }) => {
     const { departure_airport: dep, arrival_airport: arr } = flight;
+    const [isSelecting, setIsSelecting] = React.useState(false);
+
+    const handleSelect = () => {
+        if (isSelecting) return;
+        setIsSelecting(true);
+        onSelect?.(flight);
+    };
 
     return (
         <div
@@ -131,10 +138,11 @@ export const FlightListCardSimple: React.FC<FlightListCardSimpleProps> = ({
                     <Button
                         variant="secondary"
                         size="sm"
-                        disabled={!flight.is_reservable}
-                        onClick={() => onSelect?.(flight)}
+                        disabled={!flight.is_reservable || isSelecting}
+                        isLoading={isSelecting}
+                        onClick={handleSelect}
                     >
-                        Seleccionar
+                        {isSelecting ? "Seleccionando..." : "Seleccionar"}
                     </Button>
                 </div>
             </div>

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { FlightDetail } from "@/types/app.types";
 
 export interface StoredPassenger {
@@ -25,6 +26,8 @@ interface BookingState {
     totalPrice: number;
     passengers: StoredPassenger[];
     blockedUntil: string | null;
+    /** True once the store has been rehydrated from localStorage. */
+    _hasHydrated: boolean;
 
     setFlight: (id: string, detail: FlightDetail) => void;
     setPurchaseType: (type: "seats" | "full_aircraft") => void;
@@ -34,6 +37,7 @@ interface BookingState {
     initPassengers: (adults: number, minors: number) => void;
     updatePassenger: (index: number, data: Partial<StoredPassenger>) => void;
     reset: () => void;
+    _setHasHydrated: (value: boolean) => void;
 }
 
 const defaultState: Omit<
@@ -46,6 +50,7 @@ const defaultState: Omit<
     | "initPassengers"
     | "updatePassenger"
     | "reset"
+    | "_setHasHydrated"
 > = {
     flightId: null,
     flightDetail: null,
@@ -56,41 +61,66 @@ const defaultState: Omit<
     totalPrice: 0,
     passengers: [],
     blockedUntil: null,
+    _hasHydrated: false,
 };
 
-export const useBookingStore = create<BookingState>((set) => ({
-    ...defaultState,
+export const useBookingStore = create<BookingState>()(
+    persist(
+        (set) => ({
+            ...defaultState,
 
-    setFlight: (id, detail) => set({ flightId: id, flightDetail: detail }),
+            _setHasHydrated: (value: boolean) => set({ _hasHydrated: value }),
 
-    setPurchaseType: (type) => set({ purchaseType: type }),
+            setFlight: (id, detail) => set({ flightId: id, flightDetail: detail }),
 
-    setTotalPassengers: (n) => set({ totalPassengers: n }),
+            setPurchaseType: (type) => set({ purchaseType: type }),
 
-    setDistribution: (adults, minors) => set({ adults, minors }),
+            setTotalPassengers: (n) => set({ totalPassengers: n }),
 
-    setTotalPrice: (price) => set({ totalPrice: price }),
+            setDistribution: (adults, minors) => set({ adults, minors }),
 
-    initPassengers: (adults, minors) => {
-        const passengers: StoredPassenger[] = [
-            ...Array.from({ length: adults }, () => ({
-                slotType: "adult" as const,
-                isCompleted: false,
-            })),
-            ...Array.from({ length: minors }, () => ({
-                slotType: "minor" as const,
-                isCompleted: false,
-            })),
-        ];
-        set({ adults, minors, passengers });
-    },
+            setTotalPrice: (price) => set({ totalPrice: price }),
 
-    updatePassenger: (index, data) =>
-        set((state) => {
-            const passengers = [...state.passengers];
-            passengers[index] = { ...passengers[index], ...data };
-            return { passengers };
+            initPassengers: (adults, minors) => {
+                const passengers: StoredPassenger[] = [
+                    ...Array.from({ length: adults }, () => ({
+                        slotType: "adult" as const,
+                        isCompleted: false,
+                    })),
+                    ...Array.from({ length: minors }, () => ({
+                        slotType: "minor" as const,
+                        isCompleted: false,
+                    })),
+                ];
+                set({ adults, minors, passengers });
+            },
+
+            updatePassenger: (index, data) =>
+                set((state) => {
+                    const passengers = [...state.passengers];
+                    passengers[index] = { ...passengers[index], ...data };
+                    return { passengers };
+                }),
+
+            reset: () => set(defaultState),
         }),
-
-    reset: () => set(defaultState),
-}));
+        {
+            name: "mobius-booking",
+            partialize: (state) => ({
+                flightId: state.flightId,
+                flightDetail: state.flightDetail,
+                purchaseType: state.purchaseType,
+                totalPassengers: state.totalPassengers,
+                adults: state.adults,
+                minors: state.minors,
+                totalPrice: state.totalPrice,
+                blockedUntil: state.blockedUntil,
+                passengers: state.passengers,
+                // _hasHydrated is intentionally excluded — always starts false and is set at runtime
+            }),
+            onRehydrateStorage: () => (state) => {
+                state?._setHasHydrated(true);
+            },
+        },
+    ),
+);
