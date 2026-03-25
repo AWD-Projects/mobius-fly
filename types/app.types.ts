@@ -74,7 +74,7 @@ export interface CrewMemberPublic {
     id: string;
     first_name: string;
     last_name: string;
-    crew_role: "CAPTAIN" | "FIRST_OFFICER" | "CREW";
+    crew_role: "CAPTAIN" | "FIRST_OFFICER" | "CREW" | "FLIGHT_ATTENDANT";
     license_number: string;
 }
 

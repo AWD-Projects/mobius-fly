@@ -13,7 +13,6 @@ import { SearchSummaryCard } from "@/components/organisms/SearchSummaryCard";
 import { ModifySearchModal, type ModifySearchValues } from "@/components/organisms/ModifySearchModal";
 import { Pagination } from "@/components/molecules/Pagination";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
-import { MOCK_ONE_WAY_FLIGHTS, MOCK_ROUND_TRIP_PAIRS } from "@/lib/mock/flights.mock";
 import type { FlightListItem, RoundTripPair } from "@/types/app.types";
 
 const FLIGHTS_PER_PAGE = 4;
@@ -34,7 +33,11 @@ const fadeUp = (delay = 0) => ({
 
 const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
 
-export function FlightsContent() {
+interface FlightsContentProps {
+    initialFlights?: (FlightListItem | RoundTripPair)[];
+}
+
+export function FlightsContent({ initialFlights = [] }: FlightsContentProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, logout } = useLocalAuth();
@@ -52,50 +55,23 @@ export function FlightsContent() {
     const [sortAsc, setSortAsc] = React.useState(true);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-    // ─── Filtered + sorted data ───────────────────────────────────────────────
-    // If origin, destination, or date are missing we show all results so the
-    // page is still useful when navigated to directly without params.
+    // ─── Sorted data — filtering is done server-side in page.tsx ─────────────
     const allFlights: (FlightListItem | RoundTripPair)[] = React.useMemo(() => {
-        const hasFilters = !!origin && !!destination && !!date;
-
-        const flightDateMatches = (datetime: string, queryDate: string) =>
-            datetime.slice(0, 10) === queryDate;
-
         if (type === "round_trip") {
-            const filtered = MOCK_ROUND_TRIP_PAIRS.filter((pair) => {
-                if (!hasFilters) return true;
-                const outOk =
-                    pair.outbound.departure_airport.iata_code === origin &&
-                    pair.outbound.arrival_airport.iata_code === destination &&
-                    flightDateMatches(pair.outbound.departure_datetime, date) &&
-                    pair.outbound.available_seats >= passengers;
-                const inOk =
-                    pair.inbound.departure_airport.iata_code === destination &&
-                    pair.inbound.arrival_airport.iata_code === origin &&
-                    (!returnDate || flightDateMatches(pair.inbound.departure_datetime, returnDate)) &&
-                    pair.inbound.available_seats >= passengers;
-                return outOk && inOk;
-            });
-            return filtered.sort((a, b) => {
-                const priceA = a.outbound.price_per_seat + a.inbound.price_per_seat;
-                const priceB = b.outbound.price_per_seat + b.inbound.price_per_seat;
+            return [...initialFlights].sort((a, b) => {
+                const pair = a as RoundTripPair;
+                const pairB = b as RoundTripPair;
+                const priceA = pair.outbound.price_per_seat + pair.inbound.price_per_seat;
+                const priceB = pairB.outbound.price_per_seat + pairB.inbound.price_per_seat;
                 return sortAsc ? priceA - priceB : priceB - priceA;
             });
         }
-
-        const filtered = MOCK_ONE_WAY_FLIGHTS.filter((f) => {
-            if (!hasFilters) return true;
-            return (
-                f.departure_airport.iata_code === origin &&
-                f.arrival_airport.iata_code === destination &&
-                flightDateMatches(f.departure_datetime, date) &&
-                f.available_seats >= passengers
-            );
+        return [...initialFlights].sort((a, b) => {
+            const fa = a as FlightListItem;
+            const fb = b as FlightListItem;
+            return sortAsc ? fa.price_per_seat - fb.price_per_seat : fb.price_per_seat - fa.price_per_seat;
         });
-        return filtered.sort((a, b) =>
-            sortAsc ? a.price_per_seat - b.price_per_seat : b.price_per_seat - a.price_per_seat
-        );
-    }, [type, sortAsc, origin, destination, date, returnDate, passengers]);
+    }, [initialFlights, type, sortAsc]);
 
     const totalPages = Math.ceil(allFlights.length / FLIGHTS_PER_PAGE);
     const paginated = allFlights.slice(
@@ -103,8 +79,8 @@ export function FlightsContent() {
         currentPage * FLIGHTS_PER_PAGE
     );
 
-    // Reset page when search params change
-    React.useEffect(() => { setCurrentPage(1); }, [type, origin, destination, date, returnDate, passengers]);
+    // Reset page when flight results change (new search from server)
+    React.useEffect(() => { setCurrentPage(1); }, [initialFlights]);
 
     // ─── Navigation helpers ───────────────────────────────────────────────────
     const handleSelectFlight = (flight: FlightListItem) => {

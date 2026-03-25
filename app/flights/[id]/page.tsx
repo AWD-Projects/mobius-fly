@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { getMockFlightDetail } from "@/lib/mock/flights.mock";
+import { notFound } from "next/navigation";
+import { getFlightDetail } from "@/lib/supabase/flights";
 import { FlightDetailContent } from "./_components/FlightDetailContent";
 
 interface Props {
@@ -10,7 +11,9 @@ interface Props {
 export default async function FlightDetailPage({ params, searchParams }: Props) {
     const { id } = await params;
     const { passengers } = await searchParams;
-    const flightDetail = getMockFlightDetail(id);
+    const flightDetail = await getFlightDetail(id);
+
+    if (!flightDetail) notFound();
 
     return (
         <Suspense>
