@@ -9,11 +9,18 @@ interface HeroSectionProps {
   currentWordIndex: number;
   rotatingWords: string[];
   activeSection: string;
+  isLoggedIn?: boolean;
+  userInitials?: string;
+  userType?: "buyer" | "owner";
   onLogoClick: () => void;
   onNavLinkClick: (href: string) => void;
   onLoginClick: () => void;
   onSignUpClick: () => void;
   onExploreClick: () => void;
+  onLogoutClick?: () => void;
+  onMyBookingsClick?: () => void;
+  onMyPlanesClick?: () => void;
+  onMyFlightsClick?: () => void;
 }
 
 export const HeroSection = React.memo<HeroSectionProps>(({
@@ -21,11 +28,18 @@ export const HeroSection = React.memo<HeroSectionProps>(({
   currentWordIndex,
   rotatingWords,
   activeSection,
+  isLoggedIn = false,
+  userInitials,
+  userType,
   onLogoClick,
   onNavLinkClick,
   onLoginClick,
   onSignUpClick,
   onExploreClick,
+  onLogoutClick,
+  onMyBookingsClick,
+  onMyPlanesClick,
+  onMyFlightsClick,
 }) => {
   return (
     <section
@@ -73,10 +87,17 @@ export const HeroSection = React.memo<HeroSectionProps>(({
           loginButtonText="Iniciar Sesión"
           signUpButtonText="Crear cuenta"
           activeHref={activeSection}
+          isLoggedIn={isLoggedIn}
+          userInitials={userInitials}
+          userType={userType}
           onLogoClick={onLogoClick}
           onNavLinkClick={onNavLinkClick}
           onLoginClick={onLoginClick}
           onSignUpClick={onSignUpClick}
+          onLogoutClick={onLogoutClick}
+          onMyBookingsClick={onMyBookingsClick}
+          onMyPlanesClick={onMyPlanesClick}
+          onMyFlightsClick={onMyFlightsClick}
         />
       </div>
 

@@ -1,14 +1,15 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { Button } from '../atoms/Button';
 
 export interface FlightSummaryCardProps {
   /** Origin airport code */
   originCode: string;
   /** Destination airport code */
   destinationCode: string;
-  /** Flight date (e.g., "Miércoles 15 de mayo, 2024") */
+  /** Flight date (e.g., "Miercoles 15 de mayo, 2024") */
   date: string;
-  /** Time range (e.g., "10:30 AM – 4:45 PM (5h 15m)") */
+  /** Time range (e.g., "10:30 AM - 4:45 PM (5h 15m)") */
   timeRange: string;
   /** Flight type */
   flightType: string;
@@ -43,27 +44,27 @@ export const FlightSummaryCard: React.FC<FlightSummaryCardProps> = ({
   onContinue,
 }) => {
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-6 flex flex-col gap-6">
+    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-6">
       {/* Title */}
-      <h3 className="text-[#0A0A0A] text-base font-semibold">
+      <h3 className="text-text text-body font-semibold">
         Resumen de tu vuelo
       </h3>
 
       {/* Flight Info Section */}
       <div className="flex flex-col gap-3 w-full">
         <div className="flex items-center justify-center gap-2">
-          <span className="text-[#0A0A0A] text-base font-bold">{originCode}</span>
-          <ArrowRight className="w-4 h-4 text-[#666666]" strokeWidth={1} />
-          <span className="text-[#0A0A0A] text-base font-bold">{destinationCode}</span>
+          <span className="text-text text-body font-bold">{originCode}</span>
+          <ArrowRight className="w-4 h-4 text-muted" strokeWidth={1} />
+          <span className="text-text text-body font-bold">{destinationCode}</span>
         </div>
-        <div className="text-[#666666] text-xs font-normal text-center">
+        <div className="text-muted text-caption font-normal text-center">
           {date}
         </div>
-        <div className="text-[#666666] text-xs font-normal text-center">
+        <div className="text-muted text-caption font-normal text-center">
           {timeRange}
         </div>
         <div className="flex justify-center">
-          <span className="bg-[#F5F5F5] rounded px-2 py-1 text-[#666666] text-[11px] font-medium">
+          <span className="bg-background rounded-sm px-2 py-1 text-muted text-caption font-medium">
             {flightType}
           </span>
         </div>
@@ -71,40 +72,42 @@ export const FlightSummaryCard: React.FC<FlightSummaryCardProps> = ({
 
       {/* Passengers Section */}
       <div className="flex flex-col gap-3">
-        <h4 className="text-[#0A0A0A] text-xs font-semibold">Pasajeros</h4>
+        <h4 className="text-text text-caption font-semibold">Pasajeros</h4>
         <div className="flex justify-between items-center">
-          <span className="text-[#666666] text-xs font-normal">Adultos</span>
-          <span className="text-[#0A0A0A] text-xs font-semibold">{adultsCount}</span>
+          <span className="text-muted text-caption font-normal">Adultos</span>
+          <span className="text-text text-caption font-semibold">{adultsCount}</span>
         </div>
         {minorsCount > 0 && (
           <div className="flex justify-between items-center">
-            <span className="text-[#666666] text-xs font-normal">Menores</span>
-            <span className="text-[#0A0A0A] text-xs font-semibold">{minorsCount}</span>
+            <span className="text-muted text-caption font-normal">Menores</span>
+            <span className="text-text text-caption font-semibold">{minorsCount}</span>
           </div>
         )}
       </div>
 
       {/* Price Section */}
       <div className="flex flex-col gap-2">
-        <h4 className="text-[#0A0A0A] text-xs font-semibold">Precio total</h4>
+        <h4 className="text-text text-caption font-semibold">Precio total</h4>
         <div className="flex items-baseline gap-1">
-          <span className="text-[#0A0A0A] text-[28px] font-bold leading-none">
+          <span className="text-text text-h3 font-bold leading-none">
             {priceValue}
           </span>
-          <span className="text-[#666666] text-xs font-medium">{currency}</span>
+          <span className="text-muted text-caption font-medium">{currency}</span>
         </div>
-        <div className="text-[#999999] text-[11px] font-normal">
+        <div className="text-muted text-caption font-normal">
           por pasajero ({totalPassengers} total)
         </div>
       </div>
 
       {/* CTA Button */}
-      <button
+      <Button
+        variant="secondary"
+        size="lg"
         onClick={onContinue}
-        className="w-full h-11 bg-[#0A0A0A] text-white text-[13px] font-semibold rounded-xl hover:bg-[#1a1a1a] transition-colors shadow-sm flex items-center justify-center"
+        className="w-full"
       >
         {buttonText}
-      </button>
+      </Button>
     </div>
   );
 };

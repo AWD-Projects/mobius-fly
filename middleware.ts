@@ -1,108 +1,118 @@
 /**
- * Middleware - SEO Security & Route Protection
+ * Middleware - Session Refresh, Route Protection & SEO Security
  * Mobius Fly - Empty Leg Marketplace
- *
- * Adds X-Robots-Tag headers to private routes
- * Prevents accidental indexation of sensitive pages
  */
 
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// ============================================================================
-// PRIVATE ROUTES CONFIGURATION
-// ============================================================================
+// ── Routes only accessible when NOT authenticated ─────────────────────────────
+const AUTH_ONLY_PATTERNS = [
+    /^\/login/,
+    /^\/register/,
+];
 
+// ── Routes that require an active session ────────────────────────────────────
+const PROTECTED_PATTERNS = [
+    /^\/my-trips/,
+    /^\/owner/,
+    /^\/dashboard/,
+    /^\/profile/,
+    /^\/settings/,
+    /^\/checkout/,
+    /^\/payment/,
+    /^\/reserva/,
+    /^\/booking/,
+    /^\/onboarding/,
+];
+
+// ── Routes that should never be indexed ──────────────────────────────────────
 const PRIVATE_ROUTE_PATTERNS = [
-  // Authentication
-  /^\/login/,
-  /^\/register/,
-  /^\/forgot-password/,
-  /^\/reset-password/,
-
-  // User areas
-  /^\/dashboard/,
-  /^\/profile/,
-  /^\/settings/,
-
-  // Owner areas
-  /^\/owner/,
-  /^\/onboarding/,
-
-  // Transactional
-  /^\/checkout/,
-  /^\/payment/,
-  /^\/reserva/,
-  /^\/booking/,
-
-  // System pages
-  /^\/sistema/,
-  /^\/expired/,
-  /^\/denied/,
-  /^\/maintenance/,
-  /^\/offline/,
-  /^\/rate-limit/,
-  /^\/service-unavailable/,
-  /^\/unauthorized/,
-  /^\/forbidden/,
-  /^\/empty/,
-
-  // API routes
-  /^\/api/,
+    ...AUTH_ONLY_PATTERNS,
+    ...PROTECTED_PATTERNS,
+    /^\/forgot-password/,
+    /^\/reset-password/,
+    /^\/sistema/,
+    /^\/expired/,
+    /^\/denied/,
+    /^\/maintenance/,
+    /^\/offline/,
+    /^\/rate-limit/,
+    /^\/service-unavailable/,
+    /^\/unauthorized/,
+    /^\/forbidden/,
+    /^\/empty/,
+    /^\/api/,
 ];
 
 // ============================================================================
 // MIDDLEWARE
 // ============================================================================
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
 
-  // Check if route should be protected
-  const isPrivateRoute = PRIVATE_ROUTE_PATTERNS.some((pattern) =>
-    pattern.test(pathname)
-  );
+    // ── 1. Supabase SSR session refresh ───────────────────────────────────────
+    let supabaseResponse = NextResponse.next({ request });
 
-  // Clone the request headers
-  const requestHeaders = new Headers(request.headers);
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value }) =>
+                        request.cookies.set(name, value),
+                    );
+                    supabaseResponse = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, options),
+                    );
+                },
+            },
+        },
+    );
 
-  // Add security headers for private routes
-  if (isPrivateRoute) {
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    // Refresh session — must be called before any redirect logic
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // Add noindex headers
-    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+    // ── 2. Route protection ───────────────────────────────────────────────────
+    const isAuthOnly = AUTH_ONLY_PATTERNS.some((p) => p.test(pathname));
+    const isProtected = PROTECTED_PATTERNS.some((p) => p.test(pathname));
 
-    // Additional security headers
-    response.headers.set("X-Frame-Options", "SAMEORIGIN");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Logged-in user trying to access login/register → redirect to their area
+    if (isAuthOnly && user) {
+        const role = user.user_metadata?.role as string | undefined;
+        const dest = role === "OWNER" ? "/owner/dashboard" : "/my-trips";
+        return NextResponse.redirect(new URL(dest, request.url));
+    }
 
-    return response;
-  }
+    // Unauthenticated user trying to access a protected route → redirect to login
+    if (isProtected && !user) {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("next", pathname);
+        return NextResponse.redirect(loginUrl);
+    }
 
-  // Add security headers to all responses
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+    // ── 3. Security headers ───────────────────────────────────────────────────
+    const isPrivate = PRIVATE_ROUTE_PATTERNS.some((p) => p.test(pathname));
 
-  // General security headers
-  response.headers.set("X-Frame-Options", "SAMEORIGIN");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    supabaseResponse.headers.set(
+        "X-Robots-Tag",
+        isPrivate ? "noindex, nofollow, noarchive, nosnippet" : "index, follow",
+    );
+    supabaseResponse.headers.set("X-Frame-Options", "SAMEORIGIN");
+    supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
+    supabaseResponse.headers.set(
+        "Referrer-Policy",
+        "strict-origin-when-cross-origin",
+    );
 
-  // Allow indexing for public routes
-  if (!isPrivateRoute) {
-    response.headers.set("X-Robots-Tag", "index, follow");
-  }
-
-  return response;
+    return supabaseResponse;
 }
 
 // ============================================================================
@@ -110,14 +120,7 @@ export function middleware(request: NextRequest) {
 // ============================================================================
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
-  ],
+    matcher: [
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    ],
 };

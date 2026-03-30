@@ -28,58 +28,31 @@ const Accordion = React.forwardRef<HTMLDivElement, AccordionProps>(
           return (
             <div
               key={index}
-              style={{
-                borderBottom: "1px solid #E0E0DE",
-                paddingBottom: "16px",
-              }}
+              className="border-b border-border pb-4"
             >
               <button
                 onClick={() => toggleItem(index)}
-                className="w-full flex items-center justify-between gap-4 text-left transition-all"
-                style={{
-                  paddingBottom: isOpen ? "12px" : "0",
-                }}
+                className={cn(
+                  "w-full flex items-center justify-between gap-4 text-left transition-all",
+                  isOpen && "pb-3"
+                )}
               >
-                <span
-                  style={{
-                    color: "#39424E",
-                    fontSize: "15px",
-                    fontWeight: 500,
-                    letterSpacing: "-0.01em",
-                    lineHeight: "1.4",
-                  }}
-                >
+                <span className="text-text text-body font-medium tracking-tight leading-snug">
                   {item.question}
                 </span>
                 <ChevronDown
                   size={20}
                   strokeWidth={1}
-                  style={{
-                    color: "#39424E",
-                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.3s ease",
-                    flexShrink: 0,
-                  }}
+                  className={cn(
+                    "text-text flex-shrink-0 transition-transform duration-300",
+                    isOpen && "rotate-180"
+                  )}
                 />
               </button>
 
               {isOpen && (
-                <div
-                  className="overflow-hidden"
-                  style={{
-                    animation: "slideDown 0.3s ease-out",
-                  }}
-                >
-                  <p
-                    style={{
-                      color: "#39424E",
-                      fontSize: "14px",
-                      fontWeight: 400,
-                      lineHeight: "1.6",
-                      opacity: 0.7,
-                      paddingRight: "32px",
-                    }}
-                  >
+                <div className="overflow-hidden animate-in fade-in duration-300">
+                  <p className="text-text/70 text-small font-normal leading-relaxed pr-8">
                     {item.answer}
                   </p>
                 </div>

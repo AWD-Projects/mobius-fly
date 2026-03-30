@@ -38,7 +38,7 @@ const SkeletonCard = React.forwardRef<HTMLDivElement, SkeletonCardProps>(
         <div
           ref={ref}
           className={cn(
-            "flex overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white",
+            "flex overflow-hidden rounded-md border border-border bg-white",
             className
           )}
           {...props}
@@ -69,7 +69,7 @@ const SkeletonCard = React.forwardRef<HTMLDivElement, SkeletonCardProps>(
         <div
           ref={ref}
           className={cn(
-            "overflow-hidden rounded-xl border border-[#E5E5E5] bg-white p-4",
+            "overflow-hidden rounded-sm border border-border bg-white p-4",
             className
           )}
           {...props}
@@ -91,7 +91,7 @@ const SkeletonCard = React.forwardRef<HTMLDivElement, SkeletonCardProps>(
       <div
         ref={ref}
         className={cn(
-          "overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white",
+          "overflow-hidden rounded-md border border-border bg-white",
           className
         )}
         {...props}
@@ -118,7 +118,7 @@ const SkeletonCard = React.forwardRef<HTMLDivElement, SkeletonCardProps>(
             </div>
           )}
           {showActions && (
-            <div className="flex gap-2 mt-4 pt-4 border-t border-[#F0F0F0]">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-border">
               <SkeletonButton size="sm" width={80} />
               <SkeletonButton size="sm" width={80} />
             </div>
@@ -142,7 +142,7 @@ const SkeletonStatsCard = React.forwardRef<HTMLDivElement, SkeletonStatsCardProp
       <div
         ref={ref}
         className={cn(
-          "rounded-2xl border border-[#E5E5E5] bg-white p-5",
+          "rounded-md border border-border bg-white p-5",
           className
         )}
         {...props}
@@ -176,7 +176,7 @@ const SkeletonProfileCard = React.forwardRef<HTMLDivElement, SkeletonProfileCard
       <div
         ref={ref}
         className={cn(
-          "overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white",
+          "overflow-hidden rounded-md border border-border bg-white",
           className
         )}
         {...props}
@@ -192,7 +192,7 @@ const SkeletonProfileCard = React.forwardRef<HTMLDivElement, SkeletonProfileCard
             <Skeleton height={12} width={100} />
           </div>
           {showStats && (
-            <div className="flex justify-center gap-8 mt-4 pt-4 border-t border-[#F0F0F0]">
+            <div className="flex justify-center gap-8 mt-4 pt-4 border-t border-border">
               <div className="text-center">
                 <Skeleton height={18} width={30} className="mx-auto mb-1" />
                 <Skeleton height={10} width={50} />

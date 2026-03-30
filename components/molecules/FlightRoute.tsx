@@ -19,38 +19,38 @@ const FlightRoute = React.forwardRef<HTMLDivElement, FlightRouteProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-between gap-6 w-full",
+          "flex items-center justify-between gap-3 sm:gap-6 w-full",
           className
         )}
         {...props}
       >
         {/* Origin */}
         <div className="flex flex-col gap-2 flex-1">
-          <span className="text-[28px] font-bold text-text leading-none">
+          <span className="text-h3 font-bold text-text leading-none">
             {origin.code}
           </span>
-          <span className="text-sm font-normal text-muted">
+          <span className="text-small font-normal text-muted">
             {origin.city}
           </span>
-          <span className="text-xs font-normal text-neutral">
+          <span className="text-caption font-normal text-neutral">
             {origin.airport}
           </span>
         </div>
 
         {/* Arrow */}
-        <div className="flex items-center justify-center w-[60px]">
-          <ArrowRight className="h-8 w-8 text-neutral" aria-hidden="true" />
+        <div className="flex items-center justify-center w-8 sm:w-[60px] flex-shrink-0">
+          <ArrowRight className="h-5 w-5 sm:h-8 sm:w-8 text-neutral" aria-hidden="true" />
         </div>
 
         {/* Destination */}
         <div className="flex flex-col gap-2 flex-1">
-          <span className="text-[28px] font-bold text-text leading-none">
+          <span className="text-h3 font-bold text-text leading-none">
             {destination.code}
           </span>
-          <span className="text-sm font-normal text-muted">
+          <span className="text-small font-normal text-muted">
             {destination.city}
           </span>
-          <span className="text-xs font-normal text-neutral">
+          <span className="text-caption font-normal text-neutral">
             {destination.airport}
           </span>
         </div>

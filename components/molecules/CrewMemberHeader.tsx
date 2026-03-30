@@ -31,9 +31,10 @@ const CrewMemberHeader = React.forwardRef<HTMLDivElement, CrewMemberHeaderProps>
     // Default status labels in Spanish
     const defaultStatusLabels: Record<StatusBadgeVariant, string> = {
       active: "Activo",
+      inactive: "Inactivo",
       pending: "Pendiente",
       scheduled: "Programado",
-      "in-review": "En revisión",
+      "in-review": "En revision",
       approved: "Aprobado",
       rejected: "Rechazado",
       completed: "Finalizado",
@@ -58,14 +59,14 @@ const CrewMemberHeader = React.forwardRef<HTMLDivElement, CrewMemberHeaderProps>
             color={avatarColor}
             bgColor={avatarBgColor}
           />
-          <span className="text-[26px] font-semibold text-text">
+          <span className="text-h3 font-semibold text-text">
             {name}
           </span>
         </div>
 
         {/* Role and Status */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted">{role}</span>
+          <span className="text-small font-medium text-muted">{role}</span>
           <StatusBadge status={status}>
             {statusLabel || defaultStatusLabels[status]}
           </StatusBadge>

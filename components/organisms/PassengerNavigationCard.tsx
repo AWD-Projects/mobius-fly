@@ -1,9 +1,13 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '../atoms/Button';
 
 export interface Passenger {
   label: string;
   isCompleted: boolean;
+  isActive?: boolean;
+  hasError?: boolean;
 }
 
 export interface PassengerGroup {
@@ -22,6 +26,78 @@ export interface PassengerNavigationCardProps {
   onPassengerClick?: (groupType: 'adult' | 'minor', index: number) => void;
 }
 
+// ─── PassengerRow ─────────────────────────────────────────────────────────────
+
+function passengerRowStyles(p: Passenger) {
+  if (p.isActive) {
+    return {
+      button: "bg-surface border border-primary hover:bg-surface",
+      dot: "bg-primary",
+      label: "text-text font-semibold",
+    };
+  }
+  if (p.isCompleted) {
+    return {
+      button: "bg-background border border-transparent hover:bg-background/80",
+      dot: "bg-success",
+      label: "text-text font-medium",
+    };
+  }
+  if (p.hasError) {
+    return {
+      button: "bg-error/5 border border-error/40 hover:bg-error/10",
+      dot: "bg-error",
+      label: "text-error font-normal",
+    };
+  }
+  return {
+    button: "bg-surface border border-border hover:bg-neutral/20",
+    dot: "bg-neutral",
+    label: "text-muted font-normal",
+  };
+}
+
+interface PassengerGroupProps {
+  passengers: Passenger[];
+  groupType: "adult" | "minor";
+  title: string;
+  onPassengerClick?: PassengerNavigationCardProps["onPassengerClick"];
+}
+
+function PassengerGroup({ passengers, groupType, title, onPassengerClick }: PassengerGroupProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-muted text-caption font-medium">{title}</span>
+      <div className="flex flex-col gap-3">
+        {passengers.map((passenger, index) => {
+          const styles = passengerRowStyles(passenger);
+          return (
+            <Button
+              key={`${groupType}-${index}`}
+              variant="ghost"
+              onClick={() => onPassengerClick?.(groupType, index)}
+              className={cn("w-full h-11 px-3 gap-3 justify-start font-normal", styles.button)}
+            >
+              <div className={cn("w-2 h-2 rounded-full flex-shrink-0", styles.dot)} />
+              <span className={cn("flex-1 text-left text-small", styles.label)}>
+                {passenger.label}
+              </span>
+              {passenger.isCompleted && !passenger.isActive && (
+                <Check className="w-4 h-4 text-success flex-shrink-0" strokeWidth={1.5} />
+              )}
+              {passenger.hasError && !passenger.isActive && (
+                <AlertCircle className="w-4 h-4 text-error flex-shrink-0" strokeWidth={1.5} />
+              )}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── PassengerNavigationCard ──────────────────────────────────────────────────
+
 export const PassengerNavigationCard: React.FC<PassengerNavigationCardProps> = ({
   title = 'Pasajeros',
   adults,
@@ -29,65 +105,25 @@ export const PassengerNavigationCard: React.FC<PassengerNavigationCardProps> = (
   onPassengerClick,
 }) => {
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-6 flex flex-col gap-4">
-      {/* Title */}
-      <h3 className="text-[#0A0A0A] text-base font-semibold">{title}</h3>
+    <div className="w-full bg-surface rounded-md border border-border p-6 flex flex-col gap-4">
+      <h3 className="text-text text-body font-semibold">{title}</h3>
 
       {/* Adults Group */}
-      <div className="flex flex-col gap-3">
-        <span className="text-[#666666] text-xs font-medium">{adults.title}</span>
-        <div className="flex flex-col gap-3">
-          {adults.passengers.map((passenger, index) => (
-            <button
-              key={`adult-${index}`}
-              onClick={() => onPassengerClick?.('adult', index)}
-              className={`w-full h-11 rounded-lg px-3 flex items-center gap-3 transition-colors ${
-                passenger.isCompleted
-                  ? 'bg-[#F9F9F8]'
-                  : 'bg-white border border-[#E5E5E5]'
-              }`}
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  passenger.isCompleted ? 'bg-[#0A0A0A]' : 'bg-[#CCCCCC]'
-                }`}
-              />
-              <span
-                className={`flex-1 text-left text-[13px] ${
-                  passenger.isCompleted
-                    ? 'text-[#0A0A0A] font-semibold'
-                    : 'text-[#999999] font-normal'
-                }`}
-              >
-                {passenger.label}
-              </span>
-              {passenger.isCompleted && (
-                <Check className="w-4 h-4 text-[#2E7D32]" strokeWidth={1} />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PassengerGroup
+        passengers={adults.passengers}
+        groupType="adult"
+        title={adults.title}
+        onPassengerClick={onPassengerClick}
+      />
 
       {/* Minors Group */}
       {minors.passengers.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <span className="text-[#666666] text-xs font-medium">{minors.title}</span>
-          <div className="flex flex-col gap-3">
-            {minors.passengers.map((passenger, index) => (
-              <button
-                key={`minor-${index}`}
-                onClick={() => onPassengerClick?.('minor', index)}
-                className="w-full h-11 rounded-lg px-3 flex items-center gap-3 bg-white border border-[#E5E5E5]"
-              >
-                <div className="w-2 h-2 rounded-full bg-[#CCCCCC]" />
-                <span className="flex-1 text-left text-[13px] text-[#999999] font-normal">
-                  {passenger.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <PassengerGroup
+          passengers={minors.passengers}
+          groupType="minor"
+          title={minors.title}
+          onPassengerClick={onPassengerClick}
+        />
       )}
     </div>
   );

@@ -1,13 +1,15 @@
 "use client";
 
 import { Navbar } from "@/components/organisms/Navbar";
-import { LazyMotion, domAnimation } from "framer-motion";
+import { LazyMotion, domAnimation, AnimatePresence, m } from "framer-motion";
 import Image from "next/image";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { useRouter } from "next/navigation";
 import { Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet } from "lucide-react";
 import { HeroSection } from "./sections/HeroSection";
 import { FlightSearchSection } from "./sections/FlightSearchSection";
+import type { FlightSearchParams } from "@/components/organisms/FlightSearchCard";
 import { FeaturesSection } from "./sections/FeaturesSection";
 import { ComparisonSection } from "./sections/ComparisonSection";
 import { BenefitsSection } from "./sections/BenefitsSection";
@@ -28,14 +30,27 @@ const sectionMap: Record<string, string> = {
 
 export default function Home() {
   const router = useRouter();
+  const { user, isLoggedIn, isHydrated, logout } = useLocalAuth();
 
   // Padding consistente para toda la landing
   const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
 
+  // Auth-derived values — swap these out when Supabase auth is integrated
+  const userInitials = useMemo(() => {
+    if (!user) return undefined;
+    return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+  }, [user]);
+
+  const navUserType = useMemo((): "buyer" | "owner" => {
+    return user?.role === "OWNER" ? "owner" : "buyer";
+  }, [user]);
+
+  // Toggle independiente para la sección de features (no relacionado con el auth)
+  const [featuresUserType, setFeaturesUserType] = useState<"buyer" | "owner">("buyer");
+
   // Estado para trackear si hemos scrolleado más allá del hero
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
-  const [userType, setUserType] = useState<"pasajero" | "propietario">("pasajero");
   const [isInFooter, setIsInFooter] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -44,64 +59,60 @@ export default function Home() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   // Flight search state
-  const [flightTripType, setFlightTripType] = useState<"roundtrip" | "oneway">("roundtrip");
 
-  // Contact form state
-  const [contactStep, setContactStep] = useState(1);
-  const [contactData, setContactData] = useState({
-    userType: "",
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Features data por tipo de usuario
   const featuresData = {
-    pasajero: [
+    buyer: [
       {
         icon: Compass,
-        title: "Descubre oportunidades únicas",
-        description: "Accede a jets privados disponibles a precios exclusivos. Tu próxima aventura está a un clic.",
+        title: "Descubrimiento",
+        subtitle: "Encuentra vuelos disponibles",
+        description: "Explora rutas reales de jets privados que necesitan reposicionarse. Accede a oportunidades que normalmente no están disponibles al público.",
       },
       {
         icon: Calendar,
-        title: "Reserva en segundos",
-        description: "Sin complicaciones ni esperas. Completa tu reserva de forma simple y segura.",
+        title: "Selección",
+        subtitle: "Elige tu asiento",
+        description: "Selecciona el vuelo que mejor se adapte a tu ruta y horario. Compra por asiento o reserva la aeronave completa.",
       },
       {
         icon: Lock,
-        title: "Pago protegido al instante",
-        description: "Checkout encriptado con confirmación inmediata. Tu tranquilidad es nuestra prioridad.",
+        title: "Pago",
+        subtitle: "Reserva en minutos",
+        description: "Confirma tu vuelo con pago seguro y recibe todos los detalles al instante. Sin procesos manuales ni intermediarios.",
       },
       {
         icon: Star,
-        title: "Experimenta lujo real",
-        description: "Salta las filas y vive la aviación privada. Tu vuelo, tus reglas.",
+        title: "Experiencia",
+        subtitle: "Vuela privado",
+        description: "Accede a la experiencia de la aviación privada sin pagar el costo total del avión. Tu vuelo, sin fricciones.",
       },
     ],
-    propietario: [
+    owner: [
       {
         icon: TrendingUp,
-        title: "Monetiza cada vuelo vacío",
-        description: "Convierte tus empty legs en ingresos. Publica en minutos y maximiza tu rentabilidad.",
-      },
-      {
-        icon: Users,
-        title: "Conexión automática",
-        description: "Pasajeros verificados encuentran tu vuelo. Llena asientos sin esfuerzo adicional.",
+        title: "Publicación",
+        subtitle: "Publica tus empty legs",
+        description: "Convierte vuelos programados en oportunidades de venta. Publica rutas disponibles en minutos.",
       },
       {
         icon: LayoutDashboard,
-        title: "Control total en tiempo real",
-        description: "Gestiona reservas, documentos y pasajeros desde un solo dashboard intuitivo.",
+        title: "Control",
+        subtitle: "Define condiciones",
+        description: "Tú decides precio, disponibilidad y operación. Mantienes el control total de tu aeronave.",
+      },
+      {
+        icon: Users,
+        title: "Demanda",
+        subtitle: "Recibe reservas",
+        description: "Conectamos tus vuelos con pasajeros listos para comprar. Sin fricción comercial ni procesos manuales.",
       },
       {
         icon: Wallet,
-        title: "Pagos semanales garantizados",
-        description: "Mobius procesa y distribuye tus ingresos cada semana de forma confiable y transparente.",
+        title: "Monetización",
+        subtitle: "Genera ingresos adicionales",
+        description: "Aprovecha vuelos vacíos para maximizar la rentabilidad de tu operación.",
       },
     ],
   };
@@ -206,45 +217,15 @@ export default function Home() {
   }, []);
 
   // Memoized handlers for better performance
-  const handleContactPrev = useCallback(() => {
-    setContactStep((prev) => Math.max(1, prev - 1));
-    setSubmitError(null);
-  }, []);
-
-  const handleContactNext = useCallback(async () => {
-    setSubmitError(null);
-
-    if (contactStep === 3) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch("/api/contact", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(contactData),
-        });
-
-        if (response.ok) {
-          setContactStep(4);
-        } else {
-          setSubmitError("Error al enviar el formulario. Por favor, intenta de nuevo.");
-        }
-      } catch (error) {
-        setSubmitError("Error de conexión. Verifica tu internet e intenta de nuevo.");
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else if (contactStep < 4) {
-      setContactStep((prev) => prev + 1);
+  const handleContactSubmit = useCallback(async (data: import("./sections/ContactSection").ContactFormData) => {
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error("Error al enviar el formulario. Por favor, intenta de nuevo.");
     }
-  }, [contactStep, contactData]);
-
-  const handleContactTypeSelect = useCallback((type: string) => {
-    setContactData(prev => ({ ...prev, userType: type }));
-    setContactStep(2);
-  }, []);
-
-  const handleContactDataChange = useCallback((data: typeof contactData) => {
-    setContactData(data);
   }, []);
 
   const handleExploreClick = useCallback(() => {
@@ -267,6 +248,24 @@ export default function Home() {
   const handleSignUpClick = useCallback(() => {
     router.push("/register");
   }, [router]);
+
+  const handleSearch = useCallback((params: FlightSearchParams) => {
+    const qp = new URLSearchParams({
+      origin: params.originCode,
+      destination: params.destinationCode,
+      date: params.departureDate,
+      type: params.tripType === "roundtrip" ? "round_trip" : "one_way",
+      passengers: String(params.passengers),
+    });
+    if (params.tripType === "roundtrip" && params.returnDate) {
+      qp.set("returnDate", params.returnDate);
+    }
+    router.push(`/flights?${qp.toString()}`);
+  }, [router]);
+
+  const handleMyBookingsClick = useCallback(() => {
+    router.push(user?.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
+  }, [router, user]);
 
   // Comparison table data
   const comparisonFeatures = [
@@ -329,6 +328,30 @@ export default function Home() {
 
   return (
     <LazyMotion features={domAnimation} strict>
+    <AnimatePresence>
+      {!isHydrated && (
+        <m.div
+          key="page-loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background"
+        >
+          <m.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Image
+              src="/logo/main-logo.svg"
+              alt="Mobius Fly"
+              width={56}
+              height={56}
+              priority
+            />
+          </m.div>
+        </m.div>
+      )}
+    </AnimatePresence>
     <div ref={scrollContainerRef} className="lg:snap-y lg:snap-mandatory overflow-y-scroll h-screen">
       {/* Fixed Navbar - Aparece después del scroll */}
       <div
@@ -365,10 +388,16 @@ export default function Home() {
           loginButtonText="Iniciar Sesión"
           signUpButtonText="Crear cuenta"
           activeHref={activeSection}
+          isLoggedIn={isLoggedIn}
+          userInitials={userInitials}
+          userType={navUserType}
           onLogoClick={handleLogoClick}
           onNavLinkClick={handleNavLinkClick}
           onLoginClick={handleLoginClick}
           onSignUpClick={handleSignUpClick}
+          onLogoutClick={logout}
+          onMyBookingsClick={handleMyBookingsClick}
+          onMyPlanesClick={handleMyBookingsClick}
         />
       </div>
 
@@ -378,26 +407,31 @@ export default function Home() {
         currentWordIndex={currentWordIndex}
         rotatingWords={rotatingWords}
         activeSection={activeSection}
+        isLoggedIn={isLoggedIn}
+        userInitials={userInitials}
+        userType={navUserType}
         onLogoClick={handleLogoClick}
         onNavLinkClick={handleNavLinkClick}
         onLoginClick={handleLoginClick}
         onSignUpClick={handleSignUpClick}
         onExploreClick={handleExploreClick}
+        onLogoutClick={logout}
+        onMyBookingsClick={handleMyBookingsClick}
+        onMyPlanesClick={handleMyBookingsClick}
       />
 
       {/* Flight Search Section */}
       <FlightSearchSection
         sectionPadding={sectionPadding}
-        flightTripType={flightTripType}
-        onTripTypeChange={setFlightTripType}
+        onSearch={handleSearch}
       />
 
       {/* Features Section */}
       <FeaturesSection
         sectionPadding={sectionPadding}
-        userType={userType}
+        userType={featuresUserType}
         featuresData={featuresData}
-        onUserTypeChange={setUserType}
+        onUserTypeChange={setFeaturesUserType}
       />
 
       {/* Comparison Section */}
@@ -422,14 +456,7 @@ export default function Home() {
       {/* Contact Section */}
       <ContactSection
         sectionPadding={sectionPadding}
-        contactStep={contactStep}
-        contactData={contactData}
-        isSubmitting={isSubmitting}
-        submitError={submitError}
-        onContactDataChange={handleContactDataChange}
-        onPrevClick={handleContactPrev}
-        onNextClick={handleContactNext}
-        onContactTypeSelect={handleContactTypeSelect}
+        onSubmit={handleContactSubmit}
       />
 
       {/* Footer Section */}
@@ -440,4 +467,5 @@ export default function Home() {
     </div>
     </LazyMotion>
   );
+
 }
