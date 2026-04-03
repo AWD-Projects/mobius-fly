@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { FlightDetail } from "@/types/app.types";
+import type { PaymentBreakdown } from "@/lib/payments/fees";
 
 export interface StoredPassenger {
     slotType: "adult" | "minor";
@@ -26,6 +27,9 @@ interface BookingState {
     totalPrice: number;
     passengers: StoredPassenger[];
     blockedUntil: string | null;
+    reservationId: string | null;
+    bookingReference: string | null;
+    breakdown: PaymentBreakdown | null;
     /** True once the store has been rehydrated from localStorage. */
     _hasHydrated: boolean;
 
@@ -36,6 +40,7 @@ interface BookingState {
     setTotalPrice: (price: number) => void;
     initPassengers: (adults: number, minors: number) => void;
     updatePassenger: (index: number, data: Partial<StoredPassenger>) => void;
+    setReservation: (id: string, bookingReference: string, blockedUntil: string, breakdown: PaymentBreakdown) => void;
     reset: () => void;
     _setHasHydrated: (value: boolean) => void;
 }
@@ -49,6 +54,7 @@ const defaultState: Omit<
     | "setTotalPrice"
     | "initPassengers"
     | "updatePassenger"
+    | "setReservation"
     | "reset"
     | "_setHasHydrated"
 > = {
@@ -61,6 +67,9 @@ const defaultState: Omit<
     totalPrice: 0,
     passengers: [],
     blockedUntil: null,
+    reservationId: null,
+    bookingReference: null,
+    breakdown: null,
     _hasHydrated: false,
 };
 
@@ -102,6 +111,9 @@ export const useBookingStore = create<BookingState>()(
                     return { passengers };
                 }),
 
+            setReservation: (id, bookingReference, blockedUntil, breakdown) =>
+                set({ reservationId: id, bookingReference, blockedUntil, breakdown }),
+
             reset: () => set(defaultState),
         }),
         {
@@ -115,6 +127,9 @@ export const useBookingStore = create<BookingState>()(
                 minors: state.minors,
                 totalPrice: state.totalPrice,
                 blockedUntil: state.blockedUntil,
+                reservationId: state.reservationId,
+                bookingReference: state.bookingReference,
+                breakdown: state.breakdown,
                 passengers: state.passengers,
                 // _hasHydrated is intentionally excluded — always starts false and is set at runtime
             }),

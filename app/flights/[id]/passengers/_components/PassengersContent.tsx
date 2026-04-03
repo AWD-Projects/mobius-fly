@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { PassengerNavigationCard } from "@/components/organisms/PassengerNavigationCard";
@@ -166,6 +166,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             return next;
         });
     };
+
+    const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
+    const [reservationError, setReservationError]           = React.useState<string | null>(null);
 
     const allCompleted =
         store.passengers.length > 0 &&
@@ -485,16 +488,53 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 </div>
                             </div>
 
+                            {reservationError && (
+                                <div className="flex items-start gap-2 bg-error/10 border border-error/30 rounded-md p-3">
+                                    <AlertTriangle size={16} className="text-error flex-shrink-0 mt-0.5" />
+                                    <p className="text-caption text-error">{reservationError}</p>
+                                </div>
+                            )}
                             <Button
                                 variant="secondary"
                                 size="lg"
                                 className="w-full"
-                                disabled={!allCompleted}
-                                onClick={() =>
-                                    router.push(`/flights/${flightId}/payment`)
-                                }
+                                disabled={!allCompleted || isCreatingReservation}
+                                onClick={async () => {
+                                    if (!store.flightDetail || !store.purchaseType) return;
+                                    setIsCreatingReservation(true);
+                                    setReservationError(null);
+                                    try {
+                                        const res = await fetch("/api/reservations", {
+                                            method:  "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                                flightId:       flightId,
+                                                purchaseType:   store.purchaseType,
+                                                seatsRequested: store.totalPassengers,
+                                                basePrice:      store.totalPrice,
+                                                passengers:     store.passengers,
+                                            }),
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) {
+                                            setReservationError(data.error ?? "Error al crear la reserva.");
+                                            return;
+                                        }
+                                        store.setReservation(
+                                            data.reservationId,
+                                            data.bookingReference,
+                                            data.blockedUntil,
+                                            data.breakdown,
+                                        );
+                                        router.push(`/flights/${flightId}/payment?reservation_id=${data.reservationId}`);
+                                    } catch {
+                                        setReservationError("Error de conexión. Por favor intenta de nuevo.");
+                                    } finally {
+                                        setIsCreatingReservation(false);
+                                    }
+                                }}
                             >
-                                Continuar con el pago
+                                {isCreatingReservation ? "Reservando asientos..." : "Continuar con el pago"}
                             </Button>
                         </m.div>
                     </div>
