@@ -17,6 +17,15 @@ export interface StoredPassenger {
     isCompleted: boolean;
 }
 
+export interface LastSearch {
+    origin: string;
+    destination: string;
+    date?: string;
+    returnDate?: string;
+    type: string;
+    passengers: number;
+}
+
 interface BookingState {
     flightId: string | null;
     flightDetail: FlightDetail | null;
@@ -30,10 +39,12 @@ interface BookingState {
     reservationId: string | null;
     bookingReference: string | null;
     breakdown: PaymentBreakdown | null;
+    lastSearch: LastSearch | null;
     /** True once the store has been rehydrated from localStorage. */
     _hasHydrated: boolean;
 
     setFlight: (id: string, detail: FlightDetail) => void;
+    setLastSearch: (search: LastSearch) => void;
     setPurchaseType: (type: "seats" | "full_aircraft") => void;
     setTotalPassengers: (n: number) => void;
     setDistribution: (adults: number, minors: number) => void;
@@ -70,6 +81,7 @@ const defaultState: Omit<
     reservationId: null,
     bookingReference: null,
     breakdown: null,
+    lastSearch: null,
     _hasHydrated: false,
 };
 
@@ -81,6 +93,8 @@ export const useBookingStore = create<BookingState>()(
             _setHasHydrated: (value: boolean) => set({ _hasHydrated: value }),
 
             setFlight: (id, detail) => set({ flightId: id, flightDetail: detail }),
+
+            setLastSearch: (search) => set({ lastSearch: search }),
 
             setPurchaseType: (type) => set({ purchaseType: type }),
 
@@ -131,6 +145,7 @@ export const useBookingStore = create<BookingState>()(
                 bookingReference: state.bookingReference,
                 breakdown: state.breakdown,
                 passengers: state.passengers,
+                lastSearch: state.lastSearch,
                 // _hasHydrated is intentionally excluded — always starts false and is set at runtime
             }),
             onRehydrateStorage: () => (state) => {

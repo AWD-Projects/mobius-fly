@@ -278,7 +278,7 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                                         <span className="text-text">${fmtMXN(breakdown.base_price)} MXN</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-muted">Cargo por servicio (10%)</span>
+                                        <span className="text-muted">Cargo por servicio (5%)</span>
                                         <span className="text-text">${fmtMXN(breakdown.mobius_commission_amount)} MXN</span>
                                     </div>
                                     <div className="flex justify-between">
@@ -347,7 +347,25 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                                 variant="secondary"
                                 size="lg"
                                 className="w-full"
-                                onClick={() => { store.reset(); router.push("/flights"); }}
+                                onClick={() => {
+                                    const lastSearch = store.lastSearch;
+                                    store.reset();
+                                    if (lastSearch) {
+                                        const qp = new URLSearchParams({
+                                            origin: lastSearch.origin,
+                                            destination: lastSearch.destination,
+                                            type: lastSearch.type,
+                                            passengers: String(lastSearch.passengers),
+                                            page: "1",
+                                            sort: "price_asc",
+                                        });
+                                        if (lastSearch.date) qp.set("date", lastSearch.date);
+                                        if (lastSearch.returnDate) qp.set("returnDate", lastSearch.returnDate);
+                                        router.push(`/flights?${qp.toString()}`);
+                                    } else {
+                                        router.push("/flights");
+                                    }
+                                }}
                             >
                                 Buscar otro vuelo
                             </Button>

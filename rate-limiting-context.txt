@@ -1,0 +1,101 @@
+RATE LIMITING — CONTEXTO Y DECISIONES TÉCNICAS
+================================================
+
+¿Por qué se implementó rate limiting?
+--------------------------------------
+Los endpoints /api/reservations, /api/payments/checkout y /api/auth/signup
+no tenían ningún mecanismo de protección contra abuso automatizado.
+
+Esto representa riesgos reales:
+
+1. /api/reservations sin límite
+   Un bot puede enviar miles de solicitudes por segundo, bloqueando asientos
+   en todos los vuelos disponibles sin intención de pagar. Esto deja el
+   inventario agotado para usuarios reales y puede colapsar la base de datos
+   con transacciones concurrentes.
+
+2. /api/payments/checkout sin límite
+   Un atacante puede intentar procesar pagos de forma masiva contra
+   reservaciones existentes, generando sesiones de Stripe en exceso y
+   posiblemente activando bloqueos por parte de Stripe ante actividad sospechosa.
+
+3. /api/auth/signup sin límite
+   Sin límite, es trivial hacer ataques de registro masivo (account stuffing),
+   saturar el servicio de email (Resend), llenar la tabla signup_otps y
+   agotar el almacenamiento con documentos de identidad falsos subidos al bucket.
+
+Límites aplicados
+------------------
+- /api/reservations     → 5 solicitudes por minuto por IP
+- /api/payments/checkout → 10 solicitudes por minuto por IP
+- /api/auth/signup      → 5 solicitudes por minuto por IP
+
+El algoritmo usado es sliding window: evalúa siempre los últimos N segundos
+exactos, lo que elimina el exploit clásico del fixed window donde un atacante
+puede duplicar el límite haciendo requests al final y al inicio de cada ventana.
+
+Solución actual (temporal)
+---------------------------
+Se implementó un store in-memory (Map de Node.js) como medida inmediata.
+Funciona correctamente en entornos de instancia única: desarrollo local,
+staging y producción con un solo servidor.
+
+Limitación importante: en despliegues serverless o con múltiples workers
+(Vercel, contenedores escalados horizontalmente), cada instancia tiene su
+propia memoria. Un atacante distribuye sus requests entre workers y nunca
+alcanza el límite en ninguno de ellos. El bloqueo no es efectivo.
+
+¿Por qué Upstash Redis para producción?
+-----------------------------------------
+La solución definitiva requiere un store centralizado y compartido entre
+todas las instancias. Redis es el estándar de la industria para esto por
+su velocidad (operaciones en microsegundos) y soporte nativo de estructuras
+de datos con expiración automática.
+
+Upstash específicamente porque:
+
+1. Serverless-native
+   Upstash cobra por request, no por tiempo de cómputo. Un Redis tradicional
+   corre 24/7 y se paga aunque no haya tráfico. En un proyecto serverless
+   como Next.js en Vercel, Upstash es la opción más coherente en costo.
+
+2. Compatibilidad total con Edge Runtime y Node.js
+   El SDK de Upstash funciona tanto en Edge Functions como en rutas normales
+   de Next.js sin configuración adicional.
+
+3. Operaciones atómicas
+   El rate limiting requiere leer y escribir el contador en una sola operación
+   sin condiciones de carrera. Upstash garantiza esto con comandos atómicos de
+   Redis, lo que es imposible replicar de forma segura con un Map en memoria
+   compartida.
+
+4. La librería @upstash/ratelimit
+   Upstash tiene una librería oficial diseñada exactamente para este caso de uso.
+   Implementa sliding window, fixed window y token bucket. Se integra en 5 líneas
+   de código y reemplaza directamente lib/rate-limit.ts sin tocar los endpoints.
+
+5. Escalabilidad ante ataques masivos
+   Un ataque de 100,000 requests por segundo sigue siendo bloqueado porque todos
+   los workers consultan el mismo Redis. El bloqueo es inmediato y consistente
+   sin importar cuántas instancias estén corriendo.
+
+6. Costo
+   Plan gratuito: 10,000 requests/día.
+   Plan de pago: ~$0.20 por cada 100,000 requests adicionales.
+   Un ataque masivo de 1,000,000 requests costaría aproximadamente $2,
+   y todos serían bloqueados antes de llegar a la base de datos.
+
+Variables de entorno necesarias para migrar a Upstash
+-------------------------------------------------------
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+Estas se obtienen desde el dashboard de Upstash al crear una base de datos Redis.
+Deben agregarse también en Vercel → Settings → Environment Variables.
+
+Pasos para migrar cuando estén listas las credenciales
+--------------------------------------------------------
+1. npm install @upstash/ratelimit @upstash/redis
+2. Reemplazar lib/rate-limit.ts con la implementación de Upstash
+3. Los tres endpoints (reservations, checkout, signup) no requieren cambios
+4. Verificar las variables de entorno en Vercel antes de hacer deploy

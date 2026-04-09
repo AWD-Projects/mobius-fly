@@ -51,7 +51,7 @@ export const PasswordStep = React.memo<PasswordStepProps>(({
               onClick={onTogglePassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors"
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
           {form.formState.errors.password && (
@@ -76,7 +76,7 @@ export const PasswordStep = React.memo<PasswordStepProps>(({
               onClick={onToggleConfirmPassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors"
             >
-              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
           {form.formState.errors.confirmPassword && (

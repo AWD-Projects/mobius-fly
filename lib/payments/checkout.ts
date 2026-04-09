@@ -82,7 +82,7 @@ export async function createCheckoutSession(
             booking_reference: bookingReference,
             flight_id:         flightId,
         },
-        success_url: `${appUrl}/my-trips?success=1&ref=${bookingReference}`,
+        success_url: `${appUrl}/thank-you?ref=${bookingReference}`,
         cancel_url:  `${appUrl}/flights/${flightId}/payment?reservation_id=${reservationId}&cancelled=1`,
     });
 

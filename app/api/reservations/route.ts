@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createReservation } from "@/lib/reservations/create";
+import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+
+const limiter = rateLimit({ limit: 5, windowMs: 60_000 });
 
 const uuidLike = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Invalid UUID");
 
@@ -26,6 +29,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+    const limited = limiter(req);
+    if (limited) return limited;
+
     try {
         // ── Optional auth — guests can purchase without an account ────────────
         const supabase = await createClient();
