@@ -96,7 +96,14 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
       defaultValues: defaultValues ?? {},
     });
 
+    const [documentError, setDocumentError] = React.useState<string | null>(null);
+
     const handleFormSubmit = (data: PassengerFormData) => {
+      if (!document) {
+        setDocumentError("Documento de identificación requerido");
+        return;
+      }
+      setDocumentError(null);
       onSubmit?.(data);
     };
 
@@ -167,15 +174,23 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
 
           {/* Section 3: ID Document */}
           <FormSection title="Documento de identificación">
-            <DocumentUpload
-              document={document}
-              onUpload={onDocumentUpload}
-              onRemove={onDocumentRemove}
-              accept=".pdf"
-              pendingTitle="Sube tu documento"
-              pendingDescription="Haz clic o arrastra tu archivo aquí"
-              variant="compact"
-            />
+            <div className="flex flex-col gap-1">
+              <p className="text-small font-medium tracking-[0.01em] text-secondary">
+                Identificación oficial <span className="text-error ml-1">*</span>
+              </p>
+              <DocumentUpload
+                document={document}
+                onUpload={(file) => { setDocumentError(null); onDocumentUpload?.(file); }}
+                onRemove={onDocumentRemove}
+                accept=".pdf,image/jpeg,image/png"
+                pendingTitle="Sube tu documento"
+                pendingDescription="Haz clic o arrastra tu archivo aquí"
+                variant="compact"
+              />
+              {documentError && (
+                <p className="mt-2 text-small text-error">{documentError}</p>
+              )}
+            </div>
           </FormSection>
 
           {/* Section 4: Responsible Adult (minors only) */}
