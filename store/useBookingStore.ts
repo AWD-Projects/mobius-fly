@@ -59,6 +59,7 @@ interface BookingState {
 const defaultState: Omit<
     BookingState,
     | "setFlight"
+    | "setLastSearch"
     | "setPurchaseType"
     | "setTotalPassengers"
     | "setDistribution"
