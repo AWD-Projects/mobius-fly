@@ -5,13 +5,19 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
-import { Navbar }       from "@/components/organisms/Navbar";
-import { Button }       from "@/components/atoms/Button";
-import { IconButton }   from "@/components/atoms/IconButton";
-import { SectionHeader }from "@/components/molecules/SectionHeader";
-import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Navbar }        from "@/components/organisms/Navbar";
+import { Button }        from "@/components/atoms/Button";
+import { IconButton }    from "@/components/atoms/IconButton";
+import { SectionHeader } from "@/components/molecules/SectionHeader";
+import { useLocalAuth }  from "@/hooks/useLocalAuth";
 import { useBookingStore } from "@/store/useBookingStore";
 import type { FlightDetail } from "@/types/app.types";
+
+// ─── Stripe init (outside component to avoid re-creating) ─────────────────────
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,13 +64,101 @@ function useCountdown(blockedUntil: string | null): { minutes: number; seconds: 
     };
 }
 
+// ─── Inner checkout form (must be inside <Elements> provider) ─────────────────
+
+interface CheckoutFormProps {
+    expired:          boolean;
+    bookingRef:       string;
+    totalAmount:      number | undefined;
+    onTimerExpired:   () => void;
+}
+
+function CheckoutForm({ expired, bookingRef, totalAmount, onTimerExpired }: CheckoutFormProps) {
+    const stripe   = useStripe();
+    const elements = useElements();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [paymentError, setPaymentError] = React.useState<string | null>(null);
+
+    const handleFinalize = async () => {
+        // Check timer first — abort before touching Stripe
+        if (expired) {
+            onTimerExpired();
+            return;
+        }
+
+        if (!stripe || !elements) return;
+
+        setIsSubmitting(true);
+        setPaymentError(null);
+
+        // Submit the form so Stripe validates fields
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+            setPaymentError(submitError.message ?? "Por favor revisa los datos de pago.");
+            setIsSubmitting(false);
+            return;
+        }
+
+        const { error } = await stripe.confirmPayment({
+            elements,
+            confirmParams: {
+                return_url: `${window.location.origin}/thank-you?ref=${bookingRef}`,
+            },
+        });
+
+        // confirmPayment only returns here if there's an error;
+        // on success Stripe redirects to return_url automatically.
+        if (error) {
+            if (error.type === "card_error" || error.type === "validation_error") {
+                setPaymentError(error.message ?? "Pago fallido. Intenta con otro método de pago.");
+            } else {
+                setPaymentError("Ocurrió un error inesperado. Por favor intenta de nuevo.");
+            }
+        }
+
+        setIsSubmitting(false);
+    };
+
+    return (
+        <div className="flex flex-col gap-4">
+            <PaymentElement
+                id="payment-element"
+                options={{ layout: "tabs" }}
+            />
+
+            {paymentError && (
+                <div className="flex items-start gap-3 bg-error/10 border border-error/30 rounded-md p-3">
+                    <AlertTriangle size={16} className="text-error flex-shrink-0 mt-0.5" />
+                    <p className="text-small text-error">{paymentError}</p>
+                </div>
+            )}
+
+            <Button
+                variant="secondary"
+                size="lg"
+                className="w-full"
+                disabled={!stripe || !elements || isSubmitting || expired}
+                onClick={handleFinalize}
+            >
+                {isSubmitting
+                    ? "Procesando..."
+                    : `Finalizar compra${totalAmount ? ` · $${fmtMXN(totalAmount)} MXN` : ""}`}
+            </Button>
+
+            <p className="text-caption text-muted text-center">
+                Pago procesado de forma segura por Stripe.
+            </p>
+        </div>
+    );
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface PaymentContentProps {
     flightId:           string;
     flightDetail:       FlightDetail;
     reservationId:      string | null;
-    serverBlockedUntil: string | null; // authoritative server time — avoids client clock skew
+    serverBlockedUntil: string | null;
     wasCancelled:       boolean;
 }
 
@@ -78,20 +172,17 @@ const fadeUp = (delay = 0) => ({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PaymentContent({ flightId, flightDetail: flight, reservationId, serverBlockedUntil, wasCancelled }: PaymentContentProps) {
-    const router             = useRouter();
-    const { user, logout }   = useLocalAuth();
-    const store              = useBookingStore();
+    const router           = useRouter();
+    const { user, logout } = useLocalAuth();
+    const store            = useBookingStore();
 
-    const [isLoading, setIsLoading]         = React.useState(false);
-    const [error, setError]                 = React.useState<string | null>(wasCancelled ? "Pago cancelado. Puedes intentarlo de nuevo." : null);
+    const [clientSecret,  setClientSecret]  = React.useState<string | null>(null);
+    const [intentLoading, setIntentLoading] = React.useState(false);
+    const [error,         setError]         = React.useState<string | null>(wasCancelled ? "Cancelaste el pago anterior. Tu reserva sigue activa mientras el contador no llegue a cero." : null);
 
-    // Use reservationId from URL param first, then store
     const activeReservationId = reservationId ?? store.reservationId;
     const activeBookingRef    = store.bookingReference;
-
-    // Prefer server-provided blockedUntil (authoritative DB time) over store value
-    // to avoid client clock skew causing the countdown to show wrong time
-    const activeBlockedUntil = serverBlockedUntil ?? store.blockedUntil;
+    const activeBlockedUntil  = serverBlockedUntil ?? store.blockedUntil;
 
     const { minutes, seconds, expired } = useCountdown(activeBlockedUntil);
 
@@ -99,7 +190,7 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
         ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
         : undefined;
 
-    // Redirect if there's no active reservation (e.g. direct URL access)
+    // Redirect if no active reservation
     React.useEffect(() => {
         if (!store._hasHydrated) return;
         if (!activeReservationId || !store.flightDetail) {
@@ -107,55 +198,89 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
         }
     }, [store._hasHydrated, activeReservationId, store.flightDetail, flightId, router]);
 
-    const handlePay = async () => {
-        if (!activeReservationId || !activeBookingRef) return;
-        setIsLoading(true);
-        setError(null);
+    // Create PaymentIntent on mount (once reservation and store are ready)
+    React.useEffect(() => {
+        if (!store._hasHydrated || !activeReservationId || !activeBookingRef || expired) return;
+        if (clientSecret || intentLoading) return;
 
-        try {
-            const purchaseType   = store.purchaseType ?? "seats";
-            const seatsRequested = store.totalPassengers;
-            const description    =
-                purchaseType === "full_aircraft"
-                    ? `${flight.departure_airport.iata_code} → ${flight.arrival_airport.iata_code} · Avión completo`
-                    : `${flight.departure_airport.iata_code} → ${flight.arrival_airport.iata_code} · ${seatsRequested} ${seatsRequested === 1 ? "asiento" : "asientos"}`;
+        const purchaseType   = store.purchaseType ?? "seats";
+        const seatsRequested = store.totalPassengers;
+        const description    =
+            purchaseType === "full_aircraft"
+                ? `${flight.departure_airport.iata_code} → ${flight.arrival_airport.iata_code} · Avión completo`
+                : `${flight.departure_airport.iata_code} → ${flight.arrival_airport.iata_code} · ${seatsRequested} ${seatsRequested === 1 ? "asiento" : "asientos"}`;
 
-            const res = await fetch("/api/payments/checkout", {
-                method:  "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    reservationId:     activeReservationId,
-                    flightId,
-                    bookingReference:  activeBookingRef,
-                    amountTotalPaid:   store.totalPrice,
-                    flightDescription: description,
-                }),
-            });
+        setIntentLoading(true);
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                if (res.status === 410) {
-                    setError("Tu reserva ha expirado. Por favor busca otro vuelo.");
+        fetch("/api/payments/intent", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                reservationId:     activeReservationId,
+                flightId,
+                bookingReference:  activeBookingRef,
+                amountTotalPaid:   store.totalPrice,
+                flightDescription: description,
+            }),
+        })
+            .then(async (res) => {
+                const data = await res.json();
+                if (!res.ok) {
+                    if (res.status === 410) {
+                        setError("Tu reserva ha expirado. Por favor busca otro vuelo.");
+                    } else {
+                        setError(data.error ?? "Error al inicializar el pago.");
+                    }
                     return;
                 }
-                setError(data.error ?? "Error al iniciar el pago.");
-                return;
-            }
+                setClientSecret(data.clientSecret);
+            })
+            .catch(() => setError("Error de conexión. Por favor intenta de nuevo."))
+            .finally(() => setIntentLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [store._hasHydrated, activeReservationId, activeBookingRef]);
 
-            // Redirect to Stripe Checkout
-            window.location.href = data.checkoutUrl;
+    const handleTimerExpired = () => {
+        setError("Tiempo agotado. Tu reserva expiró. Por favor busca otro vuelo e intenta de nuevo.");
+    };
 
-        } catch {
-            setError("Error de conexión. Por favor intenta de nuevo.");
-        } finally {
-            setIsLoading(false);
+    const handleSearchAgain = () => {
+        const lastSearch = store.lastSearch;
+        store.reset();
+        if (lastSearch) {
+            const qp = new URLSearchParams({
+                origin:      lastSearch.origin,
+                destination: lastSearch.destination,
+                type:        lastSearch.type,
+                passengers:  String(lastSearch.passengers),
+                page:        "1",
+                sort:        "price_asc",
+            });
+            if (lastSearch.date)       qp.set("date",       lastSearch.date);
+            if (lastSearch.returnDate) qp.set("returnDate", lastSearch.returnDate);
+            router.push(`/flights?${qp.toString()}`);
+        } else {
+            router.push("/flights");
         }
     };
 
     const breakdown = store.breakdown;
 
     if (!store._hasHydrated || !activeReservationId) return null;
+
+    const elementsOptions = clientSecret
+        ? {
+              clientSecret,
+              appearance: {
+                  theme:     "night" as const,
+                  variables: {
+                      colorPrimary:    "#C4A77D",
+                      borderRadius:    "6px",
+                      fontFamily:      "inherit",
+                  },
+              },
+          }
+        : undefined;
 
     return (
         <LazyMotion features={domAnimation} strict>
@@ -186,7 +311,7 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                         />
                         <SectionHeader
                             title="Confirmar y pagar"
-                            subtitle="Revisa tu reserva antes de proceder al pago"
+                            subtitle="Revisa tu reserva e ingresa tus datos de pago"
                             size="page"
                         />
                     </div>
@@ -197,21 +322,21 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                     {/* Left — booking summary */}
                     <m.div {...fadeUp(0.05)} className="flex-1 min-w-0 flex flex-col gap-4">
 
+                        {/* Error banner */}
+                        {error && (
+                            <div className="flex items-start gap-3 bg-error/10 border border-error/30 rounded-md p-4">
+                                <AlertTriangle size={18} className="text-error flex-shrink-0 mt-0.5" />
+                                <p className="text-small text-error">{error}</p>
+                            </div>
+                        )}
+
                         {/* Cancelled notice */}
-                        {wasCancelled && (
+                        {wasCancelled && !error && (
                             <div className="flex items-start gap-3 bg-warning/10 border border-warning/30 rounded-md p-4">
                                 <AlertTriangle size={18} className="text-warning flex-shrink-0 mt-0.5" />
                                 <p className="text-small text-warning">
                                     Cancelaste el pago. Tu reserva sigue activa mientras el contador no llegue a cero.
                                 </p>
-                            </div>
-                        )}
-
-                        {/* Error */}
-                        {error && !wasCancelled && (
-                            <div className="flex items-start gap-3 bg-error/10 border border-error/30 rounded-md p-4">
-                                <AlertTriangle size={18} className="text-error flex-shrink-0 mt-0.5" />
-                                <p className="text-small text-error">{error}</p>
                             </div>
                         )}
 
@@ -299,10 +424,10 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                         )}
                     </m.div>
 
-                    {/* Right — countdown + pay */}
+                    {/* Right — countdown + payment form */}
                     <m.div
                         {...fadeUp(0.1)}
-                        className="w-full lg:w-[320px] lg:flex-shrink-0 flex flex-col gap-4"
+                        className="w-full lg:w-[380px] lg:flex-shrink-0 flex flex-col gap-4"
                     >
                         {/* Countdown timer */}
                         <div className={`rounded-md border p-5 flex flex-col gap-3 ${
@@ -341,49 +466,51 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                             )}
                         </div>
 
-                        {/* Pay button or expired action */}
+                        {/* Payment form or expired action */}
                         {expired ? (
                             <Button
                                 variant="secondary"
                                 size="lg"
                                 className="w-full"
-                                onClick={() => {
-                                    const lastSearch = store.lastSearch;
-                                    store.reset();
-                                    if (lastSearch) {
-                                        const qp = new URLSearchParams({
-                                            origin: lastSearch.origin,
-                                            destination: lastSearch.destination,
-                                            type: lastSearch.type,
-                                            passengers: String(lastSearch.passengers),
-                                            page: "1",
-                                            sort: "price_asc",
-                                        });
-                                        if (lastSearch.date) qp.set("date", lastSearch.date);
-                                        if (lastSearch.returnDate) qp.set("returnDate", lastSearch.returnDate);
-                                        router.push(`/flights?${qp.toString()}`);
-                                    } else {
-                                        router.push("/flights");
-                                    }
-                                }}
+                                onClick={handleSearchAgain}
                             >
                                 Buscar otro vuelo
                             </Button>
                         ) : (
-                            <Button
-                                variant="secondary"
-                                size="lg"
-                                className="w-full"
-                                disabled={isLoading}
-                                onClick={handlePay}
-                            >
-                                {isLoading ? "Redirigiendo a Stripe..." : `Pagar $${breakdown ? fmtMXN(breakdown.amount_total_paid) : "—"} MXN`}
-                            </Button>
-                        )}
+                            <div className="bg-surface rounded-md border border-border p-5 flex flex-col gap-4">
+                                <h3 className="text-body font-semibold text-text">Datos de pago</h3>
 
-                        <p className="text-caption text-muted text-center">
-                            Serás redirigido a Stripe para completar el pago de forma segura.
-                        </p>
+                                {intentLoading && (
+                                    <div className="flex flex-col gap-3 animate-pulse">
+                                        <div className="h-10 bg-border rounded-md" />
+                                        <div className="h-10 bg-border rounded-md" />
+                                        <div className="h-12 bg-border rounded-md" />
+                                    </div>
+                                )}
+
+                                {!intentLoading && !clientSecret && error && (
+                                    <Button
+                                        variant="secondary"
+                                        size="lg"
+                                        className="w-full"
+                                        onClick={handleSearchAgain}
+                                    >
+                                        Buscar otro vuelo
+                                    </Button>
+                                )}
+
+                                {clientSecret && elementsOptions && (
+                                    <Elements stripe={stripePromise} options={elementsOptions}>
+                                        <CheckoutForm
+                                            expired={expired}
+                                            bookingRef={activeBookingRef ?? ""}
+                                            totalAmount={breakdown?.amount_total_paid}
+                                            onTimerExpired={handleTimerExpired}
+                                        />
+                                    </Elements>
+                                )}
+                            </div>
+                        )}
                     </m.div>
                 </div>
             </div>

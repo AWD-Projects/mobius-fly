@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { confirmReservationFromWebhook, BUSINESS_ERRORS } from "@/lib/payments/confirm";
+import { confirmReservationFromPaymentIntent, INTENT_BUSINESS_ERRORS } from "@/lib/payments/confirmIntent";
 import Stripe from "stripe";
 
 // Next.js App Router — body is a ReadableStream by default, no body parsing
@@ -49,6 +50,22 @@ export async function POST(req: NextRequest) {
                 break;
             }
 
+            case "payment_intent.succeeded": {
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+                await confirmReservationFromPaymentIntent(paymentIntent);
+                break;
+            }
+
+            case "payment_intent.payment_failed": {
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+                console.info(
+                    `[stripe webhook] PaymentIntent failed: ${paymentIntent.id}`,
+                    `reservation: ${paymentIntent.metadata?.reservation_id}`,
+                    `reason: ${paymentIntent.last_payment_error?.message}`,
+                );
+                break;
+            }
+
             default:
                 break;
         }
@@ -58,7 +75,7 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
 
-        if (BUSINESS_ERRORS.has(message)) {
+        if (BUSINESS_ERRORS.has(message) || INTENT_BUSINESS_ERRORS.has(message)) {
             // Known business states — retrying won't help, acknowledge to Stripe
             console.info(`[stripe webhook] Business exit (${message}) for event ${event.id}`);
             return NextResponse.json({ received: true, note: message });

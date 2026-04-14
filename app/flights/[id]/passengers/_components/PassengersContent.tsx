@@ -499,6 +499,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 size="lg"
                                 className="w-full"
                                 disabled={!allCompleted || isCreatingReservation}
+                                isLoading={isCreatingReservation}
                                 onClick={async () => {
                                     if (!store.flightDetail || !store.purchaseType) return;
                                     setIsCreatingReservation(true);
