@@ -68,9 +68,11 @@ export async function POST(req: NextRequest) {
                 .eq("id", user.id)
                 .single();
 
-            contactFullName = profile
+            const nameFromProfile = profile
                 ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim()
-                : user.email ?? "Pasajero";
+                : "";
+            const firstAdultName = passengers.find((p) => p.slotType === "adult")?.fullName ?? "";
+            contactFullName = nameFromProfile || firstAdultName || "Pasajero";
             contactEmail = user.email!;
             contactPhone = profile?.phone ?? null;
         } else {
@@ -105,6 +107,12 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
 
+        if (message === "FLIGHT_DEPARTURE_TOO_SOON") {
+            return NextResponse.json(
+                { error: "Este vuelo no puede reservarse con menos de 3 horas de anticipación al despegue." },
+                { status: 409 },
+            );
+        }
         if (message === "NOT_ENOUGH_SEATS") {
             return NextResponse.json(
                 { error: "No hay suficientes asientos disponibles para este vuelo." },

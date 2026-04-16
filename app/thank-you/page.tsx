@@ -22,9 +22,8 @@ export default async function ThankYouPage({ searchParams }: Props) {
             payments (
                 amount_total_paid,
                 base_price,
-                mobius_commission_amount,
-                vat_amount_total,
                 passenger_fee_amount,
+                vat_amount_total,
                 payer_email,
                 status
             ),
@@ -64,12 +63,11 @@ export default async function ThankYouPage({ searchParams }: Props) {
             seatsRequested={data.seats_requested}
             purchaseType={data.purchase_type as "seats" | "full_aircraft"}
             payment={{
-                amountTotalPaid: Number(payment?.amount_total_paid ?? 0),
-                basePrice: Number(payment?.base_price ?? 0),
-                mobiusCommissionAmount: Number(payment?.mobius_commission_amount ?? 0),
-                vatAmountTotal: Number(payment?.vat_amount_total ?? 0),
+                amountTotalPaid:    Number(payment?.amount_total_paid ?? 0),
+                basePrice:          Number(payment?.base_price ?? 0),
                 passengerFeeAmount: Number(payment?.passenger_fee_amount ?? 0),
-                payerEmail: payment?.payer_email ?? "",
+                vatAmountTotal:     Number(payment?.vat_amount_total ?? 0),
+                payerEmail:         payment?.payer_email ?? "",
             }}
             flight={{
                 departureDatetime: flight?.departure_datetime ?? "",

@@ -282,7 +282,7 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                 reservationId:     activeReservationId,
                 flightId,
                 bookingReference:  activeBookingRef,
-                amountTotalPaid:   store.totalPrice,
+                // amountTotalPaid removed — server reads from DB
                 flightDescription: description,
             }),
         })
@@ -488,6 +488,19 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                                 </div>
                             </div>
                         )}
+
+                        {/* Cancellation policy disclaimer */}
+                        <div className="flex items-start gap-2.5 rounded-md border border-border bg-surface/50 px-4 py-3">
+                            <AlertTriangle size={15} className="text-muted flex-shrink-0 mt-0.5" />
+                            <p className="text-caption text-muted leading-relaxed">
+                                Dispones de <strong className="text-text">24 horas</strong> a partir del momento de tu reserva para cancelarla y obtener un reembolso completo.
+                                Pasado ese plazo, no habrá derecho a reembolso. Para solicitar una cancelación escríbenos a{" "}
+                                <a href="mailto:contacto@mobiusfly.com" className="text-gold underline underline-offset-2">
+                                    contacto@mobiusfly.com
+                                </a>
+                                .
+                            </p>
+                        </div>
                     </m.div>
 
                     {/* Right — countdown + payment form */}

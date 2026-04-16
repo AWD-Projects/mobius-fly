@@ -1,13 +1,25 @@
 import Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import {
+    buildBuyerConfirmationEmail,
+    buildOwnerNotificationEmail,
+    buildMobiusInternalEmail,
+    type PassengerRow,
+} from "@/lib/emails/booking-templates";
+import {
+    generateManifestPDF,
+    type ManifestPassenger,
+} from "@/lib/emails/manifest-pdf";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const INTENT_BUSINESS_ERRORS = new Set([
     "ALREADY_PAID",
+    "ALREADY_REFUNDED",
     "AMOUNT_MISMATCH",
     "PAYMENT_NOT_FOUND_FOR_INTENT", // not our flow — safe to acknowledge
+    "PI_CONFLICT_UNRESOLVABLE",     // concurrent PI race — client holds the valid secret
 ]);
 
 export async function confirmReservationFromPaymentIntent(
@@ -42,7 +54,7 @@ export async function confirmReservationFromPaymentIntent(
     // ── 2. Find payment row by PaymentIntent ID ───────────────────────────────
     const { data: payment } = await supabase
         .from("payments")
-        .select("id, status, reservation_id, amount_total_paid")
+        .select("id, status, reservation_id, amount_total_paid, amount_owner_net, amount_mobius_total")
         .eq("stripe_payment_intent_id", paymentIntent.id)
         .maybeSingle();
 
@@ -52,9 +64,8 @@ export async function confirmReservationFromPaymentIntent(
     }
 
     // Idempotency guard
-    if (payment.status === "PAID") {
-        throw new Error("ALREADY_PAID");
-    }
+    if (payment.status === "PAID")      throw new Error("ALREADY_PAID");
+    if (payment.status === "REFUNDED")  throw new Error("ALREADY_REFUNDED");
 
     // ── 3. Verify charged amount matches expected ─────────────────────────────
     const expectedCents = Math.round(payment.amount_total_paid * 100);
@@ -75,7 +86,7 @@ export async function confirmReservationFromPaymentIntent(
                 expected_cents: String(expectedCents),
                 charged_cents:  String(chargedCents),
             },
-        });
+        }, { idempotencyKey: `refund-mismatch-${reservationId}` });
         await supabase
             .from("payments")
             .update({ status: "REFUNDED", updated_at: new Date().toISOString() })
@@ -88,13 +99,26 @@ export async function confirmReservationFromPaymentIntent(
         .from("reservations")
         .select(`
             id,
+            flight_id,
             reservation_status_id,
             contact_email,
             contact_full_name,
+            contact_phone,
             seats_requested,
+            purchase_type,
+            passengers:reservation_passengers (
+                full_name,
+                date_of_birth,
+                gender,
+                is_minor,
+                document_type
+            ),
             flight:flights!reservations_flight_id_fkey (
                 flight_code,
+                owner_id,
                 departure_datetime,
+                departure_fbo_name,
+                arrival_fbo_name,
                 departure_airport:airports!flights_departure_airport_id_fkey (iata_code, city),
                 arrival_airport:airports!flights_arrival_airport_id_fkey (iata_code, city)
             )
@@ -112,7 +136,7 @@ export async function confirmReservationFromPaymentIntent(
                 reason:         "reservation_expired_before_webhook",
                 reservation_id: reservationId,
             },
-        });
+        }, { idempotencyKey: `refund-expired-${reservationId}` });
         await supabase
             .from("payments")
             .update({ status: "REFUNDED", updated_at: new Date().toISOString() })
@@ -123,7 +147,7 @@ export async function confirmReservationFromPaymentIntent(
     }
 
     // ── 6. Confirm reservation (only if still BLOCKED) ────────────────────────
-    await supabase
+    const { data: confirmedRows, error: confirmError } = await supabase
         .from("reservations")
         .update({
             reservation_status_id: confirmedStatusId,
@@ -131,7 +155,31 @@ export async function confirmReservationFromPaymentIntent(
             updated_at:            new Date().toISOString(),
         })
         .eq("id", reservationId)
-        .eq("reservation_status_id", blockedStatusId);
+        .eq("reservation_status_id", blockedStatusId)
+        .select("id");
+
+    if (confirmError) {
+        throw new Error(`Failed to confirm reservation: ${confirmError.message}`);
+    }
+
+    // Race condition guard: pg_cron expired the reservation between step 5 and step 6.
+    if (!confirmedRows || confirmedRows.length === 0) {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.refunds.create({
+            payment_intent: paymentIntent.id,
+            reason:         "requested_by_customer",
+            metadata: {
+                reason:         "reservation_expired_race_condition",
+                reservation_id: reservationId,
+            },
+        }, { idempotencyKey: `refund-race-${reservationId}` });
+        await supabase
+            .from("payments")
+            .update({ status: "REFUNDED", updated_at: new Date().toISOString() })
+            .eq("id", payment.id);
+        console.warn(`[webhook/intent] Race condition: reservation ${reservationId} expired before confirmation — payment refunded`);
+        return;
+    }
 
     // ── 7. Mark payment as PAID ───────────────────────────────────────────────
     await supabase
@@ -144,111 +192,178 @@ export async function confirmReservationFromPaymentIntent(
         })
         .eq("id", payment.id);
 
-    // ── 8. Send confirmation email (non-blocking) ─────────────────────────────
-    if (reservation?.contact_email) {
-        const flight     = reservation.flight as any;
-        const depAirport = flight?.departure_airport;
-        const arrAirport = flight?.arrival_airport;
-        const depDate    = flight?.departure_datetime
-            ? new Date(flight.departure_datetime).toLocaleDateString("es-MX", {
-                  weekday: "long", year: "numeric", month: "long", day: "numeric",
-              })
-            : "";
+    // ── 8. Send all notification emails (non-blocking) ───────────────────────
+    const flight      = reservation?.flight as any;
+    const depAirport  = flight?.departure_airport;
+    const arrAirport  = flight?.arrival_airport;
+    const depDate     = flight?.departure_datetime
+        ? new Date(flight.departure_datetime).toLocaleDateString("es-MX", {
+              weekday: "long", year: "numeric", month: "long", day: "numeric",
+          })
+        : "";
+    const depTime     = flight?.departure_datetime
+        ? new Date(flight.departure_datetime).toLocaleTimeString("es-MX", {
+              hour: "2-digit", minute: "2-digit", hour12: true,
+          })
+        : "";
+    const origin      = depAirport ? `${depAirport.city} (${depAirport.iata_code})` : "—";
+    const destination = arrAirport ? `${arrAirport.city} (${arrAirport.iata_code})` : "—";
+    const from        = process.env.RESEND_FROM_EMAIL ?? "noreply@mobiusfly.com";
+    const passengers  = ((reservation?.passengers ?? []) as PassengerRow[]);
 
-        const emailPromise = resend.emails.send({
-            from:    process.env.RESEND_FROM_EMAIL ?? "noreply@mobiusfly.com",
-            to:      reservation.contact_email,
-            subject: `Reserva confirmada — ${bookingReference} | Mobius Fly`,
-            html:    buildConfirmationEmail({
-                contactName:    reservation.contact_full_name ?? "",
-                bookingReference,
-                origin:         depAirport ? `${depAirport.city} (${depAirport.iata_code})` : "—",
-                destination:    arrAirport ? `${arrAirport.city} (${arrAirport.iata_code})` : "—",
-                departureDate:  depDate,
-                seatsRequested: reservation.seats_requested ?? 1,
+    const sharedOpts = {
+        bookingReference,
+        origin,
+        destination,
+        originAirportName:  depAirport?.name ?? origin,
+        departureFboName:   flight?.departure_fbo_name ?? "",
+        arrivalFboName:     flight?.arrival_fbo_name ?? null,
+        departureDate:      depDate,
+        departureTime:      depTime,
+        flightCode:         flight?.flight_code ?? "",
+        purchaseType:       (reservation?.purchase_type ?? "seats") as "seats" | "full_aircraft",
+        seatsRequested:     reservation?.seats_requested ?? 1,
+        passengers,
+        contactFullName:    reservation?.contact_full_name ?? "",
+        contactEmail:       reservation?.contact_email ?? "",
+        contactPhone:       reservation?.contact_phone ?? null,
+        amountTotalPaid:    payment.amount_total_paid,
+        amountOwnerNet:     (payment as any).amount_owner_net  ?? 0,
+        amountMobiusTotal:  (payment as any).amount_mobius_total ?? 0,
+    };
+
+    // Build labelled email jobs so individual failures are identifiable in logs
+    const emailJobs: { label: string; task: Promise<unknown> }[] = [];
+
+    // ── Buyer confirmation ────────────────────────────────────────────────────
+    if (reservation?.contact_email) {
+        emailJobs.push({
+            label: "buyer",
+            task: resend.emails.send({
+                from,
+                to:      reservation.contact_email,
+                subject: `Reserva confirmada — ${bookingReference} | Mobius Fly`,
+                html:    buildBuyerConfirmationEmail({
+                    contactName:      reservation.contact_full_name ?? "",
+                    bookingReference,
+                    origin,
+                    destination,
+                    departureDate:    depDate,
+                    departureTime:    depTime,
+                    flightCode:       flight?.flight_code ?? "",
+                    departureFboName: flight?.departure_fbo_name ?? "",
+                    seatsRequested:   reservation.seats_requested ?? 1,
+                    purchaseType:     (reservation.purchase_type ?? "seats") as "seats" | "full_aircraft",
+                }),
             }),
         });
+    }
 
-        await Promise.race([
-            emailPromise,
-            new Promise<void>((_, reject) => setTimeout(() => reject(new Error("email timeout")), 8000)),
-        ]).catch((err) => {
-            console.error("[webhook/intent] Confirmation email failed:", err?.message ?? err);
+    // ── Owner notification — with full flight manifest PDF ────────────────────
+    const ownerId = flight?.owner_id as string | null;
+    const mobiusOpsEmailForOwner = process.env.MOBIUS_OPS_EMAIL ?? "operaciones@mobiusfly.com";
+    let ownerEmail: string | null = null;
+    if (ownerId) {
+        const { data: ownerAuthUser } = await supabase.auth.admin.getUserById(ownerId);
+        ownerEmail = ownerAuthUser?.user?.email ?? null;
+    }
+    const ownerEmailTarget = ownerEmail ?? mobiusOpsEmailForOwner;
+
+    // Build full flight manifest: all confirmed passengers across all reservations
+    const flightId = (reservation as any)?.flight_id as string | null;
+    let manifestAttachment: { filename: string; content: Buffer } | null = null;
+    if (flightId) {
+        try {
+            const { data: confirmedReservations } = await supabase
+                .from("reservations")
+                .select("id, booking_reference")
+                .eq("flight_id", flightId)
+                .eq("reservation_status_id", confirmedStatusId);
+
+            const refMap: Record<string, string> = Object.fromEntries(
+                (confirmedReservations ?? []).map((r: { id: string; booking_reference: string }) => [r.id, r.booking_reference]),
+            );
+            const confirmedIds = Object.keys(refMap);
+
+            if (confirmedIds.length > 0) {
+                const { data: allPax } = await supabase
+                    .from("reservation_passengers")
+                    .select("full_name, date_of_birth, gender, is_minor, document_type, reservation_id")
+                    .in("reservation_id", confirmedIds);
+
+                const manifestPassengers: ManifestPassenger[] = (allPax ?? []).map((p: any) => ({
+                    full_name:         p.full_name,
+                    date_of_birth:     p.date_of_birth,
+                    gender:            p.gender,
+                    is_minor:          p.is_minor,
+                    document_type:     p.document_type,
+                    booking_reference: refMap[p.reservation_id] ?? "",
+                }));
+
+                const pdfBuffer = await generateManifestPDF({
+                    flightCode:       flight?.flight_code ?? "",
+                    origin,
+                    destination,
+                    departureDate:    depDate,
+                    departureTime:    depTime,
+                    departureFboName: flight?.departure_fbo_name ?? "",
+                    arrivalFboName:   flight?.arrival_fbo_name ?? null,
+                    passengers:       manifestPassengers,
+                    generatedAt:      new Date().toLocaleString("es-MX"),
+                });
+
+                manifestAttachment = {
+                    filename: `manifiesto-${flight?.flight_code ?? "vuelo"}.pdf`,
+                    content:  pdfBuffer,
+                };
+            }
+        } catch (pdfErr) {
+            console.error("[confirmIntent] PDF manifest generation failed — sending email without attachment:", pdfErr);
+        }
+    }
+
+    emailJobs.push({
+        label: "owner",
+        task: resend.emails.send({
+            from,
+            to:      ownerEmailTarget,
+            subject: `Nueva reserva ${bookingReference} en tu vuelo ${flight?.flight_code ?? ""} | Mobius Fly`,
+            html:    buildOwnerNotificationEmail(sharedOpts),
+            ...(manifestAttachment ? { attachments: [manifestAttachment] } : {}),
+        }),
+    });
+
+    // ── Mobius internal notification ──────────────────────────────────────────
+    const mobiusOpsEmail = process.env.MOBIUS_OPS_EMAIL ?? "operaciones@mobiusfly.com";
+    emailJobs.push({
+        label: "mobius-internal",
+        task: resend.emails.send({
+            from,
+            to:      mobiusOpsEmail,
+            subject: `[Reserva confirmada] ${bookingReference} — ${origin} → ${destination}`,
+            html:    buildMobiusInternalEmail(sharedOpts),
+        }),
+    });
+
+    const emailResults = await Promise.race([
+        Promise.allSettled(emailJobs.map((j) => j.task)),
+        new Promise<PromiseSettledResult<unknown>[]>((_, reject) =>
+            setTimeout(() => reject(new Error("email timeout")), 20_000),
+        ),
+    ]).catch((err) => {
+        console.error("[webhook/intent] Email sending timed out:", err?.message ?? err);
+        return null;
+    });
+
+    if (emailResults) {
+        emailResults.forEach((result, i) => {
+            if (result.status === "rejected") {
+                console.error(
+                    `[webhook/intent] ${emailJobs[i].label} email failed:`,
+                    (result.reason as Error)?.message ?? result.reason,
+                );
+            }
         });
     }
 }
 
-// ── Email builder (mirrors confirm.ts) ────────────────────────────────────────
-
-function buildConfirmationEmail(opts: {
-    contactName:      string;
-    bookingReference: string;
-    origin:           string;
-    destination:      string;
-    departureDate:    string;
-    seatsRequested:   number;
-}): string {
-    const { contactName, bookingReference, origin, destination, departureDate, seatsRequested } = opts;
-    return `
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F6F6F4;font-family:Arial,sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F6F6F4;padding:40px 0">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden">
-        <tr>
-          <td style="background:#39424E;padding:32px 40px">
-            <p style="margin:0;color:#C4A77D;font-size:22px;font-weight:bold;letter-spacing:1px">MOBIUS FLY</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px">
-            <p style="color:#39424E;font-size:16px;margin:0 0 16px">Hola, <strong>${contactName}</strong></p>
-            <p style="color:#39424E;font-size:16px;margin:0 0 32px">
-              Tu reserva ha sido confirmada. ¡Te esperamos a bordo!
-            </p>
-            <div style="background:#F6F6F4;border-radius:8px;padding:20px 24px;margin-bottom:32px;text-align:center">
-              <p style="margin:0 0 4px;color:#666;font-size:12px;letter-spacing:2px;text-transform:uppercase">Referencia de reserva</p>
-              <p style="margin:0;color:#39424E;font-size:28px;font-weight:bold;letter-spacing:3px">${bookingReference}</p>
-            </div>
-            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden">
-              <tr style="background:#f9f9f9">
-                <td style="padding:12px 20px;color:#666;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px">Detalle del vuelo</td>
-              </tr>
-              <tr>
-                <td style="padding:16px 20px;border-top:1px solid #e5e5e5">
-                  <table width="100%">
-                    <tr>
-                      <td style="color:#666;font-size:14px;padding:4px 0">Ruta</td>
-                      <td style="color:#39424E;font-size:14px;font-weight:bold;text-align:right">${origin} → ${destination}</td>
-                    </tr>
-                    <tr>
-                      <td style="color:#666;font-size:14px;padding:4px 0">Fecha de salida</td>
-                      <td style="color:#39424E;font-size:14px;font-weight:bold;text-align:right">${departureDate}</td>
-                    </tr>
-                    <tr>
-                      <td style="color:#666;font-size:14px;padding:4px 0">Pasajeros</td>
-                      <td style="color:#39424E;font-size:14px;font-weight:bold;text-align:right">${seatsRequested}</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-            <p style="color:#666;font-size:13px;margin:32px 0 0;line-height:1.6">
-              Presenta una identificación oficial vigente al momento de abordar.<br>
-              Para cualquier duda escríbenos a <a href="mailto:contacto@mobiusfly.com" style="color:#C4A77D">contacto@mobiusfly.com</a>
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="background:#39424E;padding:24px 40px;text-align:center">
-            <p style="margin:0;color:#aaa;font-size:12px">© ${new Date().getFullYear()} Mobius Fly. Todos los derechos reservados.</p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}

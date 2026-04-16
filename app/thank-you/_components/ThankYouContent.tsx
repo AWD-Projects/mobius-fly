@@ -42,9 +42,8 @@ interface ThankYouContentProps {
     payment: {
         amountTotalPaid: number;
         basePrice: number;
-        mobiusCommissionAmount: number;
-        vatAmountTotal: number;
         passengerFeeAmount: number;
+        vatAmountTotal: number;
         payerEmail: string;
     };
     flight: {
@@ -167,15 +166,11 @@ export function ThankYouContent({ bookingRef, seatsRequested, purchaseType, paym
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted">Cargo por servicio (5%)</span>
-                                    <span className="text-text">${fmtMXN(payment.mobiusCommissionAmount)} MXN</span>
+                                    <span className="text-text">${fmtMXN(payment.passengerFeeAmount)} MXN</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted">IVA (16%)</span>
                                     <span className="text-text">${fmtMXN(payment.vatAmountTotal)} MXN</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted">Cargo de procesamiento</span>
-                                    <span className="text-text">${fmtMXN(payment.passengerFeeAmount)} MXN</span>
                                 </div>
                                 <div className="w-full h-px bg-border my-1" />
                                 <div className="flex justify-between font-semibold">
@@ -243,7 +238,7 @@ export function ThankYouContent({ bookingRef, seatsRequested, purchaseType, paym
                                 variant="ghost"
                                 size="md"
                                 className="w-full"
-                                onClick={() => router.push("/flights")}
+                                onClick={() => router.push("/")}
                             >
                                 Buscar más vuelos
                             </Button>

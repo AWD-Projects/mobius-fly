@@ -39,9 +39,18 @@ async function compensate(
     supabase: ReturnType<typeof createAdminClient>,
     reservationId: string,
 ): Promise<void> {
-    await supabase.rpc("cancel_blocked_reservation", {
-        p_reservation_id: reservationId,
-    });
+    try {
+        await supabase.rpc("cancel_blocked_reservation", {
+            p_reservation_id: reservationId,
+        });
+    } catch (err) {
+        // Log as critical — seats may stay locked until pg_cron frees them (~1 min)
+        console.error(
+            "[createReservation] CRITICAL: compensation RPC failed — seats may still be locked for reservation:",
+            reservationId,
+            err instanceof Error ? err.message : err,
+        );
+    }
 }
 
 // ─── createReservation ────────────────────────────────────────────────────────
@@ -63,44 +72,63 @@ export async function createReservation(
         basePrice,
     } = input;
 
-    const breakdown        = calculatePaymentBreakdown(basePrice);
-    const bookingReference = generateBookingReference();
+    const breakdown = calculatePaymentBreakdown(basePrice);
 
-    // ── 1. Atomic seat lock + reservation creation ────────────────────────────
-    const { data: reservationId, error: rpcError } = await supabase.rpc(
-        "lock_seats_and_create_reservation",
-        {
-            p_flight_id:         flightId,
-            p_user_id:           userId,
-            p_purchase_type:     purchaseType,
-            p_seats_requested:   seatsRequested,
-            p_booking_reference: bookingReference,
-            p_contact_full_name: contactFullName,
-            p_contact_email:     contactEmail,
-            p_contact_phone:     contactPhone ?? null,
-            p_base_price_total:  breakdown.base_price,
-        },
-    );
+    // ── 1. Atomic seat lock + reservation creation (with booking ref retry) ───
+    // MOB-XXXXXX has 1M combinations; retry up to 3 times on unique constraint
+    // collision (PostgreSQL error code 23505) before giving up.
+    const MAX_REF_ATTEMPTS = 3;
+    let resId!: string;
+    let bookingReference!: string;
 
-    if (rpcError) {
-        const msg = rpcError.message ?? "";
-        if (msg.includes("NOT_ENOUGH_SEATS"))          throw new Error("NOT_ENOUGH_SEATS");
+    for (let attempt = 1; attempt <= MAX_REF_ATTEMPTS; attempt++) {
+        bookingReference = generateBookingReference();
+
+        const { data: reservationId, error: rpcError } = await supabase.rpc(
+            "lock_seats_and_create_reservation",
+            {
+                p_flight_id:         flightId,
+                p_user_id:           userId,
+                p_purchase_type:     purchaseType,
+                p_seats_requested:   seatsRequested,
+                p_booking_reference: bookingReference,
+                p_contact_full_name: contactFullName,
+                p_contact_email:     contactEmail,
+                p_contact_phone:     contactPhone ?? null,
+                p_base_price_total:  breakdown.base_price,
+            },
+        );
+
+        if (!rpcError) {
+            if (!reservationId) throw new Error("Reservation creation returned no ID");
+            resId = reservationId as string;
+            break;
+        }
+
+        const msg  = rpcError.message ?? "";
+        const code = (rpcError as { code?: string }).code ?? "";
+
+        if (msg.includes("FLIGHT_DEPARTURE_TOO_SOON"))    throw new Error("FLIGHT_DEPARTURE_TOO_SOON");
+        if (msg.includes("NOT_ENOUGH_SEATS"))            throw new Error("NOT_ENOUGH_SEATS");
         if (msg.includes("FULL_AIRCRAFT_NOT_AVAILABLE")) throw new Error("FULL_AIRCRAFT_NOT_AVAILABLE");
+
+        // Unique violation on booking_reference — retry with a new reference
+        if (code === "23505" || msg.includes("unique") || msg.includes("booking_reference")) {
+            if (attempt === MAX_REF_ATTEMPTS) {
+                throw new Error(`Reservation creation failed after ${MAX_REF_ATTEMPTS} attempts (booking reference collision)`);
+            }
+            continue;
+        }
+
         throw new Error(`Reservation creation failed: ${msg}`);
     }
-
-    if (!reservationId) {
-        throw new Error("Reservation creation returned no ID");
-    }
-
-    const resId = reservationId as string;
 
     // ── 2. Insert passenger rows ──────────────────────────────────────────────
     const passengerRows = passengers.map((p) => ({
         reservation_id: resId,
         full_name:      p.fullName ?? "",
         date_of_birth:  p.dateOfBirth ?? null,
-        gender:         p.sex ?? null,
+        gender:         p.sex ? p.sex.toUpperCase() : null,
         email:          p.email ?? null,
         phone:          p.phone ?? null,
         document_type:  "INE",

@@ -12,7 +12,7 @@ const bodySchema = z.object({
     reservationId:     uuidLike,
     flightId:          uuidLike,
     bookingReference:  z.string().min(1),
-    amountTotalPaid:   z.number().positive(),
+    // amountTotalPaid removed — amount is now read server-side from the payments table
     flightDescription: z.string().min(1),
 });
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { reservationId, flightId, bookingReference, amountTotalPaid, flightDescription } = parsed.data;
+        const { reservationId, flightId, bookingReference, flightDescription } = parsed.data;
 
         // Resolve payer email (auth user or guest stored during reservation)
         let userEmail: string;
@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
             reservationId,
             flightId,
             bookingReference,
-            amountTotalPaid,
             flightDescription,
             userEmail,
         });

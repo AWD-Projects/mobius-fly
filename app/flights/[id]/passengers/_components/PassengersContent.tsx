@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Info } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { PassengerNavigationCard } from "@/components/organisms/PassengerNavigationCard";
@@ -298,6 +298,29 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                         />
                     </div>
                 </m.div>
+
+                {/* ─── Minor passenger warning ──────────────────────────────────────── */}
+                {store.minors > 0 && (
+                    <m.div
+                        {...fadeUp(0.03)}
+                        className={`w-full ${sectionPadding} pb-2`}
+                    >
+                        <div className="flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 p-4">
+                            <Info size={18} className="text-warning flex-shrink-0 mt-0.5" />
+                            <p className="text-small text-warning leading-relaxed">
+                                El registro de pasajeros menores de edad requiere validaciones adicionales.
+                                Para continuar con esta reserva, por favor contáctanos directamente en{" "}
+                                <a
+                                    href="mailto:contacto@mobiusfly.com"
+                                    className="font-semibold underline underline-offset-2"
+                                >
+                                    contacto@mobiusfly.com
+                                </a>
+                                . El menor deberá viajar acompañado de un adulto responsable dentro de la misma reservación.
+                            </p>
+                        </div>
+                    </m.div>
+                )}
 
                 {/* ─── Passenger forms ───────────────────────────────────────────────── */}
                 {store.passengers.length > 0 && (

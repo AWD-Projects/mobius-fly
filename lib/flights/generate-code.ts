@@ -39,9 +39,9 @@ function randomBase36(length: number): string {
 export function generateFlightCode(ownerId: string, departureDate: Date): string {
     const own4 = ownerHashBase36(ownerId);
 
-    const yy = String(departureDate.getFullYear()).slice(-2);
-    const mm = String(departureDate.getMonth() + 1).padStart(2, "0");
-    const dd = String(departureDate.getDate()).padStart(2, "0");
+    const yy = String(departureDate.getUTCFullYear()).slice(-2);
+    const mm = String(departureDate.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(departureDate.getUTCDate()).padStart(2, "0");
     const datePart = `${yy}${mm}${dd}`;
 
     const rnd5 = randomBase36(5);

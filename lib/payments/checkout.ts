@@ -2,12 +2,12 @@ import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export interface CreateCheckoutSessionInput {
-    reservationId:    string;
-    flightId:         string;
-    bookingReference: string;
-    amountTotalPaid:  number; // in MXN
-    flightDescription:string; // e.g. "MEX → CUN · 2 asientos"
-    userEmail:        string;
+    reservationId:     string;
+    flightId:          string;
+    bookingReference:  string;
+    // amountTotalPaid intentionally omitted — server reads from DB to prevent client-side tampering
+    flightDescription: string;
+    userEmail:         string;
 }
 
 export interface CreateCheckoutSessionResult {
@@ -19,15 +19,7 @@ export async function createCheckoutSession(
     input: CreateCheckoutSessionInput,
 ): Promise<CreateCheckoutSessionResult> {
     const supabase = createAdminClient();
-
-    const {
-        reservationId,
-        flightId,
-        bookingReference,
-        amountTotalPaid,
-        flightDescription,
-        userEmail,
-    } = input;
+    const { reservationId, flightId, bookingReference, flightDescription, userEmail } = input;
 
     // ── 1. Verify reservation is still BLOCKED and not expired ───────────────
     const { data: reservation, error: resError } = await supabase
@@ -56,9 +48,39 @@ export async function createCheckoutSession(
         throw new Error("RESERVATION_EXPIRED");
     }
 
+    // ── 2. Fetch payment row — server-authoritative amount + idempotency key ──
+    const { data: paymentRow } = await supabase
+        .from("payments")
+        .select("id, amount_total_paid, stripe_checkout_session_id")
+        .eq("reservation_id", reservationId)
+        .eq("status", "PENDING")
+        .maybeSingle();
+
+    if (!paymentRow) throw new Error("RESERVATION_NOT_FOUND");
+
+    // ── 3. Idempotency: return existing session if already created ────────────
+    // stripe_checkout_session_id is initialised to `pending_{reservationId}` as a
+    // placeholder; a real session starts with "cs_".
+    if (
+        paymentRow.stripe_checkout_session_id &&
+        !paymentRow.stripe_checkout_session_id.startsWith("pending_")
+    ) {
+        try {
+            const existing = await stripe.checkout.sessions.retrieve(paymentRow.stripe_checkout_session_id);
+            if (existing.url && existing.status !== "expired") {
+                return {
+                    checkoutUrl: existing.url,
+                    sessionId:   existing.id,
+                };
+            }
+        } catch {
+            // Session not found or expired in Stripe — fall through to create a fresh one
+        }
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-    // ── 2. Create Stripe Checkout Session ────────────────────────────────────
+    // ── 4. Create Stripe Checkout Session with server-side amount ─────────────
     const session = await stripe.checkout.sessions.create({
         mode:                 "payment",
         currency:             "mxn",
@@ -69,7 +91,7 @@ export async function createCheckoutSession(
                 quantity:   1,
                 price_data: {
                     currency:     "mxn",
-                    unit_amount:  Math.round(amountTotalPaid * 100), // Stripe uses cents
+                    unit_amount:  Math.round(paymentRow.amount_total_paid * 100),
                     product_data: {
                         name:        `Mobius Fly — ${bookingReference}`,
                         description: flightDescription,
@@ -90,15 +112,18 @@ export async function createCheckoutSession(
         throw new Error("Stripe did not return a checkout URL");
     }
 
-    // ── 3. Store Stripe session ID in payments row ────────────────────────────
+    // ── 5. Store real session ID (replaces the pending_ placeholder) ──────────
+    // The .like() guard ensures we only overwrite the placeholder — not a real
+    // session that a concurrent request may have already written.
     await supabase
         .from("payments")
         .update({
             stripe_checkout_session_id: session.id,
             updated_at:                 new Date().toISOString(),
         })
-        .eq("reservation_id", reservationId)
-        .eq("status", "PENDING");
+        .eq("id", paymentRow.id)
+        .eq("status", "PENDING")
+        .like("stripe_checkout_session_id", "pending_%");
 
     return {
         checkoutUrl: session.url,
