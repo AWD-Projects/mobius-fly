@@ -152,6 +152,63 @@ function CheckoutForm({ expired, bookingRef, totalAmount, onTimerExpired }: Chec
     );
 }
 
+// ─── Expired Reservation Dialog ───────────────────────────────────────────────
+
+interface ExpiredReservationDialogProps {
+    onSearchAgain: () => void;
+}
+
+function ExpiredReservationDialog({ onSearchAgain }: ExpiredReservationDialogProps) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop — no click-to-close: user must take action */}
+            <div
+                className="absolute inset-0"
+                style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}
+                aria-hidden="true"
+            />
+
+            {/* Dialog card */}
+            <m.div
+                initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                animate={{ opacity: 1, scale: 1,   y: 0  }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="expired-dialog-title"
+                aria-describedby="expired-dialog-desc"
+                className="relative z-10 w-full max-w-[400px] bg-surface rounded-md border border-error/30 shadow-lg p-8 flex flex-col items-center gap-6 text-center"
+            >
+                {/* Icon */}
+                <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center">
+                    <Clock size={32} className="text-error" />
+                </div>
+
+                {/* Copy */}
+                <div className="flex flex-col gap-2">
+                    <h2 id="expired-dialog-title" className="text-h3 font-bold text-text">
+                        Tiempo agotado
+                    </h2>
+                    <p id="expired-dialog-desc" className="text-small text-muted">
+                        Tu tiempo de reserva expiró y los asientos han sido liberados.
+                        Por favor busca otro vuelo e intenta de nuevo.
+                    </p>
+                </div>
+
+                {/* CTA */}
+                <Button
+                    variant="secondary"
+                    size="lg"
+                    className="w-full"
+                    onClick={onSearchAgain}
+                >
+                    Buscar otro vuelo
+                </Button>
+            </m.div>
+        </div>
+    );
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface PaymentContentProps {
@@ -176,9 +233,10 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
     const { user, logout } = useLocalAuth();
     const store            = useBookingStore();
 
-    const [clientSecret,  setClientSecret]  = React.useState<string | null>(null);
-    const [intentLoading, setIntentLoading] = React.useState(false);
-    const [error,         setError]         = React.useState<string | null>(wasCancelled ? "Cancelaste el pago anterior. Tu reserva sigue activa mientras el contador no llegue a cero." : null);
+    const [clientSecret,      setClientSecret]      = React.useState<string | null>(null);
+    const [intentLoading,     setIntentLoading]     = React.useState(false);
+    const [error,             setError]             = React.useState<string | null>(wasCancelled ? "Cancelaste el pago anterior. Tu reserva sigue activa mientras el contador no llegue a cero." : null);
+    const [showExpiredDialog, setShowExpiredDialog] = React.useState(false);
 
     const activeReservationId = reservationId ?? store.reservationId;
     const activeBookingRef    = store.bookingReference;
@@ -189,6 +247,11 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
     const userInitials = user
         ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
         : undefined;
+
+    // Show expired dialog whenever the countdown reaches zero
+    React.useEffect(() => {
+        if (expired) setShowExpiredDialog(true);
+    }, [expired]);
 
     // Redirect if no active reservation
     React.useEffect(() => {
@@ -284,6 +347,9 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
 
     return (
         <LazyMotion features={domAnimation} strict>
+            {showExpiredDialog && (
+                <ExpiredReservationDialog onSearchAgain={handleSearchAgain} />
+            )}
             <div className="min-h-screen bg-background">
                 <Navbar
                     isLoggedIn={!!user}
