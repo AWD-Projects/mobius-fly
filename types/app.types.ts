@@ -133,6 +133,7 @@ export interface ReservationListItem {
     booking_reference: string;
     flight: FlightListItem;
     seats_requested: number;
+    purchase_type: "seats" | "full_aircraft";
     reservation_status: ReservationStatusCode;
     confirmed_at: string | null;
     blocked_until: string | null;

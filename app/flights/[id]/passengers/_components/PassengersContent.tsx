@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Info } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { PassengerNavigationCard } from "@/components/organisms/PassengerNavigationCard";
@@ -167,6 +167,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         });
     };
 
+    const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
+    const [reservationError, setReservationError]           = React.useState<string | null>(null);
+
     const allCompleted =
         store.passengers.length > 0 &&
         store.passengers.every((p) => p.isCompleted);
@@ -295,6 +298,29 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                         />
                     </div>
                 </m.div>
+
+                {/* ─── Minor passenger warning ──────────────────────────────────────── */}
+                {store.minors > 0 && (
+                    <m.div
+                        {...fadeUp(0.03)}
+                        className={`w-full ${sectionPadding} pb-2`}
+                    >
+                        <div className="flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 p-4">
+                            <Info size={18} className="text-warning flex-shrink-0 mt-0.5" />
+                            <p className="text-small text-warning leading-relaxed">
+                                El registro de pasajeros menores de edad requiere validaciones adicionales.
+                                Para continuar con esta reserva, por favor contáctanos directamente en{" "}
+                                <a
+                                    href="mailto:contacto@mobiusfly.com"
+                                    className="font-semibold underline underline-offset-2"
+                                >
+                                    contacto@mobiusfly.com
+                                </a>
+                                . El menor deberá viajar acompañado de un adulto responsable dentro de la misma reservación.
+                            </p>
+                        </div>
+                    </m.div>
+                )}
 
                 {/* ─── Passenger forms ───────────────────────────────────────────────── */}
                 {store.passengers.length > 0 && (
@@ -485,16 +511,54 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 </div>
                             </div>
 
+                            {reservationError && (
+                                <div className="flex items-start gap-2 bg-error/10 border border-error/30 rounded-md p-3">
+                                    <AlertTriangle size={16} className="text-error flex-shrink-0 mt-0.5" />
+                                    <p className="text-caption text-error">{reservationError}</p>
+                                </div>
+                            )}
                             <Button
                                 variant="secondary"
                                 size="lg"
                                 className="w-full"
-                                disabled={!allCompleted}
-                                onClick={() =>
-                                    router.push(`/flights/${flightId}/payment`)
-                                }
+                                disabled={!allCompleted || isCreatingReservation}
+                                isLoading={isCreatingReservation}
+                                onClick={async () => {
+                                    if (!store.flightDetail || !store.purchaseType) return;
+                                    setIsCreatingReservation(true);
+                                    setReservationError(null);
+                                    try {
+                                        const res = await fetch("/api/reservations", {
+                                            method:  "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                                flightId:       flightId,
+                                                purchaseType:   store.purchaseType,
+                                                seatsRequested: store.totalPassengers,
+                                                basePrice:      store.totalPrice,
+                                                passengers:     store.passengers,
+                                            }),
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) {
+                                            setReservationError(data.error ?? "Error al crear la reserva.");
+                                            return;
+                                        }
+                                        store.setReservation(
+                                            data.reservationId,
+                                            data.bookingReference,
+                                            data.blockedUntil,
+                                            data.breakdown,
+                                        );
+                                        router.push(`/flights/${flightId}/payment?reservation_id=${data.reservationId}`);
+                                    } catch {
+                                        setReservationError("Error de conexión. Por favor intenta de nuevo.");
+                                    } finally {
+                                        setIsCreatingReservation(false);
+                                    }
+                                }}
                             >
-                                Continuar con el pago
+                                {isCreatingReservation ? "Reservando asientos..." : "Continuar con el pago"}
                             </Button>
                         </m.div>
                     </div>

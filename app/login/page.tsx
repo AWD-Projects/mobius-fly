@@ -8,7 +8,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LazyMotion, domAnimation, m } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import { InputGroup } from "@/components/molecules/InputGroup";
+import { Input } from "@/components/atoms/Input";
 import { Button } from "@/components/atoms/Button";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
 import type { UserProfile } from "@/types/app.types";
@@ -27,6 +29,7 @@ export default function LoginPage() {
     const router = useRouter();
     const { login, isLoggedIn, isHydrated, user } = useLocalAuth();
     const [apiError, setApiError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
 
     const {
         register,
@@ -118,12 +121,31 @@ export default function LoginPage() {
                             {...register("email")}
                         />
 
-                        <InputGroup
-                            label="Contraseña"
-                            type="password"
-                            error={errors.password?.message}
-                            {...register("password")}
-                        />
+                        <div className="space-y-2">
+                            <label htmlFor="password" className="block text-small font-medium tracking-[0.01em] text-secondary">
+                                Contraseña
+                            </label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    error={!!errors.password}
+                                    aria-invalid={!!errors.password}
+                                    className="w-full pr-10"
+                                    {...register("password")}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors"
+                                >
+                                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="mt-2 text-small text-error">{errors.password.message}</p>
+                            )}
+                        </div>
 
                         <Button
                             type="submit"
