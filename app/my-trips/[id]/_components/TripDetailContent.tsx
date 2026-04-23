@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { ArrowLeft, Download } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Button } from "@/components/atoms/Button";
@@ -78,6 +79,24 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
     const router = useRouter();
     const { flight } = reservation;
     const { aircraft, crew } = flight;
+    const [downloading, setDownloading] = useState(false);
+
+    async function handleDownload() {
+        setDownloading(true);
+        try {
+            const res = await fetch(`/api/reservations/${reservation.id}/itinerary`);
+            if (!res.ok) throw new Error("Error generando PDF");
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement("a");
+            a.href     = url;
+            a.download = `itinerario-${reservation.booking_reference}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } finally {
+            setDownloading(false);
+        }
+    }
 
     return (
         <LazyMotion features={domAnimation} strict>
@@ -195,8 +214,10 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                                     className="w-full"
                                     icon={<Download size={20} />}
                                     iconPosition="start"
+                                    onClick={handleDownload}
+                                    disabled={downloading}
                                 >
-                                    Descargar itinerario
+                                    {downloading ? "Generando PDF..." : "Descargar itinerario"}
                                 </Button>
                             </m.div>
                         )}
