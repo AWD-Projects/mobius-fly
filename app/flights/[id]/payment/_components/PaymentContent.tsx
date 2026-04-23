@@ -123,7 +123,10 @@ function CheckoutForm({ expired, bookingRef, totalAmount, onTimerExpired }: Chec
         <div className="flex flex-col gap-4">
             <PaymentElement
                 id="payment-element"
-                options={{ layout: "tabs" }}
+                options={{
+                    layout:  "tabs",
+                    wallets: { link: "never", applePay: "auto", googlePay: "auto" },
+                }}
             />
 
             {paymentError && (
@@ -329,21 +332,85 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
 
     const breakdown = store.breakdown;
 
-    if (!store._hasHydrated || !activeReservationId) return null;
+    const elementsOptions = React.useMemo(() => {
+        if (!clientSecret) return undefined;
+        return {
+            clientSecret,
+            locale: "es-419" as const,
+            appearance: {
+                theme: "stripe" as const,
+                variables: {
+                    colorPrimary:         "#C4A77D",
+                    colorBackground:      "#FFFFFF",
+                    colorText:            "#39424E",
+                    colorTextSecondary:   "#6B6B6B",
+                    colorTextPlaceholder: "#A8A8A6",
+                    colorDanger:          "#D25C5C",
+                    colorIconTab:         "#6B6B6B",
+                    colorIconTabSelected: "#39424E",
+                    // System font stack — resolves to the OS UI font on every platform
+                    // (SF Pro on macOS/iOS, Segoe UI on Windows, Roboto on Android).
+                    // var(--font-sans) does not resolve inside the Stripe iframe.
+                    fontFamily:           '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                    fontSizeBase:         "14px",
+                    fontWeightNormal:     "400",
+                    fontWeightMedium:     "500",
+                    borderRadius:         "8px",
+                    spacingUnit:          "4px",
+                    spacingGridRow:       "12px",
+                },
+                rules: {
+                    ".Label": {
+                        color:        "#6B6B6B",
+                        fontSize:     "12px",
+                        fontWeight:   "400",
+                        marginBottom: "6px",
+                    },
+                    ".Input": {
+                        backgroundColor: "#FFFFFF",
+                        border:          "1px solid #E0E0DE",
+                        borderRadius:    "8px",
+                        padding:         "13px 14px",
+                        color:           "#39424E",
+                        boxShadow:       "none",
+                        transition:      "border-color 120ms ease",
+                    },
+                    ".Input:focus": {
+                        border:    "1px solid #C4A77D",
+                        boxShadow: "0 0 0 3px rgba(196,167,125,0.18)",
+                        outline:   "none",
+                    },
+                    ".Input--invalid": {
+                        border:    "1px solid #D25C5C",
+                        boxShadow: "0 0 0 3px rgba(210,92,92,0.15)",
+                    },
+                    ".Tab": {
+                        backgroundColor: "#FFFFFF",
+                        border:          "1px solid #E0E0DE",
+                        borderRadius:    "8px",
+                        color:           "#39424E",
+                        padding:         "10px 12px",
+                    },
+                    ".Tab:hover": {
+                        backgroundColor: "#F6F6F4",
+                    },
+                    ".Tab--selected": {
+                        backgroundColor: "#FFFFFF",
+                        border:          "1px solid #C4A77D",
+                        boxShadow:       "0 0 0 3px rgba(196,167,125,0.15)",
+                        color:           "#39424E",
+                    },
+                    ".Error": {
+                        color:     "#D25C5C",
+                        fontSize:  "12px",
+                        marginTop: "6px",
+                    },
+                },
+            },
+        };
+    }, [clientSecret]);
 
-    const elementsOptions = clientSecret
-        ? {
-              clientSecret,
-              appearance: {
-                  theme:     "night" as const,
-                  variables: {
-                      colorPrimary:    "#C4A77D",
-                      borderRadius:    "6px",
-                      fontFamily:      "inherit",
-                  },
-              },
-          }
-        : undefined;
+    if (!store._hasHydrated || !activeReservationId) return null;
 
     return (
         <LazyMotion features={domAnimation} strict>
