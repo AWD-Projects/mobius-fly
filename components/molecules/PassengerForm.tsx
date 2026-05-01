@@ -4,10 +4,12 @@ import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { InputGroup } from "./InputGroup";
 import { SelectGroup } from "./SelectGroup";
 import { DocumentUpload, UploadedDocument } from "./DocumentUpload";
 import { DateOfBirthPicker } from "./DateOfBirthPicker";
+import { PhoneInput } from "./PhoneInput";
 import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +50,10 @@ const createSchema = (passengerType: "adult" | "minor") =>
             : "El pasajero menor debe tener menos de 18 años"
         ),
       email: z.string().min(1, "Correo requerido").refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: "Correo no válido" }),
-      phone: z.string().min(7, "Teléfono requerido"),
+      phone: z
+        .string()
+        .min(1, "Teléfono requerido")
+        .refine((v) => isValidPhoneNumber(v), "Número telefónico no válido"),
       responsibleName: z.string().optional(),
       responsibleRelationship: z.string().optional(),
       responsiblePhone: z.string().optional(),
@@ -59,8 +64,11 @@ const createSchema = (passengerType: "adult" | "minor") =>
           ctx.addIssue({ code: "custom", path: ["responsibleName"], message: "Nombre del responsable requerido" });
         if (!data.responsibleRelationship)
           ctx.addIssue({ code: "custom", path: ["responsibleRelationship"], message: "Relación requerida" });
-        if (!data.responsiblePhone || data.responsiblePhone.length < 7)
+        if (!data.responsiblePhone) {
           ctx.addIssue({ code: "custom", path: ["responsiblePhone"], message: "Teléfono requerido" });
+        } else if (!isValidPhoneNumber(data.responsiblePhone)) {
+          ctx.addIssue({ code: "custom", path: ["responsiblePhone"], message: "Número telefónico no válido" });
+        }
       }
     });
 
@@ -231,14 +239,28 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
               error={errors.email?.message}
               {...register("email")}
             />
-            <InputGroup
-              label="Número de contacto"
-              type="tel"
-              placeholder="+52 55 1234 5678"
-              required
-              error={errors.phone?.message}
-              {...register("phone")}
-            />
+            <div>
+              <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                Número de contacto <span className="text-error ml-1">*</span>
+              </label>
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    error={!!errors.phone}
+                  />
+                )}
+              />
+              {errors.phone?.message && (
+                <p className="mt-2 text-small text-error">{errors.phone.message}</p>
+              )}
+            </div>
           </FormSection>
 
           {/* Section 3: ID Document */}
@@ -286,15 +308,28 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
                   <option value="grandparent">Abuelo/a</option>
                   <option value="other">Otro</option>
                 </SelectGroup>
-                <InputGroup
-                  label="Teléfono de contacto"
-                  type="tel"
-                  placeholder="+52 55 1234 5678"
-                  required
-                  className="flex-1"
-                  error={errors.responsiblePhone?.message}
-                  {...register("responsiblePhone")}
-                />
+                <div className="flex-1">
+                  <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                    Teléfono de contacto <span className="text-error ml-1">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="responsiblePhone"
+                    render={({ field }) => (
+                      <PhoneInput
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        error={!!errors.responsiblePhone}
+                      />
+                    )}
+                  />
+                  {errors.responsiblePhone?.message && (
+                    <p className="mt-2 text-small text-error">{errors.responsiblePhone.message}</p>
+                  )}
+                </div>
               </FormRow>
             </FormSection>
           )}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 /**
  * Register Form Validation Schemas
@@ -44,7 +45,13 @@ export const accountSchema = z.object({
     .string()
     .min(1, "El correo electrónico es obligatorio")
     .email("Correo electrónico inválido"),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || isValidPhoneNumber(v),
+      "Número telefónico no válido"
+    ),
 });
 
 // Step 3: Identity Verification

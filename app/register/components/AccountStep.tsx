@@ -3,6 +3,7 @@ import { m } from "framer-motion";
 import { Controller, UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/atoms/Input";
 import { DateOfBirthPicker } from "@/components/molecules/DateOfBirthPicker";
+import { PhoneInput } from "@/components/molecules/PhoneInput";
 import { AccountFormData } from "@/lib/validations/register";
 import { cn } from "@/lib/utils";
 
@@ -119,12 +120,24 @@ export const AccountStep = React.memo<AccountStepProps>(({ form }) => {
           <label htmlFor="phone" className="block text-sm text-text">
             Número telefónico (opcional)
           </label>
-          <Input
-            id="phone"
-            type="tel"
-            {...form.register("phone")}
-            className="w-full"
+          <Controller
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <PhoneInput
+                id="phone"
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={!!form.formState.errors.phone}
+              />
+            )}
           />
+          {form.formState.errors.phone && (
+            <p className="text-xs text-error">{form.formState.errors.phone.message}</p>
+          )}
         </div>
       </form>
     </m.div>
