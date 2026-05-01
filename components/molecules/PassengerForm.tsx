@@ -13,6 +13,17 @@ import { cn } from "@/lib/utils";
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
+const computeAge = (isoDate: string): number => {
+  const birth = new Date(isoDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 const createSchema = (passengerType: "adult" | "minor") =>
   z
     .object({
@@ -28,7 +39,14 @@ const createSchema = (passengerType: "adult" | "minor") =>
           const year = d.getUTCFullYear();
           const currentYear = new Date().getUTCFullYear();
           return year >= 1900 && year <= currentYear && d.getTime() <= Date.now();
-        }, "Fecha de nacimiento no válida"),
+        }, "Fecha de nacimiento no válida")
+        .refine(
+          (date) =>
+            passengerType === "adult" ? computeAge(date) >= 18 : computeAge(date) < 18,
+          passengerType === "adult"
+            ? "El pasajero adulto debe ser mayor de 18 años"
+            : "El pasajero menor debe tener menos de 18 años"
+        ),
       email: z.string().min(1, "Correo requerido").refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: "Correo no válido" }),
       phone: z.string().min(7, "Teléfono requerido"),
       responsibleName: z.string().optional(),
@@ -98,7 +116,27 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
   ) => {
     const schema = React.useMemo(() => createSchema(passengerType), [passengerType]);
 
-    const todayIso = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
+    const { dobMin, dobMax } = React.useMemo(() => {
+      const today = new Date();
+      const toIso = (d: Date) => {
+        const y = d.getFullYear().toString().padStart(4, "0");
+        const m = (d.getMonth() + 1).toString().padStart(2, "0");
+        const day = d.getDate().toString().padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+      const eighteenYearsAgo = new Date(
+        today.getFullYear() - 18,
+        today.getMonth(),
+        today.getDate()
+      );
+      if (passengerType === "adult") {
+        return { dobMin: "1900-01-01", dobMax: toIso(eighteenYearsAgo) };
+      }
+      // Minor: from the day after their 18th birthday cutoff up to today.
+      const minorMin = new Date(eighteenYearsAgo);
+      minorMin.setDate(minorMin.getDate() + 1);
+      return { dobMin: toIso(minorMin), dobMax: toIso(today) };
+    }, [passengerType]);
 
     const {
       register,
@@ -171,8 +209,8 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
                     value={field.value ?? ""}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    min="1900-01-01"
-                    max={todayIso}
+                    min={dobMin}
+                    max={dobMax}
                     error={!!errors.dateOfBirth}
                   />
                 )}

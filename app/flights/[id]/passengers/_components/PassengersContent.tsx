@@ -14,7 +14,6 @@ import {
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { Button } from "@/components/atoms/Button";
 import { IconButton } from "@/components/atoms/IconButton";
-import { Select } from "@/components/atoms/Select";
 import { TypeBadge } from "@/components/atoms/TypeBadge";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { useBookingStore, type StoredPassenger } from "@/store/useBookingStore";
@@ -107,24 +106,12 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     const [documents, setDocuments] = React.useState<
         Record<number, UploadedDocument>
     >({});
-    const [responsibleSelections, setResponsibleSelections] = React.useState<
-        Record<number, number>
-    >({});
     const [erroredPassengers, setErroredPassengers] = React.useState<
         Set<number>
     >(new Set());
 
     const activePassenger: StoredPassenger | undefined =
         store.passengers[activeIndex];
-
-    // Build adult name list for the responsible adult selector
-    const adultNames: { index: number; label: string }[] = store.passengers
-        .map((p, i) => ({ p, i }))
-        .filter(({ p }) => p.slotType === "adult")
-        .map(({ p, i }) => ({
-            index: i,
-            label: p.fullName ?? `Pasajero ${i + 1}`,
-        }));
 
     const handlePassengerSubmit = (data: PassengerFormData) => {
         const documentUrl = documents[activeIndex]?.url ?? "";
@@ -344,63 +331,6 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                             {...fadeUp(0.08)}
                             className="flex-1 min-w-0 flex flex-col gap-4"
                         >
-                            {/* Responsible adult selector — only for minor slots */}
-                            {activePassenger?.slotType === "minor" && (
-                                <div className="bg-surface rounded-md border border-border p-5 flex flex-col gap-3">
-                                    <h4 className="text-body font-semibold text-text">
-                                        Adulto responsable
-                                    </h4>
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-caption font-medium text-muted">
-                                            Selecciona un adulto
-                                        </label>
-                                        <Select
-                                            value={
-                                                responsibleSelections[
-                                                    activeIndex
-                                                ] ?? ""
-                                            }
-                                            onChange={(e) => {
-                                                const idx = parseInt(
-                                                    e.target.value,
-                                                );
-                                                setResponsibleSelections(
-                                                    (prev) => ({
-                                                        ...prev,
-                                                        [activeIndex]: idx,
-                                                    }),
-                                                );
-                                                const adult =
-                                                    store.passengers[idx];
-                                                if (adult?.fullName) {
-                                                    store.updatePassenger(
-                                                        activeIndex,
-                                                        {
-                                                            responsibleName:
-                                                                adult.fullName,
-                                                        },
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <option value="">
-                                                Selecciona un adulto
-                                            </option>
-                                            {adultNames.map(
-                                                ({ index, label }) => (
-                                                    <option
-                                                        key={index}
-                                                        value={index}
-                                                    >
-                                                        {label}
-                                                    </option>
-                                                ),
-                                            )}
-                                        </Select>
-                                    </div>
-                                </div>
-                            )}
-
                             <PassengerForm
                                 key={`passenger-${activeIndex}`}
                                 title={getFormTitle()}
