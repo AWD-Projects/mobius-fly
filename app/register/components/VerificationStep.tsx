@@ -7,6 +7,7 @@ interface VerificationStepProps {
   verificationCode: string[];
   canResend: boolean;
   resendTimer: number;
+  email: string;
   onCodeChange: (index: number, value: string) => void;
   onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   onResendCode: () => void;
@@ -16,6 +17,7 @@ export const VerificationStep = React.memo<VerificationStepProps>(({
   verificationCode,
   canResend,
   resendTimer,
+  email,
   onCodeChange,
   onPaste,
   onResendCode,
@@ -29,9 +31,18 @@ export const VerificationStep = React.memo<VerificationStepProps>(({
       transition={{ duration: 0.3 }}
       className="w-full max-w-3xl space-y-8"
     >
-      <h1 className="text-2xl sm:text-3xl font-bold text-text text-center">
-        Verifica tu cuenta
-      </h1>
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text">
+          Verifica tu cuenta
+        </h1>
+        {email && (
+          <p className="text-sm sm:text-base text-muted">
+            Enviamos un código de 6 dígitos a{" "}
+            <span className="font-semibold text-text break-all">{email}</span>.
+            Revisa tu bandeja de entrada y la carpeta de spam.
+          </p>
+        )}
+      </div>
 
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex justify-center gap-2 sm:gap-3">
