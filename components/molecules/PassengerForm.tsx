@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { InputGroup } from "./InputGroup";
 import { SelectGroup } from "./SelectGroup";
 import { DocumentUpload, UploadedDocument } from "./DocumentUpload";
+import { DateOfBirthPicker } from "./DateOfBirthPicker";
 import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,17 @@ const createSchema = (passengerType: "adult" | "minor") =>
     .object({
       fullName: z.string().min(1, "Nombre requerido"),
       sex: z.string().min(1, "Sexo requerido"),
-      dateOfBirth: z.string().min(1, "Fecha de nacimiento requerida"),
+      dateOfBirth: z
+        .string()
+        .min(1, "Fecha de nacimiento requerida")
+        .refine((date) => /^\d{4}-\d{2}-\d{2}$/.test(date), "Fecha de nacimiento no válida")
+        .refine((date) => {
+          const d = new Date(date);
+          if (isNaN(d.getTime())) return false;
+          const year = d.getUTCFullYear();
+          const currentYear = new Date().getUTCFullYear();
+          return year >= 1900 && year <= currentYear && d.getTime() <= Date.now();
+        }, "Fecha de nacimiento no válida"),
       email: z.string().min(1, "Correo requerido").refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: "Correo no válido" }),
       phone: z.string().min(7, "Teléfono requerido"),
       responsibleName: z.string().optional(),
@@ -87,9 +98,12 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
   ) => {
     const schema = React.useMemo(() => createSchema(passengerType), [passengerType]);
 
+    const todayIso = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
+
     const {
       register,
       handleSubmit,
+      control,
       formState: { errors, isSubmitting },
     } = useForm<PassengerFormData>({
       resolver: zodResolver(schema),
@@ -143,13 +157,30 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
                 <option value="other">Otro</option>
               </SelectGroup>
             </FormRow>
-            <InputGroup
-              label="Fecha de nacimiento"
-              type="date"
-              required
-              error={errors.dateOfBirth?.message}
-              {...register("dateOfBirth")}
-            />
+            <div>
+              <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                Fecha de nacimiento <span className="text-error ml-1">*</span>
+              </label>
+              <Controller
+                control={control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <DateOfBirthPicker
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    min="1900-01-01"
+                    max={todayIso}
+                    error={!!errors.dateOfBirth}
+                  />
+                )}
+              />
+              {errors.dateOfBirth?.message && (
+                <p className="mt-2 text-small text-error">{errors.dateOfBirth.message}</p>
+              )}
+            </div>
           </FormSection>
 
           {/* Section 2: Contact */}

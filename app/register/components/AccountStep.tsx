@@ -1,7 +1,8 @@
 import * as React from "react";
 import { m } from "framer-motion";
-import { UseFormReturn } from "react-hook-form";
+import { Controller, UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/atoms/Input";
+import { DateOfBirthPicker } from "@/components/molecules/DateOfBirthPicker";
 import { AccountFormData } from "@/lib/validations/register";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +11,16 @@ interface AccountStepProps {
 }
 
 export const AccountStep = React.memo<AccountStepProps>(({ form }) => {
+  const { minBirthDate, maxBirthDate } = React.useMemo(() => {
+    const today = new Date();
+    const max = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+    const toIso = (d: Date) => d.toISOString().slice(0, 10);
+    return {
+      minBirthDate: "1900-01-01",
+      maxBirthDate: toIso(max),
+    };
+  }, []);
+
   return (
     <m.div
       key="step2"
@@ -44,12 +55,22 @@ export const AccountStep = React.memo<AccountStepProps>(({ form }) => {
           <label htmlFor="birthDate" className="block text-sm text-text">
             Fecha de nacimiento <span className="text-error">*</span>
           </label>
-          <Input
-            id="birthDate"
-            type="date"
-            {...form.register("birthDate")}
-            className="w-full"
-            error={!!form.formState.errors.birthDate}
+          <Controller
+            control={form.control}
+            name="birthDate"
+            render={({ field }) => (
+              <DateOfBirthPicker
+                id="birthDate"
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                min={minBirthDate}
+                max={maxBirthDate}
+                error={!!form.formState.errors.birthDate}
+              />
+            )}
           />
           {form.formState.errors.birthDate && (
             <p className="text-xs text-error">{form.formState.errors.birthDate.message}</p>

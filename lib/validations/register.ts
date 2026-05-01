@@ -20,10 +20,21 @@ export const accountSchema = z.object({
   birthDate: z
     .string()
     .min(1, "La fecha de nacimiento es obligatoria")
+    .refine((date) => /^\d{4}-\d{2}-\d{2}$/.test(date), "Fecha de nacimiento no válida")
     .refine((date) => {
-      const birthDate = new Date(date);
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return false;
+      const year = d.getUTCFullYear();
+      return year >= 1900 && year <= new Date().getUTCFullYear();
+    }, "Fecha de nacimiento no válida")
+    .refine((date) => {
+      const birth = new Date(date);
       const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
       return age >= 18;
     }, "Debes ser mayor de 18 años"),
   gender: z.enum(["male", "female", "other"], {
