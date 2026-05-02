@@ -10,7 +10,6 @@ import { SelectGroup } from "./SelectGroup";
 import { DocumentUpload, UploadedDocument } from "./DocumentUpload";
 import { DateOfBirthPicker } from "./DateOfBirthPicker";
 import { PhoneInput } from "./PhoneInput";
-import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -74,6 +73,12 @@ const createSchema = (passengerType: "adult" | "minor") =>
 
 export type PassengerFormData = z.infer<ReturnType<typeof createSchema>>;
 
+// ─── Handle ──────────────────────────────────────────────────────────────────
+
+export interface PassengerFormHandle {
+  submit: () => Promise<boolean>;
+}
+
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 export interface PassengerFormProps {
@@ -84,7 +89,6 @@ export interface PassengerFormProps {
   onSubmit?: (data: PassengerFormData) => void;
   onDocumentUpload?: (file: File) => void;
   onDocumentRemove?: () => void;
-  submitLabel?: string;
   className?: string;
 }
 
@@ -107,7 +111,7 @@ const FormRow: React.FC<{ children: React.ReactNode; className?: string }> = ({
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
+const PassengerForm = React.forwardRef<PassengerFormHandle, PassengerFormProps>(
   (
     {
       title,
@@ -117,7 +121,6 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
       onSubmit,
       onDocumentUpload,
       onDocumentRemove,
-      submitLabel = "Guardar pasajero",
       className,
     },
     ref
@@ -140,7 +143,6 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
       if (passengerType === "adult") {
         return { dobMin: "1900-01-01", dobMax: toIso(eighteenYearsAgo) };
       }
-      // Minor: from the day after their 18th birthday cutoff up to today.
       const minorMin = new Date(eighteenYearsAgo);
       minorMin.setDate(minorMin.getDate() + 1);
       return { dobMin: toIso(minorMin), dobMax: toIso(today) };
@@ -150,9 +152,11 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
       register,
       handleSubmit,
       control,
-      formState: { errors, isSubmitting },
+      formState: { errors },
     } = useForm<PassengerFormData>({
       resolver: zodResolver(schema),
+      mode: "onBlur",
+      reValidateMode: "onChange",
       defaultValues: defaultValues ?? {},
     });
 
@@ -167,9 +171,27 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
       onSubmit?.(data);
     };
 
+    React.useImperativeHandle(ref, () => ({
+      submit: () =>
+        new Promise<boolean>((resolve) => {
+          handleSubmit(
+            (data) => {
+              if (!document) {
+                setDocumentError("Documento de identificación requerido");
+                resolve(false);
+                return;
+              }
+              setDocumentError(null);
+              onSubmit?.(data);
+              resolve(true);
+            },
+            () => resolve(false),
+          )();
+        }),
+    }));
+
     return (
       <div
-        ref={ref}
         className={cn(
           "flex flex-col gap-6 p-8 rounded-md bg-surface border border-border",
           className
@@ -333,16 +355,6 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
               </FormRow>
             </FormSection>
           )}
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            isLoading={isSubmitting}
-            className="w-full"
-          >
-            {submitLabel}
-          </Button>
 
         </form>
       </div>

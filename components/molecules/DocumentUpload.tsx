@@ -71,6 +71,7 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
       if (file && onUpload) {
         onUpload(file);
       }
+      e.target.value = "";
     };
 
     const handleClick = () => {
