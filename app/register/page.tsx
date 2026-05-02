@@ -347,6 +347,7 @@ export default function RegisterPage() {
                                         verificationCode={verificationCode}
                                         canResend={canResend}
                                         resendTimer={resendTimer}
+                                        email={registeredEmail}
                                         onCodeChange={handleCodeChange}
                                         onPaste={handlePasteOTP}
                                         onResendCode={handleResendCode}

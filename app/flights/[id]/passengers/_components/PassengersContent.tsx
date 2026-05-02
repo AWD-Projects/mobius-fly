@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Info } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { PassengerNavigationCard } from "@/components/organisms/PassengerNavigationCard";
@@ -14,7 +14,6 @@ import {
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { Button } from "@/components/atoms/Button";
 import { IconButton } from "@/components/atoms/IconButton";
-import { Select } from "@/components/atoms/Select";
 import { TypeBadge } from "@/components/atoms/TypeBadge";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { useBookingStore, type StoredPassenger } from "@/store/useBookingStore";
@@ -107,24 +106,12 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     const [documents, setDocuments] = React.useState<
         Record<number, UploadedDocument>
     >({});
-    const [responsibleSelections, setResponsibleSelections] = React.useState<
-        Record<number, number>
-    >({});
     const [erroredPassengers, setErroredPassengers] = React.useState<
         Set<number>
     >(new Set());
 
     const activePassenger: StoredPassenger | undefined =
         store.passengers[activeIndex];
-
-    // Build adult name list for the responsible adult selector
-    const adultNames: { index: number; label: string }[] = store.passengers
-        .map((p, i) => ({ p, i }))
-        .filter(({ p }) => p.slotType === "adult")
-        .map(({ p, i }) => ({
-            index: i,
-            label: p.fullName ?? `Pasajero ${i + 1}`,
-        }));
 
     const handlePassengerSubmit = (data: PassengerFormData) => {
         const documentUrl = documents[activeIndex]?.url ?? "";
@@ -166,6 +153,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             return next;
         });
     };
+
+    const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
+    const [reservationError, setReservationError]           = React.useState<string | null>(null);
 
     const allCompleted =
         store.passengers.length > 0 &&
@@ -296,6 +286,29 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                     </div>
                 </m.div>
 
+                {/* ─── Minor passenger warning ──────────────────────────────────────── */}
+                {store.minors > 0 && (
+                    <m.div
+                        {...fadeUp(0.03)}
+                        className={`w-full ${sectionPadding} pb-2`}
+                    >
+                        <div className="flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 p-4">
+                            <Info size={18} className="text-warning flex-shrink-0 mt-0.5" />
+                            <p className="text-small text-warning leading-relaxed">
+                                El registro de pasajeros menores de edad requiere validaciones adicionales.
+                                Para continuar con esta reserva, por favor contáctanos directamente en{" "}
+                                <a
+                                    href="mailto:contacto@mobiusfly.com"
+                                    className="font-semibold underline underline-offset-2"
+                                >
+                                    contacto@mobiusfly.com
+                                </a>
+                                . El menor deberá viajar acompañado de un adulto responsable dentro de la misma reservación.
+                            </p>
+                        </div>
+                    </m.div>
+                )}
+
                 {/* ─── Passenger forms ───────────────────────────────────────────────── */}
                 {store.passengers.length > 0 && (
                     <div
@@ -318,63 +331,6 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                             {...fadeUp(0.08)}
                             className="flex-1 min-w-0 flex flex-col gap-4"
                         >
-                            {/* Responsible adult selector — only for minor slots */}
-                            {activePassenger?.slotType === "minor" && (
-                                <div className="bg-surface rounded-md border border-border p-5 flex flex-col gap-3">
-                                    <h4 className="text-body font-semibold text-text">
-                                        Adulto responsable
-                                    </h4>
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-caption font-medium text-muted">
-                                            Selecciona un adulto
-                                        </label>
-                                        <Select
-                                            value={
-                                                responsibleSelections[
-                                                    activeIndex
-                                                ] ?? ""
-                                            }
-                                            onChange={(e) => {
-                                                const idx = parseInt(
-                                                    e.target.value,
-                                                );
-                                                setResponsibleSelections(
-                                                    (prev) => ({
-                                                        ...prev,
-                                                        [activeIndex]: idx,
-                                                    }),
-                                                );
-                                                const adult =
-                                                    store.passengers[idx];
-                                                if (adult?.fullName) {
-                                                    store.updatePassenger(
-                                                        activeIndex,
-                                                        {
-                                                            responsibleName:
-                                                                adult.fullName,
-                                                        },
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <option value="">
-                                                Selecciona un adulto
-                                            </option>
-                                            {adultNames.map(
-                                                ({ index, label }) => (
-                                                    <option
-                                                        key={index}
-                                                        value={index}
-                                                    >
-                                                        {label}
-                                                    </option>
-                                                ),
-                                            )}
-                                        </Select>
-                                    </div>
-                                </div>
-                            )}
-
                             <PassengerForm
                                 key={`passenger-${activeIndex}`}
                                 title={getFormTitle()}
@@ -485,16 +441,54 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 </div>
                             </div>
 
+                            {reservationError && (
+                                <div className="flex items-start gap-2 bg-error/10 border border-error/30 rounded-md p-3">
+                                    <AlertTriangle size={16} className="text-error flex-shrink-0 mt-0.5" />
+                                    <p className="text-caption text-error">{reservationError}</p>
+                                </div>
+                            )}
                             <Button
                                 variant="secondary"
                                 size="lg"
                                 className="w-full"
-                                disabled={!allCompleted}
-                                onClick={() =>
-                                    router.push(`/flights/${flightId}/payment`)
-                                }
+                                disabled={!allCompleted || isCreatingReservation}
+                                isLoading={isCreatingReservation}
+                                onClick={async () => {
+                                    if (!store.flightDetail || !store.purchaseType) return;
+                                    setIsCreatingReservation(true);
+                                    setReservationError(null);
+                                    try {
+                                        const res = await fetch("/api/reservations", {
+                                            method:  "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                                flightId:       flightId,
+                                                purchaseType:   store.purchaseType,
+                                                seatsRequested: store.totalPassengers,
+                                                basePrice:      store.totalPrice,
+                                                passengers:     store.passengers,
+                                            }),
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) {
+                                            setReservationError(data.error ?? "Error al crear la reserva.");
+                                            return;
+                                        }
+                                        store.setReservation(
+                                            data.reservationId,
+                                            data.bookingReference,
+                                            data.blockedUntil,
+                                            data.breakdown,
+                                        );
+                                        router.push(`/flights/${flightId}/payment?reservation_id=${data.reservationId}`);
+                                    } catch {
+                                        setReservationError("Error de conexión. Por favor intenta de nuevo.");
+                                    } finally {
+                                        setIsCreatingReservation(false);
+                                    }
+                                }}
                             >
-                                Continuar con el pago
+                                {isCreatingReservation ? "Reservando asientos..." : "Continuar con el pago"}
                             </Button>
                         </m.div>
                     </div>

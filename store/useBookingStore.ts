@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { FlightDetail } from "@/types/app.types";
+import type { PaymentBreakdown } from "@/lib/payments/fees";
 
 export interface StoredPassenger {
     slotType: "adult" | "minor";
@@ -16,6 +17,15 @@ export interface StoredPassenger {
     isCompleted: boolean;
 }
 
+export interface LastSearch {
+    origin: string;
+    destination: string;
+    date?: string;
+    returnDate?: string;
+    type: string;
+    passengers: number;
+}
+
 interface BookingState {
     flightId: string | null;
     flightDetail: FlightDetail | null;
@@ -26,16 +36,22 @@ interface BookingState {
     totalPrice: number;
     passengers: StoredPassenger[];
     blockedUntil: string | null;
+    reservationId: string | null;
+    bookingReference: string | null;
+    breakdown: PaymentBreakdown | null;
+    lastSearch: LastSearch | null;
     /** True once the store has been rehydrated from localStorage. */
     _hasHydrated: boolean;
 
     setFlight: (id: string, detail: FlightDetail) => void;
+    setLastSearch: (search: LastSearch) => void;
     setPurchaseType: (type: "seats" | "full_aircraft") => void;
     setTotalPassengers: (n: number) => void;
     setDistribution: (adults: number, minors: number) => void;
     setTotalPrice: (price: number) => void;
     initPassengers: (adults: number, minors: number) => void;
     updatePassenger: (index: number, data: Partial<StoredPassenger>) => void;
+    setReservation: (id: string, bookingReference: string, blockedUntil: string, breakdown: PaymentBreakdown) => void;
     reset: () => void;
     _setHasHydrated: (value: boolean) => void;
 }
@@ -43,12 +59,14 @@ interface BookingState {
 const defaultState: Omit<
     BookingState,
     | "setFlight"
+    | "setLastSearch"
     | "setPurchaseType"
     | "setTotalPassengers"
     | "setDistribution"
     | "setTotalPrice"
     | "initPassengers"
     | "updatePassenger"
+    | "setReservation"
     | "reset"
     | "_setHasHydrated"
 > = {
@@ -61,6 +79,10 @@ const defaultState: Omit<
     totalPrice: 0,
     passengers: [],
     blockedUntil: null,
+    reservationId: null,
+    bookingReference: null,
+    breakdown: null,
+    lastSearch: null,
     _hasHydrated: false,
 };
 
@@ -72,6 +94,8 @@ export const useBookingStore = create<BookingState>()(
             _setHasHydrated: (value: boolean) => set({ _hasHydrated: value }),
 
             setFlight: (id, detail) => set({ flightId: id, flightDetail: detail }),
+
+            setLastSearch: (search) => set({ lastSearch: search }),
 
             setPurchaseType: (type) => set({ purchaseType: type }),
 
@@ -102,6 +126,9 @@ export const useBookingStore = create<BookingState>()(
                     return { passengers };
                 }),
 
+            setReservation: (id, bookingReference, blockedUntil, breakdown) =>
+                set({ reservationId: id, bookingReference, blockedUntil, breakdown }),
+
             reset: () => set(defaultState),
         }),
         {
@@ -115,7 +142,11 @@ export const useBookingStore = create<BookingState>()(
                 minors: state.minors,
                 totalPrice: state.totalPrice,
                 blockedUntil: state.blockedUntil,
+                reservationId: state.reservationId,
+                bookingReference: state.bookingReference,
+                breakdown: state.breakdown,
                 passengers: state.passengers,
+                lastSearch: state.lastSearch,
                 // _hasHydrated is intentionally excluded — always starts false and is set at runtime
             }),
             onRehydrateStorage: () => (state) => {

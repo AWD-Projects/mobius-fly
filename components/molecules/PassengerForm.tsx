@@ -1,25 +1,59 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { InputGroup } from "./InputGroup";
 import { SelectGroup } from "./SelectGroup";
 import { DocumentUpload, UploadedDocument } from "./DocumentUpload";
+import { DateOfBirthPicker } from "./DateOfBirthPicker";
+import { PhoneInput } from "./PhoneInput";
 import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
+
+const computeAge = (isoDate: string): number => {
+  const birth = new Date(isoDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
 
 const createSchema = (passengerType: "adult" | "minor") =>
   z
     .object({
       fullName: z.string().min(1, "Nombre requerido"),
       sex: z.string().min(1, "Sexo requerido"),
-      dateOfBirth: z.string().min(1, "Fecha de nacimiento requerida"),
+      dateOfBirth: z
+        .string()
+        .min(1, "Fecha de nacimiento requerida")
+        .refine((date) => /^\d{4}-\d{2}-\d{2}$/.test(date), "Fecha de nacimiento no válida")
+        .refine((date) => {
+          const d = new Date(date);
+          if (isNaN(d.getTime())) return false;
+          const year = d.getUTCFullYear();
+          const currentYear = new Date().getUTCFullYear();
+          return year >= 1900 && year <= currentYear && d.getTime() <= Date.now();
+        }, "Fecha de nacimiento no válida")
+        .refine(
+          (date) =>
+            passengerType === "adult" ? computeAge(date) >= 18 : computeAge(date) < 18,
+          passengerType === "adult"
+            ? "El pasajero adulto debe ser mayor de 18 años"
+            : "El pasajero menor debe tener menos de 18 años"
+        ),
       email: z.string().min(1, "Correo requerido").refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: "Correo no válido" }),
-      phone: z.string().min(7, "Teléfono requerido"),
+      phone: z
+        .string()
+        .min(1, "Teléfono requerido")
+        .refine((v) => isValidPhoneNumber(v), "Número telefónico no válido"),
       responsibleName: z.string().optional(),
       responsibleRelationship: z.string().optional(),
       responsiblePhone: z.string().optional(),
@@ -30,8 +64,11 @@ const createSchema = (passengerType: "adult" | "minor") =>
           ctx.addIssue({ code: "custom", path: ["responsibleName"], message: "Nombre del responsable requerido" });
         if (!data.responsibleRelationship)
           ctx.addIssue({ code: "custom", path: ["responsibleRelationship"], message: "Relación requerida" });
-        if (!data.responsiblePhone || data.responsiblePhone.length < 7)
+        if (!data.responsiblePhone) {
           ctx.addIssue({ code: "custom", path: ["responsiblePhone"], message: "Teléfono requerido" });
+        } else if (!isValidPhoneNumber(data.responsiblePhone)) {
+          ctx.addIssue({ code: "custom", path: ["responsiblePhone"], message: "Número telefónico no válido" });
+        }
       }
     });
 
@@ -87,16 +124,46 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
   ) => {
     const schema = React.useMemo(() => createSchema(passengerType), [passengerType]);
 
+    const { dobMin, dobMax } = React.useMemo(() => {
+      const today = new Date();
+      const toIso = (d: Date) => {
+        const y = d.getFullYear().toString().padStart(4, "0");
+        const m = (d.getMonth() + 1).toString().padStart(2, "0");
+        const day = d.getDate().toString().padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+      const eighteenYearsAgo = new Date(
+        today.getFullYear() - 18,
+        today.getMonth(),
+        today.getDate()
+      );
+      if (passengerType === "adult") {
+        return { dobMin: "1900-01-01", dobMax: toIso(eighteenYearsAgo) };
+      }
+      // Minor: from the day after their 18th birthday cutoff up to today.
+      const minorMin = new Date(eighteenYearsAgo);
+      minorMin.setDate(minorMin.getDate() + 1);
+      return { dobMin: toIso(minorMin), dobMax: toIso(today) };
+    }, [passengerType]);
+
     const {
       register,
       handleSubmit,
+      control,
       formState: { errors, isSubmitting },
     } = useForm<PassengerFormData>({
       resolver: zodResolver(schema),
       defaultValues: defaultValues ?? {},
     });
 
+    const [documentError, setDocumentError] = React.useState<string | null>(null);
+
     const handleFormSubmit = (data: PassengerFormData) => {
+      if (!document) {
+        setDocumentError("Documento de identificación requerido");
+        return;
+      }
+      setDocumentError(null);
       onSubmit?.(data);
     };
 
@@ -136,13 +203,30 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
                 <option value="other">Otro</option>
               </SelectGroup>
             </FormRow>
-            <InputGroup
-              label="Fecha de nacimiento"
-              type="date"
-              required
-              error={errors.dateOfBirth?.message}
-              {...register("dateOfBirth")}
-            />
+            <div>
+              <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                Fecha de nacimiento <span className="text-error ml-1">*</span>
+              </label>
+              <Controller
+                control={control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <DateOfBirthPicker
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    min={dobMin}
+                    max={dobMax}
+                    error={!!errors.dateOfBirth}
+                  />
+                )}
+              />
+              {errors.dateOfBirth?.message && (
+                <p className="mt-2 text-small text-error">{errors.dateOfBirth.message}</p>
+              )}
+            </div>
           </FormSection>
 
           {/* Section 2: Contact */}
@@ -155,27 +239,49 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
               error={errors.email?.message}
               {...register("email")}
             />
-            <InputGroup
-              label="Número de contacto"
-              type="tel"
-              placeholder="+52 55 1234 5678"
-              required
-              error={errors.phone?.message}
-              {...register("phone")}
-            />
+            <div>
+              <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                Número de contacto <span className="text-error ml-1">*</span>
+              </label>
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    error={!!errors.phone}
+                  />
+                )}
+              />
+              {errors.phone?.message && (
+                <p className="mt-2 text-small text-error">{errors.phone.message}</p>
+              )}
+            </div>
           </FormSection>
 
           {/* Section 3: ID Document */}
           <FormSection title="Documento de identificación">
-            <DocumentUpload
-              document={document}
-              onUpload={onDocumentUpload}
-              onRemove={onDocumentRemove}
-              accept=".pdf"
-              pendingTitle="Sube tu documento"
-              pendingDescription="Haz clic o arrastra tu archivo aquí"
-              variant="compact"
-            />
+            <div className="flex flex-col gap-1">
+              <p className="text-small font-medium tracking-[0.01em] text-secondary">
+                Identificación oficial <span className="text-error ml-1">*</span>
+              </p>
+              <DocumentUpload
+                document={document}
+                onUpload={(file) => { setDocumentError(null); onDocumentUpload?.(file); }}
+                onRemove={onDocumentRemove}
+                accept=".pdf,image/jpeg,image/png"
+                pendingTitle="Sube tu documento"
+                pendingDescription="Haz clic o arrastra tu archivo aquí"
+                variant="compact"
+              />
+              {documentError && (
+                <p className="mt-2 text-small text-error">{documentError}</p>
+              )}
+            </div>
           </FormSection>
 
           {/* Section 4: Responsible Adult (minors only) */}
@@ -202,15 +308,28 @@ const PassengerForm = React.forwardRef<HTMLDivElement, PassengerFormProps>(
                   <option value="grandparent">Abuelo/a</option>
                   <option value="other">Otro</option>
                 </SelectGroup>
-                <InputGroup
-                  label="Teléfono de contacto"
-                  type="tel"
-                  placeholder="+52 55 1234 5678"
-                  required
-                  className="flex-1"
-                  error={errors.responsiblePhone?.message}
-                  {...register("responsiblePhone")}
-                />
+                <div className="flex-1">
+                  <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                    Teléfono de contacto <span className="text-error ml-1">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="responsiblePhone"
+                    render={({ field }) => (
+                      <PhoneInput
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        error={!!errors.responsiblePhone}
+                      />
+                    )}
+                  />
+                  {errors.responsiblePhone?.message && (
+                    <p className="mt-2 text-small text-error">{errors.responsiblePhone.message}</p>
+                  )}
+                </div>
               </FormRow>
             </FormSection>
           )}

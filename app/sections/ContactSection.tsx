@@ -1,13 +1,15 @@
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { m } from "framer-motion";
 import { ChevronLeft, ChevronRight, Check, Loader2, ArrowRight } from "lucide-react";
 import { IconButton } from "@/components/atoms/IconButton";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { SelectionCard } from "@/components/molecules/SelectionCard";
 import { InputGroup } from "@/components/molecules/InputGroup";
+import { PhoneInput } from "@/components/molecules/PhoneInput";
 import { Textarea } from "@/components/atoms/Textarea";
 import { Button } from "@/components/atoms/Button";
 
@@ -20,7 +22,10 @@ const contactSchema = z.object({
     (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
     { message: "Correo no válido" }
   ),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine((v) => !v || isValidPhoneNumber(v), "Número telefónico no válido"),
   message: z.string().min(1, "Mensaje requerido"),
 });
 
@@ -54,6 +59,7 @@ export const ContactSection = React.memo<ContactSectionProps>(({
     setValue,
     watch,
     trigger,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
@@ -189,12 +195,28 @@ export const ContactSection = React.memo<ContactSectionProps>(({
                       error={errors.email?.message}
                       {...register("email")}
                     />
-                    <InputGroup
-                      label="Número telefónico (opcional)"
-                      type="tel"
-                      error={errors.phone?.message}
-                      {...register("phone")}
-                    />
+                    <div>
+                      <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">
+                        Número telefónico (opcional)
+                      </label>
+                      <Controller
+                        control={control}
+                        name="phone"
+                        render={({ field }) => (
+                          <PhoneInput
+                            name={field.name}
+                            ref={field.ref}
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            error={!!errors.phone}
+                          />
+                        )}
+                      />
+                      {errors.phone?.message && (
+                        <p className="mt-2 text-small text-error">{errors.phone.message}</p>
+                      )}
+                    </div>
                   </div>
                 </m.div>
               )}

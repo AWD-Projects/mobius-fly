@@ -18,6 +18,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateOTP, hashOTP, OTP_TTL_MINUTES } from "@/lib/otp";
+import { rateLimit } from "@/lib/rate-limit";
+
+const limiter = rateLimit({ limit: 5, windowMs: 60_000 });
 
 const GENDER_MAP: Record<string, string> = {
     male: "MALE",
@@ -26,6 +29,9 @@ const GENDER_MAP: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
+    const limited = limiter(request);
+    if (limited) return limited;
+
     // ── 1. Parse body ─────────────────────────────────────────────────────────
     let body: unknown;
     try {
@@ -75,6 +81,24 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    if (!ALLOWED_MIME_TYPES.includes(documentMimeType)) {
+        return NextResponse.json(
+            { error: "Tipo de archivo no permitido. Solo se aceptan PDF, JPEG o PNG." },
+            { status: 422 },
+        );
+    }
+
+    const fileBuffer = Buffer.from(documentBase64, "base64");
+    if (fileBuffer.length > MAX_FILE_SIZE) {
+        return NextResponse.json(
+            { error: "El archivo excede el tamaño máximo permitido de 10 MB." },
+            { status: 422 },
+        );
+    }
+
     // ── 2. Derive names ───────────────────────────────────────────────────────
     const nameParts = fullName.trim().split(" ");
     const firstName = nameParts[0] ?? "Usuario";
@@ -87,8 +111,6 @@ export async function POST(request: NextRequest) {
     const { randomUUID } = await import("crypto");
     const tempId = randomUUID();
     const storagePath = `pending/${tempId}.${ext}`;
-    const fileBuffer = Buffer.from(documentBase64, "base64");
-
     const { error: uploadError } = await admin.storage
         .from("identity-documents")
         .upload(storagePath, fileBuffer, {
@@ -158,7 +180,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Skip actual email in dev when no real key is configured
-    const resendKey = process.env.OTP_RESEND_API_KEY ?? "";
+    const resendKey = process.env.RESEND_API_KEY ?? "";
     if (process.env.NODE_ENV !== "production" && (!resendKey || resendKey.startsWith("your-"))) {
         return NextResponse.json({ email }, { status: 201 });
     }

@@ -5,7 +5,6 @@
  * Controls search engine crawling
  * Protects private routes from indexation
  */
-
 import { MetadataRoute } from "next";
 import { SITE_CONFIG } from "@/lib/seo/metadata";
 

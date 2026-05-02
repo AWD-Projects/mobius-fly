@@ -13,6 +13,7 @@ import { SearchSummaryCard } from "@/components/organisms/SearchSummaryCard";
 import { ModifySearchModal, type ModifySearchValues } from "@/components/organisms/ModifySearchModal";
 import { Pagination } from "@/components/molecules/Pagination";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { useBookingStore } from "@/store/useBookingStore";
 import type { FlightListItem, RoundTripPair } from "@/types/app.types";
 import type { SearchFlightsParams, SearchFlightsResult } from "@/app/actions/flights";
 
@@ -46,6 +47,7 @@ interface FlightsContentProps {
 export function FlightsContent({ searchState, initialData }: FlightsContentProps) {
     const router = useRouter();
     const { user, logout } = useLocalAuth();
+    const setLastSearch = useBookingStore((s) => s.setLastSearch);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
 
     const {
@@ -91,11 +93,13 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
     };
 
     const handleSelectFlight = (flight: FlightListItem) => {
+        setLastSearch({ origin, destination, date, returnDate, type, passengers });
         const qp = new URLSearchParams({ passengers: String(passengers) });
         router.push(`/flights/${flight.id}?${qp.toString()}`);
     };
 
     const handleSelectPair = (pair: RoundTripPair) => {
+        setLastSearch({ origin, destination, date, returnDate, type, passengers });
         const qp = new URLSearchParams({ passengers: String(passengers) });
         router.push(`/flights/${pair.outbound.id}?${qp.toString()}`);
     };
