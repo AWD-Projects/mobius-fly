@@ -1,4 +1,7 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '../atoms/Button';
+import { StatusBadge, type StatusBadgeVariant } from '../molecules/StatusBadge';
 
 export interface UpcomingFlightCardProps {
   /** Flight route (e.g., "Madrid → Nueva York") */
@@ -21,27 +24,11 @@ export interface UpcomingFlightCardProps {
   buttonText?: string;
 }
 
-const statusStyles = {
-  confirmed: {
-    bg: 'bg-[#E8F5E9]',
-    text: 'text-[#2E7D32]',
-    dot: 'bg-[#2E7D32]',
-  },
-  pending: {
-    bg: 'bg-[#FFF8E1]',
-    text: 'text-[#F57C00]',
-    dot: 'bg-[#F57C00]',
-  },
-  cancelled: {
-    bg: 'bg-[#FFEBEE]',
-    text: 'text-[#C62828]',
-    dot: 'bg-[#C62828]',
-  },
-  completed: {
-    bg: 'bg-[#E3F2FD]',
-    text: 'text-[#1565C0]',
-    dot: 'bg-[#1565C0]',
-  },
+const statusVariantMap: Record<NonNullable<UpcomingFlightCardProps['statusVariant']>, StatusBadgeVariant> = {
+  confirmed: 'active',
+  pending: 'pending',
+  cancelled: 'rejected',
+  completed: 'completed',
 };
 
 export const UpcomingFlightCard: React.FC<UpcomingFlightCardProps> = ({
@@ -55,60 +42,66 @@ export const UpcomingFlightCard: React.FC<UpcomingFlightCardProps> = ({
   onDetailsClick,
   buttonText = 'Ver detalles del vuelo',
 }) => {
-  const statusStyle = statusStyles[statusVariant];
+  const [origin, destination] = route.split(' → ');
 
   return (
-    <div className="w-full max-w-full rounded-2xl bg-white border border-[#E5E5E5] overflow-hidden h-[320px] flex flex-col">
-      {/* Image Background with Overlay */}
+    <div className="w-full max-w-full rounded-md bg-surface border border-border overflow-hidden flex flex-col">
+      {/* Image */}
       <div className="relative h-[160px] flex-shrink-0">
         {imageUrl ? (
           <>
             <div
-              className="absolute inset-0 bg-cover bg-center rounded-t-2xl"
+              className="absolute inset-0 bg-cover bg-center rounded-t-md"
               style={{ backgroundImage: `url(${imageUrl})` }}
             />
-            <div className="absolute inset-0 bg-black opacity-15 rounded-t-2xl" />
+            <div className="absolute inset-0 bg-black opacity-15 rounded-t-md" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400 rounded-t-2xl" />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral to-muted/30 rounded-t-md" />
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="h-[160px] px-7 py-6 flex flex-col justify-between">
-        {/* Top Row: Route Info and Status */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Route Info */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0">
-            <h3 className="text-[#0A0A0A] text-2xl font-bold leading-tight">
-              {route}
-            </h3>
-            <div className="flex items-center gap-4 text-[#666666]">
-              <span className="text-[13px] font-normal">{date}</span>
-              <span className="text-[13px] font-medium">{time}</span>
-              <span className="text-[#999999] text-[13px] font-normal">•</span>
-              <span className="text-[13px] font-normal">{duration}</span>
+      {/* Content */}
+      <div className="flex-1 px-4 pt-5 pb-5 sm:px-7 sm:pt-6 sm:pb-7 flex flex-col gap-5">
+        {/* Route + Status */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 flex-1 min-w-0">
+            {/* Route with Lucide arrow */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-text text-h3 font-bold leading-tight">{origin}</h3>
+              <ArrowRight size={20} className="text-muted flex-shrink-0" />
+              {destination && (
+                <h3 className="text-text text-h3 font-bold leading-tight">{destination}</h3>
+              )}
+            </div>
+            {/* Meta */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-small font-normal text-muted">{date}</span>
+              <span className="text-neutral text-small">·</span>
+              <span className="text-small font-medium text-muted">{time}</span>
+              {duration && (
+                <>
+                  <span className="text-neutral text-small">·</span>
+                  <span className="text-small font-normal text-muted">{duration}</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Status Badge */}
-          <div className={`${statusStyle.bg} rounded-lg px-3.5 py-2 flex items-center gap-2 flex-shrink-0`}>
-            <div className={`w-2 h-2 rounded ${statusStyle.dot}`} />
-            <span className={`${statusStyle.text} text-[13px] font-semibold`}>
-              {status}
-            </span>
-          </div>
+          <StatusBadge status={statusVariantMap[statusVariant]} className="flex-shrink-0 mt-0.5">
+            {status}
+          </StatusBadge>
         </div>
 
-        {/* Bottom Row: Button */}
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={onDetailsClick}
-            className="w-full h-11 bg-[#0A0A0A] text-white text-sm font-semibold rounded-xl hover:bg-[#1a1a1a] transition-colors flex items-center justify-center gap-2"
-          >
-            {buttonText}
-          </button>
-        </div>
+        {/* Button */}
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onDetailsClick}
+          className="w-full"
+        >
+          {buttonText}
+        </Button>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Repeat, CircleDot, MapPin, Building2, Clock3 } from 'lucide-react';
+import { TypeBadge } from '../atoms/TypeBadge';
 
 export interface FlightInfoCardProps {
   /** Flight type (e.g., "Sencillo", "Redondo") */
@@ -16,7 +17,7 @@ export interface FlightInfoCardProps {
   fboName: string;
   /** FBO address/location */
   fboAddress: string;
-  /** Flight time range (e.g., "10:30 → 11:15") */
+  /** Flight time range (e.g., "10:30 -> 11:15") */
   scheduleTime: string;
   /** Flight duration */
   scheduleDuration: string;
@@ -34,38 +35,34 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
   scheduleDuration,
 }) => {
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-7 flex flex-col gap-5">
+    <div className="w-full bg-surface rounded-md border border-border p-7 flex flex-col gap-5">
       {/* Flight Type Row */}
       <div className="flex items-center gap-3 w-full">
-        <Repeat className="w-4 h-4 text-[#999999]" strokeWidth={1} />
+        <Repeat className="w-4 h-4 text-muted" strokeWidth={1} />
         <div className="flex items-center gap-2">
-          <span className="text-[#666666] text-[13px] font-normal">
+          <span className="text-muted text-small font-normal">
             Tipo de vuelo
           </span>
-          <div className="bg-[#F5F5F5] rounded px-2 py-1">
-            <span className="text-[#0A0A0A] text-[11px] font-medium">
-              {flightType}
-            </span>
-          </div>
+          <TypeBadge variant="neutral">{flightType}</TypeBadge>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-full h-px bg-[#F0F0F0]" />
+      <div className="w-full h-px bg-border" />
 
       {/* Origin and Destination Row */}
       <div className="flex items-start gap-8">
         {/* Origin Block */}
         <div className="flex gap-3.5 flex-1">
-          <CircleDot className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
+          <CircleDot className="w-[18px] h-[18px] text-muted flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
-            <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
+            <div className="text-muted text-caption font-semibold tracking-wide uppercase">
               Origen
             </div>
-            <div className="text-[#0A0A0A] text-[15px] font-medium leading-tight">
+            <div className="text-text text-body font-medium leading-tight">
               {originCity}
             </div>
-            <div className="text-[#666666] text-[13px] font-normal leading-tight">
+            <div className="text-muted text-small font-normal leading-tight">
               {originAirport}
             </div>
           </div>
@@ -73,15 +70,15 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
 
         {/* Destination Block */}
         <div className="flex gap-3.5 flex-1">
-          <MapPin className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
+          <MapPin className="w-[18px] h-[18px] text-muted flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
-            <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
+            <div className="text-muted text-caption font-semibold tracking-wide uppercase">
               Destino
             </div>
-            <div className="text-[#0A0A0A] text-[15px] font-medium leading-tight">
+            <div className="text-text text-body font-medium leading-tight">
               {destinationCity}
             </div>
-            <div className="text-[#666666] text-[13px] font-normal leading-tight">
+            <div className="text-muted text-small font-normal leading-tight">
               {destinationAirport}
             </div>
           </div>
@@ -89,21 +86,21 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
       </div>
 
       {/* Divider */}
-      <div className="w-full h-px bg-[#F0F0F0]" />
+      <div className="w-full h-px bg-border" />
 
       {/* FBO and Schedule Row */}
       <div className="flex items-start gap-8">
         {/* FBO Block */}
         <div className="flex gap-3.5 flex-1">
-          <Building2 className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
+          <Building2 className="w-[18px] h-[18px] text-muted flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
-            <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
+            <div className="text-muted text-caption font-semibold tracking-wide uppercase">
               FBO de salida
             </div>
-            <div className="text-[#0A0A0A] text-[15px] font-medium leading-tight">
+            <div className="text-text text-body font-medium leading-tight">
               {fboName}
             </div>
-            <div className="text-[#666666] text-[13px] font-normal leading-tight">
+            <div className="text-muted text-small font-normal leading-tight">
               {fboAddress}
             </div>
           </div>
@@ -111,15 +108,15 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
 
         {/* Schedule Block */}
         <div className="flex gap-3.5 flex-1">
-          <Clock3 className="w-[18px] h-[18px] text-[#999999] flex-shrink-0 mt-0.5" strokeWidth={1} />
+          <Clock3 className="w-[18px] h-[18px] text-muted flex-shrink-0 mt-0.5" strokeWidth={1} />
           <div className="flex flex-col gap-1">
-            <div className="text-[#999999] text-[11px] font-semibold tracking-wide uppercase">
+            <div className="text-muted text-caption font-semibold tracking-wide uppercase">
               Horario
             </div>
-            <div className="text-[#0A0A0A] text-[15px] font-medium leading-tight">
+            <div className="text-text text-body font-medium leading-tight">
               {scheduleTime}
             </div>
-            <div className="text-[#666666] text-[13px] font-normal leading-tight">
+            <div className="text-muted text-small font-normal leading-tight">
               {scheduleDuration}
             </div>
           </div>

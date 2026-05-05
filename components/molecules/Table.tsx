@@ -12,7 +12,7 @@ const Table = React.forwardRef<HTMLDivElement, TableProps>(
       <div
         ref={ref}
         className={cn(
-          "w-full overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white",
+          "w-full overflow-hidden rounded-md border border-border bg-white",
           className
         )}
         {...props}
@@ -35,7 +35,7 @@ const TableHeader = React.forwardRef<HTMLDivElement, TableHeaderProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center bg-[#FAFAFA] px-6 py-3.5 border-b border-[#E5E5E5]",
+          "flex items-center bg-background px-6 py-3.5 border-b border-border",
           className
         )}
         {...props}
@@ -76,7 +76,7 @@ const TableRow = React.forwardRef<HTMLDivElement, TableRowProps>(
         ref={ref}
         className={cn(
           "flex items-center px-6 py-[18px]",
-          !isLast && "border-b border-[#F0F0F0]",
+          !isLast && "border-b border-border",
           className
         )}
         {...props}
@@ -100,7 +100,7 @@ const TableHead = React.forwardRef<HTMLDivElement, TableHeadProps>(
       <div
         ref={ref}
         className={cn(
-          "text-xs font-medium text-[#666666]",
+          "text-caption font-medium text-muted",
           className
         )}
         style={{ width, flexShrink: 0, ...style }}
@@ -121,9 +121,9 @@ export interface TableCellProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles = {
-  default: "text-[13px] font-normal text-[#666666]",
-  emphasis: "text-sm font-medium text-[#0A0A0A]",
-  muted: "text-[13px] font-normal text-[#0A0A0A]/50",
+  default: "text-small font-normal text-muted",
+  emphasis: "text-small font-medium text-text",
+  muted: "text-small font-normal text-text/50",
 };
 
 const TableCell = React.forwardRef<HTMLDivElement, TableCellProps>(

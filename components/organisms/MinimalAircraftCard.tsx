@@ -15,16 +15,16 @@ export interface MinimalAircraftCardProps {
 
 const badgeStyles = {
   primary: {
-    bg: 'bg-[#EFF6FF]',
-    text: 'text-[#0C4A6E]',
+    bg: 'bg-secondary/10',
+    text: 'text-secondary',
   },
   secondary: {
-    bg: 'bg-[#F0F0F0]',
-    text: 'text-[#666666]',
+    bg: 'bg-background',
+    text: 'text-muted',
   },
   success: {
     bg: 'bg-[#E8F5E9]',
-    text: 'text-[#2E7D32]',
+    text: 'text-success',
   },
 };
 
@@ -38,20 +38,20 @@ export const MinimalAircraftCard: React.FC<MinimalAircraftCardProps> = ({
   const badgeStyle = badgeStyles[badgeVariant];
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E5E5] p-5 flex flex-col gap-4">
+    <div className="w-full bg-surface rounded-md border border-border p-5 flex flex-col gap-4">
       {/* Title */}
-      <h4 className="text-[#0A0A0A] text-xs font-semibold">Aeronave</h4>
+      <h4 className="text-text text-caption font-semibold">Aeronave</h4>
 
       {/* Image */}
-      <div className="w-full h-[100px] rounded-lg overflow-hidden">
+      <div className="w-full h-[100px] rounded-sm overflow-hidden">
         {imageUrl ? (
           <div
             className="w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${imageUrl})` }}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-            <span className="text-[#999999] text-[11px] font-medium">
+          <div className="w-full h-full bg-gradient-to-br from-neutral to-muted/30 flex items-center justify-center">
+            <span className="text-muted text-caption font-medium">
               {model}
             </span>
           </div>
@@ -60,8 +60,8 @@ export const MinimalAircraftCard: React.FC<MinimalAircraftCardProps> = ({
 
       {/* Badge */}
       <div className="inline-flex justify-center">
-        <div className={`${badgeStyle.bg} rounded-md h-5 px-3 flex items-center justify-center`}>
-          <span className={`${badgeStyle.text} text-[9px] font-semibold`}>
+        <div className={`${badgeStyle.bg} rounded-sm h-5 px-3 flex items-center justify-center`}>
+          <span className={`${badgeStyle.text} text-caption font-semibold`}>
             {badgeText}
           </span>
         </div>
@@ -71,12 +71,12 @@ export const MinimalAircraftCard: React.FC<MinimalAircraftCardProps> = ({
       <div className="flex flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-0.5 flex-1">
-            <span className="text-[#999999] text-[9px] font-medium">Modelo</span>
-            <span className="text-[#0A0A0A] text-[11px] font-semibold">{model}</span>
+            <span className="text-muted text-caption font-medium">Modelo</span>
+            <span className="text-text text-caption font-semibold">{model}</span>
           </div>
           <div className="flex flex-col gap-0.5 flex-1">
-            <span className="text-[#999999] text-[9px] font-medium">Matrícula</span>
-            <span className="text-[#0A0A0A] text-[11px] font-semibold">{registration}</span>
+            <span className="text-muted text-caption font-medium">Matricula</span>
+            <span className="text-text text-caption font-semibold">{registration}</span>
           </div>
         </div>
       </div>

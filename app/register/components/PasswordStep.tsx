@@ -1,6 +1,6 @@
 import * as React from "react";
 import { m } from "framer-motion";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, useFormState } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/atoms/Input";
 import { PasswordFormData } from "@/lib/validations/register";
@@ -20,6 +20,8 @@ export const PasswordStep = React.memo<PasswordStepProps>(({
   onTogglePassword,
   onToggleConfirmPassword,
 }) => {
+  const { errors } = useFormState({ control: form.control });
+
   return (
     <m.div
       key="step3"
@@ -44,18 +46,18 @@ export const PasswordStep = React.memo<PasswordStepProps>(({
               type={showPassword ? "text" : "password"}
               {...form.register("password")}
               className="w-full pr-10"
-              error={!!form.formState.errors.password}
+              error={!!errors.password}
             />
             <button
               type="button"
               onClick={onTogglePassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors"
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
-          {form.formState.errors.password && (
-            <p className="text-xs text-error">{form.formState.errors.password.message}</p>
+          {errors.password && (
+            <p className="text-xs text-error">{errors.password.message}</p>
           )}
         </div>
 
@@ -69,18 +71,18 @@ export const PasswordStep = React.memo<PasswordStepProps>(({
               type={showConfirmPassword ? "text" : "password"}
               {...form.register("confirmPassword")}
               className="w-full pr-10"
-              error={!!form.formState.errors.confirmPassword}
+              error={!!errors.confirmPassword}
             />
             <button
               type="button"
               onClick={onToggleConfirmPassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors"
             >
-              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
-          {form.formState.errors.confirmPassword && (
-            <p className="text-xs text-error">{form.formState.errors.confirmPassword.message}</p>
+          {errors.confirmPassword && (
+            <p className="text-xs text-error">{errors.confirmPassword.message}</p>
           )}
         </div>
       </form>

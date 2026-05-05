@@ -35,7 +35,7 @@ const SkeletonListItem = React.forwardRef<HTMLDivElement, SkeletonListItemProps>
         ref={ref}
         className={cn(
           "flex items-center gap-4 py-4",
-          showDivider && "border-b border-[#F0F0F0]",
+          showDivider && "border-b border-border",
           className
         )}
         {...props}
@@ -99,7 +99,7 @@ const SkeletonList = React.forwardRef<HTMLDivElement, SkeletonListProps>(
     const variantProps = getVariantProps();
 
     return (
-      <div ref={ref} className={cn("divide-y divide-[#F0F0F0]", className)} {...props}>
+      <div ref={ref} className={cn("divide-y divide-border", className)} {...props}>
         {Array.from({ length: items }).map((_, index) => (
           <SkeletonListItem
             key={index}
@@ -129,7 +129,7 @@ const SkeletonNavList = React.forwardRef<HTMLDivElement, SkeletonNavListProps>(
         {Array.from({ length: items }).map((_, index) => (
           <div
             key={index}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-sm"
           >
             {showIcons && <Skeleton width={20} height={20} />}
             <Skeleton height={14} width={`${60 + ((index * 13) % 30)}%`} />

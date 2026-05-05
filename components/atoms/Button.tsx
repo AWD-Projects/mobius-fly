@@ -4,14 +4,14 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md border border-transparent font-medium tracking-[0.01em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40",
+  "inline-flex items-center justify-center gap-2 rounded-sm border border-transparent font-medium tracking-[0.01em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-white shadow-soft hover:shadow-hover hover:brightness-110 hover:-translate-y-[1px]",
+          "bg-primary [color:#ffffff] shadow-soft hover:shadow-hover hover:brightness-110 hover:-translate-y-[1px]",
         secondary:
-          "bg-secondary text-white shadow-soft hover:shadow-hover hover:brightness-110 hover:-translate-y-[1px]",
+          "bg-secondary [color:#ffffff] shadow-soft hover:shadow-hover hover:brightness-110 hover:-translate-y-[1px]",
         ghost:
           "text-text border-border hover:bg-neutral/60 hover:border-text/30",
         link:
@@ -20,9 +20,9 @@ const buttonVariants = cva(
           "border-border bg-transparent text-text hover:bg-neutral/60 hover:border-text",
       },
       size: {
-        sm: "h-9 px-4 text-xs",
-        md: "h-10 px-5 text-xs",
-        lg: "h-12 px-6 text-sm",
+        sm: "h-9 px-4 text-caption",
+        md: "h-10 px-5 text-caption",
+        lg: "h-12 px-6 text-small",
       },
     },
     defaultVariants: {
