@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowUpDown, SearchX } from "lucide-react";
@@ -42,10 +43,42 @@ interface FlightsContentProps {
     initialData: SearchFlightsResult;
 }
 
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function FlightCardsSkeleton() {
+    return (
+        <div className="flex flex-col gap-4 animate-pulse">
+            {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                    key={i}
+                    className="w-full rounded-md border border-border bg-surface p-5 sm:p-6 flex flex-col gap-4"
+                >
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-6 w-12 rounded bg-border" />
+                            <div className="h-3 w-16 rounded bg-border" />
+                            <div className="h-6 w-12 rounded bg-border" />
+                        </div>
+                        <div className="h-6 w-20 rounded bg-border" />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex gap-3">
+                            <div className="h-4 w-28 rounded bg-border" />
+                            <div className="h-4 w-20 rounded bg-border" />
+                        </div>
+                        <div className="h-8 w-24 rounded bg-border" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FlightsContent({ searchState, initialData }: FlightsContentProps) {
     const router = useRouter();
+    const [isPending, startTransition] = useTransition();
     const { user, logout } = useLocalAuth();
     const setLastSearch = useBookingStore((s) => s.setLastSearch);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -85,11 +118,11 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
 
     const handleSortToggle = () => {
         const newSort = sortBy === "price_asc" ? "price_desc" : "price_asc";
-        router.push(buildUrl({ sortBy: newSort, page: 1 }));
+        startTransition(() => router.push(buildUrl({ sortBy: newSort, page: 1 })));
     };
 
     const handlePageChange = (newPage: number) => {
-        router.push(buildUrl({ page: newPage }));
+        startTransition(() => router.push(buildUrl({ page: newPage })));
     };
 
     const handleSelectFlight = (flight: FlightListItem) => {
@@ -117,8 +150,8 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
         if (values.type === "round_trip" && values.returnDate) {
             qp.set("returnDate", values.returnDate);
         }
-        router.push(`/flights?${qp.toString()}`);
         setIsModalOpen(false);
+        startTransition(() => router.push(`/flights?${qp.toString()}`));
     };
 
     // ─── Display helpers ──────────────────────────────────────────────────────
@@ -163,6 +196,8 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
                     onLogoClick={() => router.push("/")}
                     onNavLinkClick={(href) => router.push(href)}
                     onLogoutClick={logout}
+                    onLoginClick={() => router.push("/login")}
+                    onSignUpClick={() => router.push("/register")}
                     onMyBookingsClick={() => router.push("/my-trips")}
                 />
 
@@ -211,63 +246,71 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
                             </button>
                         </m.div>
 
-                        {/* Empty state */}
-                        {items.length === 0 && (
-                            <m.div
-                                {...fadeUp(0.1)}
-                                className="flex flex-col items-center justify-center gap-3 py-16 text-center"
-                            >
-                                <SearchX size={40} className="text-muted opacity-40" />
-                                <p className="text-body font-medium text-text">
-                                    No encontramos vuelos disponibles
-                                </p>
-                                <p className="text-small text-muted max-w-xs">
-                                    Intenta con otras fechas, origen o destino.
-                                </p>
-                            </m.div>
-                        )}
+                        {/* Skeleton while search is pending */}
+                        {isPending && <FlightCardsSkeleton />}
 
-                        {/* Cards */}
-                        <div className="flex flex-col gap-4">
-                            {items.map((item, i) => {
-                                if (type === "round_trip") {
-                                    const pair = item as RoundTripPair;
-                                    return (
-                                        <m.div key={pair.id} {...fadeUp(0.08 + i * 0.06)}>
-                                            <FlightListCardRound
-                                                pair={pair}
-                                                onSelect={handleSelectPair}
-                                            />
-                                        </m.div>
-                                    );
-                                }
-                                const flight = item as FlightListItem;
-                                return (
-                                    <m.div key={flight.id} {...fadeUp(0.08 + i * 0.06)}>
-                                        <FlightListCardSimple
-                                            flight={flight}
-                                            onSelect={handleSelectFlight}
-                                        />
+                        {/* Results */}
+                        {!isPending && (
+                            <>
+                                {/* Empty state */}
+                                {items.length === 0 && (
+                                    <m.div
+                                        {...fadeUp(0.1)}
+                                        className="flex flex-col items-center justify-center gap-3 py-16 text-center"
+                                    >
+                                        <SearchX size={40} className="text-muted opacity-40" />
+                                        <p className="text-body font-medium text-text">
+                                            No encontramos vuelos disponibles
+                                        </p>
+                                        <p className="text-small text-muted max-w-xs">
+                                            Intenta con otras fechas, origen o destino.
+                                        </p>
                                     </m.div>
-                                );
-                            })}
-                        </div>
+                                )}
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <m.div
-                                {...fadeUp(0.2)}
-                                className="flex items-center justify-between gap-4 pt-2 flex-wrap"
-                            >
-                                <Pagination
-                                    currentPage={currentPage}
-                                    totalPages={totalPages}
-                                    onPageChange={handlePageChange}
-                                />
-                                <span className="text-caption text-muted">
-                                    Mostrando {startItem}–{endItem} de {totalCount} vuelos
-                                </span>
-                            </m.div>
+                                {/* Cards */}
+                                <div className="flex flex-col gap-4">
+                                    {items.map((item, i) => {
+                                        if (type === "round_trip") {
+                                            const pair = item as RoundTripPair;
+                                            return (
+                                                <m.div key={pair.id} {...fadeUp(0.08 + i * 0.06)}>
+                                                    <FlightListCardRound
+                                                        pair={pair}
+                                                        onSelect={handleSelectPair}
+                                                    />
+                                                </m.div>
+                                            );
+                                        }
+                                        const flight = item as FlightListItem;
+                                        return (
+                                            <m.div key={flight.id} {...fadeUp(0.08 + i * 0.06)}>
+                                                <FlightListCardSimple
+                                                    flight={flight}
+                                                    onSelect={handleSelectFlight}
+                                                />
+                                            </m.div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Pagination */}
+                                {totalPages > 1 && (
+                                    <m.div
+                                        {...fadeUp(0.2)}
+                                        className="flex items-center justify-between gap-4 pt-2 flex-wrap"
+                                    >
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={handlePageChange}
+                                        />
+                                        <span className="text-caption text-muted">
+                                            Mostrando {startItem}–{endItem} de {totalCount} vuelos
+                                        </span>
+                                    </m.div>
+                                )}
+                            </>
                         )}
                     </div>
 

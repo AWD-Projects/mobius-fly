@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FilePlus, FileCheck, X, Upload } from "lucide-react";
+import { FilePlus, FileCheck, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/atoms/IconButton";
 
@@ -21,6 +21,7 @@ export interface DocumentUploadProps {
   pendingDescription?: string;
   className?: string;
   variant?: "default" | "compact";
+  isLoading?: boolean;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -41,6 +42,7 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
       pendingDescription = "Drag & drop or click to select",
       className,
       variant = "default",
+      isLoading = false,
     },
     ref
   ) => {
@@ -92,7 +94,21 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
           className="hidden"
         />
 
-        {!document ? (
+        {isLoading ? (
+          // Loading skeleton
+          <div
+            className={cn(
+              "flex items-center gap-3 rounded-md border border-border bg-neutral/20",
+              variant === "default" ? "p-4" : "p-3"
+            )}
+          >
+            <Loader2 className="h-5 w-5 text-muted animate-spin flex-shrink-0" />
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="h-3 w-32 rounded bg-border animate-pulse" />
+              <div className="h-2.5 w-20 rounded bg-border animate-pulse" />
+            </div>
+          </div>
+        ) : !document ? (
           // Pending state
           <div
             onClick={handleClick}

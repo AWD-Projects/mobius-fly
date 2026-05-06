@@ -82,6 +82,13 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
     const [showDestinationSelect, setShowDestinationSelect] = React.useState(false);
     const [internalPassengers, setInternalPassengers] = React.useState(passengers);
 
+    // Lock page scroll while any dropdown is open
+    React.useEffect(() => {
+      const open = showOriginSelect || showDestinationSelect;
+      document.body.style.overflow = open ? "hidden" : "";
+      return () => { document.body.style.overflow = ""; };
+    }, [showOriginSelect, showDestinationSelect]);
+
     const handlePassengersChange = (val: number) => {
       setInternalPassengers(val);
       onPassengersChange?.(val);
@@ -183,6 +190,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                   minWidth: "250px",
                   maxHeight: "300px",
                   overflowY: "auto",
+                  overscrollBehavior: "contain",
                 }}
               >
                 {airports.filter((a) => a.code !== destinationCode).map((airport) => (
@@ -253,6 +261,7 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                   minWidth: "250px",
                   maxHeight: "300px",
                   overflowY: "auto",
+                  overscrollBehavior: "contain",
                 }}
               >
                 {airports.filter((a) => a.code !== originCode).map((airport) => (

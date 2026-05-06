@@ -140,11 +140,12 @@ function CheckoutForm({ expired, bookingRef, totalAmount, onTimerExpired }: Chec
                 variant="secondary"
                 size="lg"
                 className="w-full"
-                disabled={!stripe || !elements || isSubmitting || expired}
+                disabled={!stripe || !elements || expired}
+                isLoading={isSubmitting}
                 onClick={handleFinalize}
             >
                 {isSubmitting
-                    ? "Procesando..."
+                    ? "Procesando pago..."
                     : `Finalizar compra${totalAmount ? ` · $${fmtMXN(totalAmount)} MXN` : ""}`}
             </Button>
 

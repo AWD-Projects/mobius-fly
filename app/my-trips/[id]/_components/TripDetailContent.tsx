@@ -215,7 +215,7 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                                     icon={<Download size={20} />}
                                     iconPosition="start"
                                     onClick={handleDownload}
-                                    disabled={downloading}
+                                    isLoading={downloading}
                                 >
                                     {downloading ? "Generando PDF..." : "Descargar itinerario"}
                                 </Button>
