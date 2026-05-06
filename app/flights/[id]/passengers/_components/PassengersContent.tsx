@@ -17,6 +17,7 @@ import { Button } from "@/components/atoms/Button";
 import { IconButton } from "@/components/atoms/IconButton";
 import { TypeBadge } from "@/components/atoms/TypeBadge";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { toast } from "@/components/atoms/Toast";
 import { useBookingStore, type StoredPassenger } from "@/store/useBookingStore";
 import type { UploadedDocument } from "@/components/molecules/DocumentUpload";
 
@@ -67,7 +68,7 @@ const fadeUp = (delay = 0) => ({
 
 export function PassengersContent({ flightId }: PassengersContentProps) {
     const router = useRouter();
-    const { user, logout } = useLocalAuth();
+    const { user, isHydrated: authHydrated, logout } = useLocalAuth();
     const store = useBookingStore();
 
     // ─── Redirect if store is empty ───────────────────────────────────────────
@@ -85,6 +86,8 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     const [activeIndex, setActiveIndex] = React.useState(0);
     const [documents, setDocuments] = React.useState<Record<number, UploadedDocument>>({});
     const [erroredPassengers, setErroredPassengers] = React.useState<Set<number>>(new Set());
+    const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
+    const [reservationError, setReservationError] = React.useState<string | null>(null);
 
     const activePassenger: StoredPassenger | undefined = store.passengers[activeIndex];
 
@@ -96,6 +99,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             next.delete(activeIndex);
             return next;
         });
+        toast.success("Datos guardados", "La información del pasajero ha sido registrada.");
     };
 
     const handleDocumentUpload = (index: number, file: File) => {
@@ -116,9 +120,6 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             return next;
         });
     };
-
-    const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
-    const [reservationError, setReservationError] = React.useState<string | null>(null);
 
     // ─── Navigate between passengers (saves current first) ───────────────────
     const handleNavigatePassenger = React.useCallback(async (
@@ -148,11 +149,16 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         const saved = await formRef.current?.submit();
         if (!saved) return;
 
+        // Read the LATEST store state — the submit() above updated it asynchronously
+        // so the captured `store` closure would be stale here.
+        const { passengers, purchaseType, totalPassengers, totalPrice, setReservation } =
+            useBookingStore.getState();
+
         // Check if any other passengers are still incomplete
-        const firstIncomplete = store.passengers.findIndex((p) => !p.isCompleted);
+        const firstIncomplete = passengers.findIndex((p) => !p.isCompleted);
         if (firstIncomplete !== -1) {
             const incompleteIndexes = new Set(
-                store.passengers.map((p, i) => (!p.isCompleted ? i : -1)).filter((i) => i !== -1),
+                passengers.map((p, i) => (!p.isCompleted ? i : -1)).filter((i) => i !== -1),
             );
             setErroredPassengers(incompleteIndexes);
             setActiveIndex(firstIncomplete);
@@ -167,10 +173,10 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     flightId,
-                    purchaseType:   store.purchaseType,
-                    seatsRequested: store.totalPassengers,
-                    basePrice:      store.totalPrice,
-                    passengers:     store.passengers,
+                    purchaseType,
+                    seatsRequested: totalPassengers,
+                    basePrice:      totalPrice,
+                    passengers,
                 }),
             });
             const data = await res.json();
@@ -178,14 +184,44 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                 setReservationError(data.error ?? "Error al crear la reserva.");
                 return;
             }
-            store.setReservation(data.reservationId, data.bookingReference, data.blockedUntil, data.breakdown);
+            setReservation(data.reservationId, data.bookingReference, data.blockedUntil, data.breakdown);
             router.push(`/flights/${flightId}/payment?reservation_id=${data.reservationId}`);
         } catch {
             setReservationError("Error de conexión. Por favor intenta de nuevo.");
         } finally {
             setIsCreatingReservation(false);
         }
-    }, [store, flightId, router]);
+    }, [store.flightDetail, store.purchaseType, flightId, router]);
+
+    // ─── activeDefaults — must be before any early return (rules of hooks) ────
+    const activeDefaults: Partial<PassengerFormData> = React.useMemo(() => {
+        const p = activePassenger;
+        const base: Partial<PassengerFormData> = {
+            fullName:                p?.fullName,
+            sex:                     p?.sex,
+            dateOfBirth:             p?.dateOfBirth,
+            email:                   p?.email,
+            phone:                   p?.phone,
+            responsibleName:         p?.responsibleName,
+            responsibleRelationship: p?.responsibleRelationship,
+            responsiblePhone:        p?.responsiblePhone,
+        };
+
+        if (activeIndex === 0 && user && p?.slotType === "adult" && !p.isCompleted && !p.fullName) {
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+            const sexMap: Record<string, string> = { MALE: "male", FEMALE: "female", OTHER: "other" };
+            return {
+                ...base,
+                fullName:    fullName           || base.fullName,
+                email:       user.email         || base.email,
+                phone:       user.phone         || base.phone,
+                dateOfBirth: user.date_of_birth || base.dateOfBirth,
+                sex:         sexMap[user.gender] || base.sex,
+            };
+        }
+
+        return base;
+    }, [activeIndex, activePassenger, user]);
 
     const flight = store.flightDetail;
     const userInitials = user
@@ -226,17 +262,6 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             const idx = minorPassengers.findIndex(({ i }) => i === activeIndex);
             return `Menor – Pasajero ${store.adults + idx + 1}`;
         }
-    };
-
-    const activeDefaults: Partial<PassengerFormData> = {
-        fullName:                activePassenger?.fullName,
-        sex:                     activePassenger?.sex,
-        dateOfBirth:             activePassenger?.dateOfBirth,
-        email:                   activePassenger?.email,
-        phone:                   activePassenger?.phone,
-        responsibleName:         activePassenger?.responsibleName,
-        responsibleRelationship: activePassenger?.responsibleRelationship,
-        responsiblePhone:        activePassenger?.responsiblePhone,
     };
 
     return (
@@ -309,7 +334,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                         <m.div {...fadeUp(0.08)} className="flex-1 min-w-0 flex flex-col gap-4">
                             <PassengerForm
                                 ref={formRef}
-                                key={`passenger-${activeIndex}`}
+                                key={`passenger-${activeIndex}-${authHydrated ? 1 : 0}`}
                                 title={getFormTitle()}
                                 passengerType={activePassenger?.slotType ?? "adult"}
                                 defaultValues={activeDefaults}

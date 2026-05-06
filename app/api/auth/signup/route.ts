@@ -104,8 +104,17 @@ export async function POST(request: NextRequest) {
     const firstName = nameParts[0] ?? "Usuario";
     const lastName = nameParts.slice(1).join(" ") || "Mobius";
 
-    // ── 3. Upload document to storage (temp path — no auth user yet) ──────────
+    // ── 2b. Check if email is already registered ──────────────────────────────
     const admin = createAdminClient();
+    const { data: existingUserId } = await admin.rpc("get_user_id_by_email", { p_email: email });
+    if (existingUserId) {
+        return NextResponse.json(
+            { error: "Este correo ya está registrado. Inicia sesión o recupera tu contraseña." },
+            { status: 409 },
+        );
+    }
+
+    // ── 3. Upload document to storage (temp path — no auth user yet) ──────────
     const ext = documentFileName.split(".").pop() ?? "bin";
 
     const { randomUUID } = await import("crypto");
