@@ -86,6 +86,7 @@ export interface PassengerFormProps {
   passengerType?: "adult" | "minor";
   defaultValues?: Partial<PassengerFormData>;
   document?: UploadedDocument;
+  isDocumentLoading?: boolean;
   onSubmit?: (data: PassengerFormData) => void;
   onDocumentUpload?: (file: File) => void;
   onDocumentRemove?: () => void;
@@ -118,6 +119,7 @@ const PassengerForm = React.forwardRef<PassengerFormHandle, PassengerFormProps>(
       passengerType = "adult",
       defaultValues,
       document,
+      isDocumentLoading = false,
       onSubmit,
       onDocumentUpload,
       onDocumentRemove,
@@ -293,6 +295,7 @@ const PassengerForm = React.forwardRef<PassengerFormHandle, PassengerFormProps>(
               </p>
               <DocumentUpload
                 document={document}
+                isLoading={isDocumentLoading}
                 onUpload={(file) => { setDocumentError(null); onDocumentUpload?.(file); }}
                 onRemove={onDocumentRemove}
                 accept=".pdf,image/jpeg,image/png"

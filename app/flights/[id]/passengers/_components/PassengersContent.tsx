@@ -85,9 +85,29 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     // ─── Passenger state ──────────────────────────────────────────────────────
     const [activeIndex, setActiveIndex] = React.useState(0);
     const [documents, setDocuments] = React.useState<Record<number, UploadedDocument>>({});
+    const [isLoadingDocument, setIsLoadingDocument] = React.useState(false);
     const [erroredPassengers, setErroredPassengers] = React.useState<Set<number>>(new Set());
     const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
     const [reservationError, setReservationError] = React.useState<string | null>(null);
+
+    // ─── Pre-load user's identity document for first passenger ───────────────
+    React.useEffect(() => {
+        if (!user || !store._hasHydrated) return;
+        const first = store.passengers[0];
+        if (!first || first.slotType !== "adult" || first.isCompleted) return;
+
+        setIsLoadingDocument(true);
+        fetch("/api/auth/my-document")
+            .then((res) => res.json())
+            .then(({ document }) => {
+                if (document) {
+                    setDocuments((prev) => ({ ...prev, 0: document }));
+                }
+            })
+            .catch(() => {})
+            .finally(() => setIsLoadingDocument(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, store._hasHydrated]);
 
     const activePassenger: StoredPassenger | undefined = store.passengers[activeIndex];
 
@@ -339,6 +359,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 passengerType={activePassenger?.slotType ?? "adult"}
                                 defaultValues={activeDefaults}
                                 document={documents[activeIndex]}
+                                isDocumentLoading={activeIndex === 0 && isLoadingDocument}
                                 onSubmit={handlePassengerSubmit}
                                 onDocumentUpload={(file) => handleDocumentUpload(activeIndex, file)}
                                 onDocumentRemove={() => handleDocumentRemove(activeIndex)}

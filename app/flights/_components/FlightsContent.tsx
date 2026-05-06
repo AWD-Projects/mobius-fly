@@ -196,6 +196,8 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
                     onLogoClick={() => router.push("/")}
                     onNavLinkClick={(href) => router.push(href)}
                     onLogoutClick={logout}
+                    onLoginClick={() => router.push("/login")}
+                    onSignupClick={() => router.push("/register")}
                     onMyBookingsClick={() => router.push("/my-trips")}
                 />
 
