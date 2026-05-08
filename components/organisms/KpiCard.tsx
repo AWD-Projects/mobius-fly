@@ -45,6 +45,14 @@ const variantStyles = {
   secondary: '#4b5563',
 };
 
+function isLightBackground(color: string): boolean {
+  if (!color.startsWith('#') || color.length < 7) return false;
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+}
+
 const badgeColorStyles = {
   success: 'text-success',
   warning: 'text-warning',
@@ -74,8 +82,12 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   const badgeText = data?.badgeText ?? propBadgeText;
   const badgeColor = data?.badgeColor ?? propBadgeColor;
 
-  // Determine background color
-  const bgColor = backgroundColor || variantStyles[variant];
+  // Determine background color + text contrast
+  const bgColor   = backgroundColor || variantStyles[variant];
+  const isLight   = isLightBackground(bgColor);
+  const valueCls  = isLight ? 'text-text'  : 'text-white';
+  const titleCls  = isLight ? 'text-text'  : 'text-white';
+  const mutedCls  = 'text-muted';
 
   if (isLoading) {
     return (
@@ -130,17 +142,17 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       </div>
 
       {/* Main Value */}
-      <div className="text-white text-h1 font-semibold leading-none tracking-tight">
+      <div className={`${valueCls} text-h1 font-semibold leading-none tracking-tight`}>
         {value}
       </div>
 
       {/* Footer */}
       <div className="flex flex-col gap-0.5">
-        <div className="text-white text-small font-medium leading-tight">
+        <div className={`${titleCls} text-small font-medium leading-tight`}>
           {title}
         </div>
         {subtitle && (
-          <div className="text-muted text-caption font-normal leading-tight">
+          <div className={`${mutedCls} text-caption font-normal leading-tight`}>
             {subtitle}
           </div>
         )}
