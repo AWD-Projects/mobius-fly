@@ -6,8 +6,30 @@ import { ArrowLeft, Plus, Minus, File, Trash2 } from "lucide-react";
 
 type FlightType = "sencillo" | "redondo";
 
+interface FlightFormData {
+  flightType: FlightType;
+  origin: string;
+  destination: string;
+  fboOrigin: string;
+  fboDestination: string;
+  departureTime: string;
+  departureDate: string;
+  returnOrigin: string;
+  returnDestination: string;
+  returnFboOrigin: string;
+  returnFboDestination: string;
+  returnDepartureTime: string;
+  returnDepartureDate: string;
+  aircraft: string;
+  captain: string;
+  additionalCrew: string[];
+  seatsForSale: number;
+  pricePerSeat: string;
+  flightPlan: File | null;
+}
+
 // Mock data - en producción esto vendría de una API
-const mockFlightData: Record<string, any> = {
+const mockFlightData: Record<string, FlightFormData> = {
   "1": {
     flightType: "sencillo" as FlightType,
     origin: "MAD",
