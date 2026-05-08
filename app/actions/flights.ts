@@ -308,6 +308,418 @@ export async function getFlightById(id: string): Promise<FlightDetail | null> {
     };
 }
 
+// ─── getOwnerFlightDetail ─────────────────────────────────────────────────────
+
+export interface OwnerFlightPassenger {
+    id:            string;
+    full_name:     string;
+    document_type: string | null;
+}
+
+export interface OwnerFlightCrewMember {
+    id:             string;
+    first_name:     string;
+    last_name:      string;
+    license_number: string | null;
+    role_code:      string;
+}
+
+export interface OwnerFlightAircraft {
+    id:           string;
+    model:        string;
+    manufacturer: string | null;
+    tail_number:  string;
+    seats:        number;
+    status:       string;
+}
+
+export interface OwnerFlightDetail {
+    id:                        string;
+    flight_code:               string | null;
+    flight_type:               string;
+    departure_airport:         { iata_code: string; name: string; city: string };
+    arrival_airport:           { iata_code: string; name: string; city: string };
+    departure_fbo_name:        string | null;
+    arrival_fbo_name:          string | null;
+    departure_datetime:        string;
+    arrival_datetime:          string;
+    return_departure_datetime: string | null;
+    total_seats:               number;
+    available_seats:           number;
+    price_per_seat:            number;
+    price_full_aircraft:       number;
+    status_code:               string;
+    is_visible:                boolean;
+    flight_plan_url:           string | null;
+    aircraft:                  OwnerFlightAircraft | null;
+    crew:                      OwnerFlightCrewMember[];
+    passengers:                OwnerFlightPassenger[];
+}
+
+export async function getOwnerFlightDetail(
+    flightId: string,
+    userId:   string,
+): Promise<OwnerFlightDetail | null> {
+    const supabase = await createClient();
+
+    const { data: owner } = await supabase
+        .from("owners")
+        .select("id")
+        .eq("user_id", userId)
+        .single();
+
+    if (!owner) return null;
+
+    const [flightRes, reservationsRes] = await Promise.all([
+        supabase
+            .from("flights")
+            .select(`
+                id, flight_code, flight_type, is_visible, flight_plan_url,
+                departure_fbo_name, arrival_fbo_name,
+                departure_datetime, arrival_datetime, return_departure_datetime,
+                total_seats, available_seats, price_per_seat, price_full_aircraft,
+                departure_airport:airports!flights_departure_airport_id_fkey(iata_code, name, city),
+                arrival_airport:airports!flights_arrival_airport_id_fkey(iata_code, name, city),
+                flight_status:flight_status!flights_status_id_fkey(code),
+                aircraft:aircrafts!flights_aircraft_id_fkey(id, model, manufacturer, tail_number, seats, status),
+                flight_crew!flight_crew_flight_id_fkey(
+                    crew_members!flight_crew_crew_member_id_fkey(
+                        id, first_name, last_name, license_number,
+                        crew_role:crew_roles!crew_members_crew_role_id_fkey(code)
+                    )
+                )
+            `)
+            .eq("id", flightId)
+            .eq("owner_id", owner.id)
+            .single(),
+
+        supabase
+            .from("reservations")
+            .select(`
+                id,
+                reservation_status:reservation_status!reservations_reservation_status_id_fkey(code),
+                reservation_passengers(id, full_name, document_type)
+            `)
+            .eq("flight_id", flightId),
+    ]);
+
+    if (flightRes.error || !flightRes.data) return null;
+
+    const row = flightRes.data as any;
+
+    const crew: OwnerFlightCrewMember[] = ((row.flight_crew ?? []) as any[])
+        .map((fc: any) => {
+            const m = fc.crew_members;
+            if (!m) return null;
+            return {
+                id:             m.id,
+                first_name:     m.first_name,
+                last_name:      m.last_name,
+                license_number: m.license_number ?? null,
+                role_code:      m.crew_role?.code ?? "FLIGHT_ATTENDANT",
+            };
+        })
+        .filter(Boolean) as OwnerFlightCrewMember[];
+
+    const passengers: OwnerFlightPassenger[] = ((reservationsRes.data ?? []) as any[])
+        .filter((r: any) => r.reservation_status?.code === "CONFIRMED")
+        .flatMap((r: any) =>
+            ((r.reservation_passengers ?? []) as any[]).map((p: any) => ({
+                id:            p.id,
+                full_name:     p.full_name,
+                document_type: p.document_type ?? null,
+            })),
+        );
+
+    const ac = row.aircraft as any;
+
+    return {
+        id:                        row.id,
+        flight_code:               row.flight_code ?? null,
+        flight_type:               row.flight_type ?? "ONE_WAY",
+        departure_airport:         row.departure_airport as any,
+        arrival_airport:           row.arrival_airport  as any,
+        departure_fbo_name:        row.departure_fbo_name ?? null,
+        arrival_fbo_name:          row.arrival_fbo_name  ?? null,
+        departure_datetime:        row.departure_datetime,
+        arrival_datetime:          row.arrival_datetime,
+        return_departure_datetime: row.return_departure_datetime ?? null,
+        total_seats:               row.total_seats,
+        available_seats:           row.available_seats,
+        price_per_seat:            Number(row.price_per_seat),
+        price_full_aircraft:       Number(row.price_full_aircraft),
+        status_code:               row.flight_status?.code ?? "SCHEDULED",
+        is_visible:                row.is_visible ?? false,
+        flight_plan_url:           row.flight_plan_url ?? null,
+        aircraft:                  ac ? {
+            id:           ac.id,
+            model:        ac.model,
+            manufacturer: ac.manufacturer ?? null,
+            tail_number:  ac.tail_number,
+            seats:        ac.seats,
+            status:       ac.status ?? "ACTIVE",
+        } : null,
+        crew,
+        passengers,
+    };
+}
+
+// ─── updateFlightStatus ───────────────────────────────────────────────────────
+
+export async function updateFlightStatus(
+    flightId: string,
+    ownerId:  string,
+    code:     string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    const { data: statusRow } = await supabase
+        .from("flight_status")
+        .select("id")
+        .eq("code", code)
+        .single();
+
+    if (!statusRow) return { error: `Estado desconocido: ${code}` };
+
+    const { error } = await supabase
+        .from("flights")
+        .update({ status_id: statusRow.id })
+        .eq("id", flightId)
+        .eq("owner_id", ownerId);
+
+    if (error) {
+        console.error("[updateFlightStatus] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
+}
+
+// ─── getOwnerFlightList ───────────────────────────────────────────────────────
+
+export interface OwnerFlightListItem {
+    id:                 string;
+    flight_code:        string | null;
+    flight_type:        string;
+    departure_iata:     string;
+    arrival_iata:       string;
+    departure_datetime: string;
+    aircraft_model:     string;
+    status_code:        string;
+    total_seats:        number;
+    available_seats:    number;
+}
+
+export async function getOwnerFlightList(userId: string): Promise<OwnerFlightListItem[]> {
+    const supabase = await createClient();
+
+    const { data: owner } = await supabase
+        .from("owners")
+        .select("id")
+        .eq("user_id", userId)
+        .single();
+
+    if (!owner) return [];
+
+    const { data, error } = await supabase
+        .from("flights")
+        .select(`
+            id, flight_code, flight_type,
+            departure_datetime, total_seats, available_seats,
+            departure_airport:airports!flights_departure_airport_id_fkey(iata_code),
+            arrival_airport:airports!flights_arrival_airport_id_fkey(iata_code),
+            aircraft:aircrafts!flights_aircraft_id_fkey(manufacturer, model),
+            flight_status:flight_status!flights_status_id_fkey(code)
+        `)
+        .eq("owner_id", owner.id)
+        .order("departure_datetime", { ascending: false });
+
+    if (error) {
+        console.error("[getOwnerFlightList] error:", error.message);
+        return [];
+    }
+
+    return ((data ?? []) as any[]).map((row) => {
+        const ac = row.aircraft;
+        return {
+            id:                 row.id,
+            flight_code:        row.flight_code ?? null,
+            flight_type:        row.flight_type ?? "ONE_WAY",
+            departure_iata:     row.departure_airport?.iata_code ?? "—",
+            arrival_iata:       row.arrival_airport?.iata_code  ?? "—",
+            departure_datetime: row.departure_datetime ?? "",
+            aircraft_model:     ac ? (ac.manufacturer ? `${ac.manufacturer} ${ac.model}` : ac.model) : "—",
+            status_code:        row.flight_status?.code ?? "SCHEDULED",
+            total_seats:        row.total_seats  ?? 0,
+            available_seats:    row.available_seats ?? 0,
+        };
+    });
+}
+
+// ─── createFlight ─────────────────────────────────────────────────────────────
+
+export interface CreateFlightInput {
+    flightType:              "ONE_WAY" | "ROUND_TRIP";
+    departureAirportId:      string;
+    arrivalAirportId:        string;
+    departureFboName:        string;
+    arrivalFboName:          string;
+    departureDatetime:       string;
+    arrivalDatetime:         string;
+    returnDepartureDatetime: string | null;
+    aircraftId:              string;
+    totalSeats:              number;
+    pricePerSeat:            number;
+    priceFullAircraft:       number;
+    flightPlanUrl:           string | null;
+    isVisible:               boolean;
+    crewMemberIds:           string[];
+}
+
+export async function createFlight(
+    ownerId: string,
+    input: CreateFlightInput,
+): Promise<{ error: string | null; id: string | null }> {
+    const supabase = await createClient();
+
+    // Resolve SCHEDULED status id
+    const { data: statusRow } = await supabase
+        .from("flight_status")
+        .select("id")
+        .eq("code", "SCHEDULED")
+        .single();
+
+    if (!statusRow) {
+        return { error: "No se pudo obtener el estado del vuelo", id: null };
+    }
+
+    const { data: flight, error: flightError } = await supabase
+        .from("flights")
+        .insert({
+            owner_id:                  ownerId,
+            aircraft_id:               input.aircraftId,
+            flight_type:               input.flightType,
+            departure_airport_id:      input.departureAirportId,
+            arrival_airport_id:        input.arrivalAirportId,
+            departure_fbo_name:        input.departureFboName.trim() || null,
+            arrival_fbo_name:          input.arrivalFboName.trim()   || null,
+            departure_datetime:        input.departureDatetime,
+            arrival_datetime:          input.arrivalDatetime,
+            return_departure_datetime: input.returnDepartureDatetime,
+            total_seats:               input.totalSeats,
+            available_seats:           input.totalSeats,
+            price_per_seat:            input.pricePerSeat,
+            price_full_aircraft:       input.priceFullAircraft,
+            currency:                  "MXN",
+            status_id:                 statusRow.id,
+            is_visible:                input.isVisible,
+            flight_plan_url:           input.flightPlanUrl,
+        })
+        .select("id")
+        .single();
+
+    if (flightError) {
+        console.error("[createFlight] error:", flightError.message);
+        return { error: flightError.message, id: null };
+    }
+
+    if (input.crewMemberIds.length > 0) {
+        const { error: crewError } = await supabase
+            .from("flight_crew")
+            .insert(input.crewMemberIds.map((crew_member_id) => ({
+                flight_id: flight.id,
+                crew_member_id,
+            })));
+
+        if (crewError) {
+            console.error("[createFlight] crew error:", crewError.message);
+        }
+    }
+
+    return { error: null, id: flight.id };
+}
+
+// ─── updateFlight ─────────────────────────────────────────────────────────────
+
+export interface UpdateFlightInput {
+    flightType:              "ONE_WAY" | "ROUND_TRIP";
+    departureAirportId:      string;
+    arrivalAirportId:        string;
+    departureFboName:        string;
+    arrivalFboName:          string;
+    departureDatetime:       string;
+    arrivalDatetime:         string;
+    returnDepartureDatetime: string | null;
+    aircraftId:              string;
+    totalSeats:              number;
+    pricePerSeat:            number;
+    priceFullAircraft:       number;
+    flightPlanUrl:           string | null;
+    isVisible:               boolean;
+    crewMemberIds:           string[];
+}
+
+export async function updateFlight(
+    flightId: string,
+    ownerId:  string,
+    input:    UpdateFlightInput,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    const { error: flightError } = await supabase
+        .from("flights")
+        .update({
+            aircraft_id:               input.aircraftId,
+            flight_type:               input.flightType,
+            departure_airport_id:      input.departureAirportId,
+            arrival_airport_id:        input.arrivalAirportId,
+            departure_fbo_name:        input.departureFboName.trim() || null,
+            arrival_fbo_name:          input.arrivalFboName.trim()   || null,
+            departure_datetime:        input.departureDatetime,
+            arrival_datetime:          input.arrivalDatetime,
+            return_departure_datetime: input.returnDepartureDatetime,
+            total_seats:               input.totalSeats,
+            price_per_seat:            input.pricePerSeat,
+            price_full_aircraft:       input.priceFullAircraft,
+            is_visible:                input.isVisible,
+            flight_plan_url:           input.flightPlanUrl,
+        })
+        .eq("id", flightId)
+        .eq("owner_id", ownerId);
+
+    if (flightError) {
+        console.error("[updateFlight] error:", flightError.message);
+        return { error: flightError.message };
+    }
+
+    // Replace crew: delete all existing, insert new
+    const { error: deleteError } = await supabase
+        .from("flight_crew")
+        .delete()
+        .eq("flight_id", flightId);
+
+    if (deleteError) {
+        console.error("[updateFlight] crew delete error:", deleteError.message);
+        return { error: deleteError.message };
+    }
+
+    if (input.crewMemberIds.length > 0) {
+        const { error: insertError } = await supabase
+            .from("flight_crew")
+            .insert(input.crewMemberIds.map((crew_member_id) => ({
+                flight_id: flightId,
+                crew_member_id,
+            })));
+
+        if (insertError) {
+            console.error("[updateFlight] crew insert error:", insertError.message);
+            return { error: insertError.message };
+        }
+    }
+
+    return { error: null };
+}
+
 // ─── getAirports ──────────────────────────────────────────────────────────────
 
 export async function getAirports(): Promise<Airport[]> {
