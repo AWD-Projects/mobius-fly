@@ -6,7 +6,6 @@ import { Button } from "@/components/atoms/Button";
 
 export interface CrewFilters {
   role?: string;
-  base?: string;
   status?: string;
 }
 
@@ -38,20 +37,6 @@ export const CrewFilterBar: React.FC<CrewFilterBarProps> = ({
           <option value="pilot">Piloto</option>
           <option value="copilot">Copiloto</option>
           <option value="cabin-crew">TCP</option>
-        </Select>
-      </div>
-
-      {/* Base Filter */}
-      <div className="flex flex-col gap-1.5 w-[140px]">
-        <label className="text-caption font-medium text-muted">Base</label>
-        <Select
-          value={filters.base || ""}
-          onChange={(e) => handleFilterChange("base", e.target.value)}
-        >
-          <option value="">Todas</option>
-          <option value="madrid">Madrid (MAD)</option>
-          <option value="barcelona">Barcelona (BCN)</option>
-          <option value="sevilla">Sevilla (SVQ)</option>
         </Select>
       </div>
 
