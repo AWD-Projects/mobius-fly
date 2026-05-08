@@ -1,0 +1,107 @@
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
+import { AircraftFilterBar, AircraftFilters } from "./AircraftFilterBar";
+import { AircraftTable, Aircraft } from "./AircraftTable";
+import { AircraftPagination } from "./AircraftPagination";
+import type { AircraftListItem } from "@/app/actions/aircraft";
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+    aircraft: AircraftListItem[];
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function seatsToType(seats: number): "jet" | "light" | "turboprop" {
+    if (seats <= 8)  return "light";
+    if (seats <= 16) return "jet";
+    return "turboprop";
+}
+
+function toDisplayAircraft(item: AircraftListItem): Aircraft {
+    return {
+        id:           item.id,
+        name:         item.manufacturer ? `${item.manufacturer} ${item.model}` : item.model,
+        base:         "—",
+        capacity:     `${item.seats} pasajeros`,
+        type:         seatsToType(item.seats),
+        status:       item.status.toLowerCase() as Aircraft["status"],
+        registration: item.tail_number,
+    };
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function AircraftListContent({ aircraft }: Props) {
+    const router = useRouter();
+    const [filters, setFilters] = useState<AircraftFilters>({});
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
+    const display = aircraft.map(toDisplayAircraft);
+
+    const filtered = display.filter((a) => {
+        if (filters.type && a.type !== filters.type) return false;
+        if (filters.capacity) {
+            const num = parseInt(a.capacity);
+            if (filters.capacity === "small"  && num > 8)  return false;
+            if (filters.capacity === "medium" && (num < 9 || num > 16)) return false;
+            if (filters.capacity === "large"  && num < 17) return false;
+        }
+        if (filters.status && a.status !== filters.status) return false;
+        return true;
+    });
+
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const start      = (currentPage - 1) * itemsPerPage;
+    const paginated  = filtered.slice(start, start + itemsPerPage);
+
+    return (
+        <div className="w-full bg-[#f6f6f4] min-h-screen">
+            {/* Header */}
+            <div className="px-12 py-8">
+                <h1 className="text-[26px] font-semibold text-text">Aeronaves</h1>
+                <p className="text-small text-muted mt-2">Gestión de tu flota</p>
+            </div>
+
+            <AircraftFilterBar
+                filters={filters}
+                onFiltersChange={(f) => { setFilters(f); setCurrentPage(1); }}
+                onClearFilters={() => { setFilters({}); setCurrentPage(1); }}
+            />
+
+            <div className="px-12 py-0 flex flex-col gap-[18px]">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-small font-semibold text-text">Flota activa</h2>
+                    <Button
+                        onClick={() => router.push("/owner/aeronaves/nuevo")}
+                        variant="primary"
+                        className="h-10 px-4 flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nueva aeronave
+                    </Button>
+                </div>
+
+                <AircraftTable
+                    aircraft={paginated}
+                    onView={(id) => router.push(`/owner/aeronaves/${id}`)}
+                    onEdit={(id) => router.push(`/owner/aeronaves/${id}/edit`)}
+                />
+
+                <AircraftPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filtered.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPage}
+                />
+            </div>
+        </div>
+    );
+}
