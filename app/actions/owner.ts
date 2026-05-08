@@ -64,7 +64,7 @@ export async function getOwnerProfile(
 
     return {
         owner:     ownerRes.data as OwnerRow,
-        documents: (docsRes.data ?? []) as OwnerDocumentRow[],
+        documents: (docsRes.data ?? []) as unknown as OwnerDocumentRow[],
     };
 }
 
