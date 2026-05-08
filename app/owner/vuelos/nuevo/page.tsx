@@ -2,7 +2,12 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Minus, File, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
+import { InputGroup } from "@/components/molecules/InputGroup";
+import { SelectGroup } from "@/components/molecules/SelectGroup";
+import { NumericCounter } from "@/components/molecules/NumericCounter";
+import { DocumentUpload } from "@/components/molecules/DocumentUpload";
 
 type FlightType = "sencillo" | "redondo";
 
@@ -63,13 +68,6 @@ export default function CreateFlightPage() {
     router.push("/owner/vuelos");
   };
 
-  const handleSeatsChange = (delta: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      seatsForSale: Math.max(1, Math.min(12, prev.seatsForSale + delta)),
-    }));
-  };
-
   const calculateFullAircraftPrice = () => {
     const pricePerSeat = parseFloat(formData.pricePerSeat) || 0;
     const totalSeats = 8; // Assuming 8 total seats
@@ -93,13 +91,14 @@ export default function CreateFlightPage() {
     <div className="w-full bg-[#f6f6f4] min-h-screen">
       {/* Header Section */}
       <div className="px-12 py-8">
-        <button
+        <Button
           onClick={handleBack}
-          className="flex items-center gap-3 mb-5 text-xs font-medium text-muted hover:text-text transition-colors"
+          variant="link"
+          className="flex items-center gap-3 mb-5 p-0 text-xs font-medium text-muted hover:text-text"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver a vuelos
-        </button>
+        </Button>
 
         <div className="flex flex-col gap-2">
           <h1 className="text-[26px] font-semibold text-text">Crear vuelo</h1>
@@ -147,55 +146,51 @@ export default function CreateFlightPage() {
           )}
 
           <div className="flex gap-8">
-            <div className="flex-1 flex flex-col gap-2">
-              <label className="text-xs font-medium text-text">Origen</label>
-              <select
+            <div className="flex-1">
+              <SelectGroup
+                label="Origen"
                 value={formData.origin}
                 onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
               >
                 <option value="">Seleccionar aeropuerto</option>
                 <option value="MAD">Madrid (MAD)</option>
                 <option value="BCN">Barcelona (BCN)</option>
                 <option value="SVQ">Sevilla (SVQ)</option>
-              </select>
+              </SelectGroup>
             </div>
-            <div className="flex-1 flex flex-col gap-2">
-              <label className="text-xs font-medium text-text">Destino</label>
-              <select
+            <div className="flex-1">
+              <SelectGroup
+                label="Destino"
                 value={formData.destination}
                 onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
               >
                 <option value="">Seleccionar aeropuerto</option>
                 <option value="IBZ">Ibiza (IBZ)</option>
                 <option value="PMI">Palma de Mallorca (PMI)</option>
                 <option value="AGP">Málaga (AGP)</option>
-              </select>
+              </SelectGroup>
             </div>
           </div>
 
           <div className="w-full h-px bg-[#F0F0F0]" />
 
           <div className="flex gap-8">
-            <div className="flex-1 flex flex-col gap-2">
-              <label className="text-xs font-medium text-text">FBO de origen</label>
-              <input
+            <div className="flex-1">
+              <InputGroup
+                label="FBO de origen"
                 type="text"
                 value={formData.fboOrigin}
                 onChange={(e) => setFormData({ ...formData, fboOrigin: e.target.value })}
                 placeholder="ingresa dirección del FBO"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm placeholder:text-[#CCCCCC]"
               />
             </div>
-            <div className="flex-1 flex flex-col gap-2">
-              <label className="text-xs font-medium text-text">FBO de destino (opcional)</label>
-              <input
+            <div className="flex-1">
+              <InputGroup
+                label="FBO de destino (opcional)"
                 type="text"
                 value={formData.fboDestination}
                 onChange={(e) => setFormData({ ...formData, fboDestination: e.target.value })}
                 placeholder="ingresa dirección del FBO"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm placeholder:text-[#CCCCCC]"
               />
             </div>
           </div>
@@ -203,22 +198,20 @@ export default function CreateFlightPage() {
           <div className="w-full h-px bg-[#F0F0F0]" />
 
           <div className="flex gap-8">
-            <div className="flex-1 flex flex-col gap-2">
-              <label className="text-xs font-medium text-text">Hora de salida</label>
-              <input
+            <div className="flex-1">
+              <InputGroup
+                label="Hora de salida"
                 type="time"
                 value={formData.departureTime}
                 onChange={(e) => setFormData({ ...formData, departureTime: e.target.value })}
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
               />
             </div>
-            <div className="flex-1 flex flex-col gap-2">
-              <label className="text-xs font-medium text-text">Fecha del vuelo</label>
-              <input
+            <div className="flex-1">
+              <InputGroup
+                label="Fecha del vuelo"
                 type="date"
                 value={formData.departureDate}
                 onChange={(e) => setFormData({ ...formData, departureDate: e.target.value })}
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
               />
             </div>
           </div>
@@ -231,55 +224,51 @@ export default function CreateFlightPage() {
               <h3 className="text-xs font-medium text-text">Vuelo de regreso</h3>
 
               <div className="flex gap-8">
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-text">Origen</label>
-                  <select
+                <div className="flex-1">
+                  <SelectGroup
+                    label="Origen"
                     value={formData.returnOrigin}
                     onChange={(e) => setFormData({ ...formData, returnOrigin: e.target.value })}
-                    className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
                   >
                     <option value="">Seleccionar aeropuerto</option>
                     <option value="IBZ">Ibiza (IBZ)</option>
                     <option value="PMI">Palma de Mallorca (PMI)</option>
                     <option value="AGP">Málaga (AGP)</option>
-                  </select>
+                  </SelectGroup>
                 </div>
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-text">Destino</label>
-                  <select
+                <div className="flex-1">
+                  <SelectGroup
+                    label="Destino"
                     value={formData.returnDestination}
                     onChange={(e) => setFormData({ ...formData, returnDestination: e.target.value })}
-                    className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
                   >
                     <option value="">Seleccionar aeropuerto</option>
                     <option value="MAD">Madrid (MAD)</option>
                     <option value="BCN">Barcelona (BCN)</option>
                     <option value="SVQ">Sevilla (SVQ)</option>
-                  </select>
+                  </SelectGroup>
                 </div>
               </div>
 
               <div className="w-full h-px bg-[#F0F0F0]" />
 
               <div className="flex gap-8">
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-text">FBO de origen</label>
-                  <input
+                <div className="flex-1">
+                  <InputGroup
+                    label="FBO de origen"
                     type="text"
                     value={formData.returnFboOrigin}
                     onChange={(e) => setFormData({ ...formData, returnFboOrigin: e.target.value })}
                     placeholder="ingresa dirección del FBO"
-                    className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm placeholder:text-[#CCCCCC]"
                   />
                 </div>
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-text">FBO de destino (opcional)</label>
-                  <input
+                <div className="flex-1">
+                  <InputGroup
+                    label="FBO de destino (opcional)"
                     type="text"
                     value={formData.returnFboDestination}
                     onChange={(e) => setFormData({ ...formData, returnFboDestination: e.target.value })}
                     placeholder="ingresa dirección del FBO"
-                    className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm placeholder:text-[#CCCCCC]"
                   />
                 </div>
               </div>
@@ -287,22 +276,20 @@ export default function CreateFlightPage() {
               <div className="w-full h-px bg-[#F0F0F0]" />
 
               <div className="flex gap-8">
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-text">Hora de salida</label>
-                  <input
+                <div className="flex-1">
+                  <InputGroup
+                    label="Hora de salida"
                     type="time"
                     value={formData.returnDepartureTime}
                     onChange={(e) => setFormData({ ...formData, returnDepartureTime: e.target.value })}
-                    className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
                   />
                 </div>
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-text">Fecha de salida</label>
-                  <input
+                <div className="flex-1">
+                  <InputGroup
+                    label="Fecha de salida"
                     type="date"
                     value={formData.returnDepartureDate}
                     onChange={(e) => setFormData({ ...formData, returnDepartureDate: e.target.value })}
-                    className="h-10 px-3 rounded-lg border border-border bg-transparent text-sm"
                   />
                 </div>
               </div>
@@ -313,16 +300,16 @@ export default function CreateFlightPage() {
         {/* Aircraft Section */}
         <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-3">
           <h2 className="text-[11px] font-semibold text-text">Aeronave asignada</h2>
-          <select
+          <SelectGroup
+            label=""
             value={formData.aircraft}
             onChange={(e) => setFormData({ ...formData, aircraft: e.target.value })}
-            className="h-11 px-3 rounded-lg border border-border bg-transparent text-sm"
           >
             <option value="">Seleccionar aeronave</option>
             <option value="1">Citation CJ3+ (EC-MBX)</option>
             <option value="2">Phenom 300 (EC-NBR)</option>
             <option value="3">Legacy 500 (EC-LJK)</option>
-          </select>
+          </SelectGroup>
         </div>
 
         {/* Crew Section */}
@@ -331,18 +318,15 @@ export default function CreateFlightPage() {
             <h2 className="text-[11px] font-semibold text-text">Tripulación asignada</h2>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-text">Capitán / Piloto</label>
-            <select
-              value={formData.captain}
-              onChange={(e) => setFormData({ ...formData, captain: e.target.value })}
-              className="h-11 px-3 rounded-lg border border-border bg-transparent text-sm"
-            >
-              <option value="">Seleccionar capitán</option>
-              <option value="1">Carlos Pérez (ATPL, IR, ME)</option>
-              <option value="2">Laura Martínez (ATPL, IR, ME)</option>
-            </select>
-          </div>
+          <SelectGroup
+            label="Capitán / Piloto"
+            value={formData.captain}
+            onChange={(e) => setFormData({ ...formData, captain: e.target.value })}
+          >
+            <option value="">Seleccionar capitán</option>
+            <option value="1">Carlos Pérez (ATPL, IR, ME)</option>
+            <option value="2">Laura Martínez (ATPL, IR, ME)</option>
+          </SelectGroup>
 
           <div className="w-full h-px bg-[#F0F0F0]" />
 
@@ -360,35 +344,38 @@ export default function CreateFlightPage() {
                     key={index}
                     className="flex items-center gap-3 p-3 rounded-lg bg-[#FAFAFA] border border-border"
                   >
-                    <select
+                    <SelectGroup
+                      label=""
                       value={crew}
                       onChange={(e) => handleCrewChange(index, e.target.value)}
-                      className="flex-1 h-9 px-3 rounded-lg border border-border bg-transparent text-sm"
+                      className="flex-1"
                     >
                       <option value="">Seleccionar tripulante</option>
                       <option value="1">María García (CPL, IR)</option>
                       <option value="2">Juan López (CPL)</option>
                       <option value="3">Ana Martínez (Asistente)</option>
-                    </select>
-                    <button
+                    </SelectGroup>
+                    <Button
                       onClick={() => handleRemoveCrew(index)}
-                      className="w-9 h-9 rounded-md border border-border flex items-center justify-center hover:bg-neutral/5 transition-colors"
+                      variant="outline"
+                      className="w-9 h-9 p-0"
                       aria-label="Eliminar tripulante"
                     >
                       <Trash2 className="w-4 h-4 text-muted" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
 
-            <button
+            <Button
               onClick={handleAddCrew}
-              className="w-full h-10 rounded-lg border border-border flex items-center justify-center gap-2 text-sm font-medium text-[#666666] hover:bg-neutral/5 transition-colors"
+              variant="outline"
+              className="w-full h-10 flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Agregar tripulante
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -402,25 +389,14 @@ export default function CreateFlightPage() {
               <h3 className="text-xs font-medium text-text mb-3">Opciones de venta</h3>
 
               <div className="flex gap-3 mb-3">
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text">Asientos para venta</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => handleSeatsChange(-1)}
-                      className="w-8 h-8 rounded-md border border-border flex items-center justify-center hover:bg-neutral/5 transition-colors"
-                    >
-                      <Minus className="w-4 h-4 text-muted" />
-                    </button>
-                    <span className="text-sm font-medium text-text min-w-[2ch] text-center">
-                      {formData.seatsForSale}
-                    </span>
-                    <button
-                      onClick={() => handleSeatsChange(1)}
-                      className="w-8 h-8 rounded-md border border-border flex items-center justify-center hover:bg-neutral/5 transition-colors"
-                    >
-                      <Plus className="w-4 h-4 text-muted" />
-                    </button>
-                  </div>
+                <div className="flex-1">
+                  <NumericCounter
+                    label="Asientos para venta"
+                    value={formData.seatsForSale}
+                    onChange={(value) => setFormData({ ...formData, seatsForSale: value })}
+                    min={1}
+                    max={12}
+                  />
                 </div>
 
                 <div className="flex-1 flex flex-col gap-1.5">
@@ -455,33 +431,31 @@ export default function CreateFlightPage() {
             <p className="text-[11px] text-muted">
               Carga el PDF con el plan de vuelo detallado
             </p>
-
-            <div className="border-2 border-dashed border-border rounded-xl bg-[#F9F9F7] p-8 flex flex-col items-center justify-center gap-4 h-[132px]">
-              <File className="w-8 h-8 text-muted" />
-              <div className="text-center">
-                <p className="text-sm font-medium text-text">
-                  Arrastra un PDF aquí o haz clic para cargar
-                </p>
-                <p className="text-[11px] text-muted mt-1">Máximo 10 MB</p>
-              </div>
-            </div>
+            <DocumentUpload
+              accept=".pdf"
+              onUpload={(file: File) => setFormData({ ...formData, flightPlan: file })}
+              pendingTitle="Plan de vuelo"
+              pendingDescription="Máximo 10 MB"
+            />
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-center gap-4 pt-8">
-          <button
+          <Button
             onClick={handlePublish}
-            className="w-60 h-10 rounded-xl bg-text text-white text-sm font-medium hover:bg-text/90 transition-colors"
+            variant="primary"
+            className="w-60 h-10"
           >
             Publicar vuelo
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSaveDraft}
-            className="w-60 h-10 rounded-xl bg-white border border-border text-sm font-medium text-text hover:bg-neutral/5 transition-colors"
+            variant="outline"
+            className="w-60 h-10"
           >
             Guardar borrador
-          </button>
+          </Button>
         </div>
       </div>
     </div>

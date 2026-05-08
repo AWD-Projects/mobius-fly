@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { Input } from "@/components/atoms/Input";
+import { Button } from "@/components/atoms/Button";
 
 interface Document {
   id: string;
@@ -58,19 +60,20 @@ export default function ProfilePage() {
           <h2 className="text-sm font-semibold text-text">Nombre de la flota</h2>
           <p className="text-xs text-[#999999]">Nombre identificador de tu flota</p>
 
-          <input
+          <Input
             type="text"
             value={fleetName}
             onChange={(e) => setFleetName(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-border bg-transparent text-[13px] text-text outline-none focus:border-text transition-colors"
+            className="h-10"
           />
 
-          <button
+          <Button
             onClick={handleSaveFleetName}
-            className="w-40 h-10 rounded-xl bg-text text-white text-[13px] font-semibold hover:bg-text/90 transition-colors"
+            variant="primary"
+            className="w-40 h-10"
           >
             Guardar cambios
-          </button>
+          </Button>
         </div>
 
         {/* Personal Data Section */}
@@ -143,12 +146,13 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div style={{ width: 150 }}>
-                  <button
+                  <Button
                     onClick={() => handleReplaceDocument(doc.id)}
-                    className="text-xs font-medium text-info hover:opacity-70 transition-opacity"
+                    variant="link"
+                    className="h-auto p-0 text-xs text-info"
                   >
                     Reemplazar
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

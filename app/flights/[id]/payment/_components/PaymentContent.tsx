@@ -254,6 +254,7 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
 
     // Show expired dialog whenever the countdown reaches zero
     React.useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (expired) setShowExpiredDialog(true);
     }, [expired]);
 
@@ -277,6 +278,7 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                 ? `${flight.departure_airport.iata_code} → ${flight.arrival_airport.iata_code} · Avión completo`
                 : `${flight.departure_airport.iata_code} → ${flight.arrival_airport.iata_code} · ${seatsRequested} ${seatsRequested === 1 ? "asiento" : "asientos"}`;
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIntentLoading(true);
 
         fetch("/api/payments/intent", {

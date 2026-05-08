@@ -3,6 +3,7 @@
 import React from "react";
 import { Eye, Edit2 } from "lucide-react";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
+import { IconButton } from "@/components/atoms/IconButton";
 
 export interface CrewMember {
   id: string;
@@ -83,20 +84,20 @@ export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit }) =>
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-2 pt-2">
-        <button
+        <IconButton
           onClick={() => onView(member.id)}
-          className="p-0 hover:opacity-70 transition-opacity"
+          icon={<Eye className="w-[18px] h-[18px] text-info" strokeWidth={1.5} />}
+          variant="default"
+          size="sm"
           aria-label="Ver detalles"
-        >
-          <Eye className="w-[18px] h-[18px] text-info" strokeWidth={1.5} />
-        </button>
-        <button
+        />
+        <IconButton
           onClick={() => onEdit(member.id)}
-          className="p-0 hover:opacity-70 transition-opacity"
+          icon={<Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+          variant="default"
+          size="sm"
           aria-label="Editar"
-        >
-          <Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />
-        </button>
+        />
       </div>
     </div>
   );

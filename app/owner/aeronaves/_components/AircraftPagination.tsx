@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
 
 export interface AircraftPaginationProps {
   currentPage: number;
@@ -47,37 +48,36 @@ export const AircraftPagination: React.FC<AircraftPaginationProps> = ({
       {/* Pagination Controls */}
       <div className="flex items-center gap-3">
         {/* Previous Button */}
-        <button
+        <Button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-9 h-9 rounded-md border border-border flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral/10 transition-colors"
+          variant="outline"
+          className="w-9 h-9 rounded-md p-0"
         >
-          <ChevronLeft className="w-4 h-4 text-muted" />
-        </button>
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
 
         {/* Page Numbers */}
         {getPageNumbers().map((page) => (
-          <button
+          <Button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`w-9 h-9 rounded-md text-caption font-semibold transition-colors ${
-              currentPage === page
-                ? "bg-text text-white"
-                : "border border-border text-muted hover:bg-neutral/10"
-            }`}
+            variant={currentPage === page ? "primary" : "outline"}
+            className="w-9 h-9 rounded-md p-0"
           >
             {page}
-          </button>
+          </Button>
         ))}
 
         {/* Next Button */}
-        <button
+        <Button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-9 h-9 rounded-md border border-border flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral/10 transition-colors"
+          variant="outline"
+          className="w-9 h-9 rounded-md p-0"
         >
-          <ChevronRight className="w-4 h-4 text-muted" />
-        </button>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Results Info */}

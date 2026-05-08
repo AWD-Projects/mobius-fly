@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { Select } from "@/components/atoms/Select";
+import { Button } from "@/components/atoms/Button";
 
 export interface AircraftFilters {
   base?: string;
@@ -29,71 +31,68 @@ export const AircraftFilterBar: React.FC<AircraftFilterBarProps> = ({
       {/* Base Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Base</label>
-        <select
+        <Select
           value={filters.base || ""}
           onChange={(e) => handleFilterChange("base", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todas</option>
           <option value="madrid">Madrid (MAD)</option>
           <option value="barcelona">Barcelona (BCN)</option>
           <option value="sevilla">Sevilla (SVQ)</option>
           <option value="malaga">Málaga (AGP)</option>
-        </select>
+        </Select>
       </div>
 
       {/* Type Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Tipo</label>
-        <select
+        <Select
           value={filters.type || ""}
           onChange={(e) => handleFilterChange("type", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todos</option>
           <option value="jet">Jet Ejecutivo</option>
           <option value="turboprop">Turbohélice</option>
           <option value="light">Jet Ligero</option>
-        </select>
+        </Select>
       </div>
 
       {/* Capacity Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Capacidad</label>
-        <select
+        <Select
           value={filters.capacity || ""}
           onChange={(e) => handleFilterChange("capacity", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todas</option>
           <option value="small">1-8 pasajeros</option>
           <option value="medium">9-16 pasajeros</option>
           <option value="large">17+ pasajeros</option>
-        </select>
+        </Select>
       </div>
 
       {/* Status Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Estado</label>
-        <select
+        <Select
           value={filters.status || ""}
           onChange={(e) => handleFilterChange("status", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todos</option>
           <option value="active">Activo</option>
           <option value="maintenance">Mantenimiento</option>
           <option value="inactive">Inactivo</option>
-        </select>
+        </Select>
       </div>
 
       {/* Clear Filters Button */}
-      <button
+      <Button
         onClick={onClearFilters}
-        className="h-10 px-3 text-small font-medium text-muted hover:text-text transition-colors border border-border rounded-lg"
+        variant="outline"
+        className="h-10 px-3"
       >
         Limpiar filtros
-      </button>
+      </Button>
     </div>
   );
 };

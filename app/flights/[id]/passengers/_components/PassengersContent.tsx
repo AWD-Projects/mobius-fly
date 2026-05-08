@@ -96,6 +96,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         const first = store.passengers[0];
         if (!first || first.slotType !== "adult" || first.isCompleted) return;
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoadingDocument(true);
         fetch("/api/auth/my-document")
             .then((res) => res.json())

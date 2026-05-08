@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { KpiCard } from "@/components/organisms/KpiCard";
 import { AttentionSectionCard } from "@/components/organisms/AttentionSectionCard";
@@ -145,27 +146,30 @@ export default function OwnerDashboardPage() {
 
         {/* Quick Actions */}
         <div className="flex items-center gap-3">
-          <button
+          <Button
             onClick={handleNewFlight}
-            className="px-4 h-10 rounded-xl border border-border bg-white text-small font-medium text-text hover:bg-neutral/10 transition-colors flex items-center gap-2"
+            variant="outline"
+            className="px-4 h-10 flex items-center gap-2"
           >
             <Plane className="w-4 h-4" />
             Nuevo vuelo
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleNewAircraft}
-            className="px-4 h-10 rounded-xl border border-border bg-white text-small font-medium text-muted hover:bg-neutral/10 transition-colors flex items-center gap-2"
+            variant="outline"
+            className="px-4 h-10 flex items-center gap-2"
           >
             <Plane className="w-4 h-4" />
             Agregar aeronave
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleNewCrew}
-            className="px-4 h-10 rounded-xl border border-border bg-white text-small font-medium text-muted hover:bg-neutral/10 transition-colors flex items-center gap-2"
+            variant="outline"
+            className="px-4 h-10 flex items-center gap-2"
           >
             <Users className="w-4 h-4" />
             Agregar tripulación
-          </button>
+          </Button>
         </div>
       </div>
 

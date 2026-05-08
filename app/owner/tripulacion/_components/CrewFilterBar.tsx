@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { Select } from "@/components/atoms/Select";
+import { Button } from "@/components/atoms/Button";
 
 export interface CrewFilters {
   role?: string;
@@ -28,55 +30,53 @@ export const CrewFilterBar: React.FC<CrewFilterBarProps> = ({
       {/* Rol Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Rol</label>
-        <select
+        <Select
           value={filters.role || ""}
           onChange={(e) => handleFilterChange("role", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todos</option>
           <option value="pilot">Piloto</option>
           <option value="copilot">Copiloto</option>
           <option value="cabin-crew">TCP</option>
-        </select>
+        </Select>
       </div>
 
       {/* Base Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Base</label>
-        <select
+        <Select
           value={filters.base || ""}
           onChange={(e) => handleFilterChange("base", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todas</option>
           <option value="madrid">Madrid (MAD)</option>
           <option value="barcelona">Barcelona (BCN)</option>
           <option value="sevilla">Sevilla (SVQ)</option>
-        </select>
+        </Select>
       </div>
 
       {/* Estado Filter */}
       <div className="flex flex-col gap-1.5 w-[140px]">
         <label className="text-caption font-medium text-muted">Estado</label>
-        <select
+        <Select
           value={filters.status || ""}
           onChange={(e) => handleFilterChange("status", e.target.value)}
-          className="h-10 px-3 rounded-lg border border-border bg-background text-small"
         >
           <option value="">Todos</option>
           <option value="active">Activo</option>
           <option value="inactive">Inactivo</option>
           <option value="pending">Pendiente</option>
-        </select>
+        </Select>
       </div>
 
       {/* Clear Filters Button */}
-      <button
+      <Button
         onClick={onClearFilters}
-        className="h-10 px-3 text-small font-medium text-muted hover:text-text transition-colors border border-border rounded-lg"
+        variant="outline"
+        className="h-10 px-3"
       >
         Limpiar filtros
-      </button>
+      </Button>
     </div>
   );
 };

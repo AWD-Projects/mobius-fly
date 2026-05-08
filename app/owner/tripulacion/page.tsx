@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { CrewFilterBar, CrewFilters } from "./_components/CrewFilterBar";
 import { CrewCard, CrewMember } from "./_components/CrewCard";
 import { CrewPagination } from "./_components/CrewPagination";
@@ -155,13 +156,14 @@ export default function CrewListPage() {
         {/* Section Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-small font-semibold text-text">Tripulación disponibles</h2>
-          <button
+          <Button
             onClick={handleNewCrew}
-            className="h-10 px-4 rounded-xl bg-text text-white text-small font-medium hover:bg-text/90 transition-colors flex items-center gap-2"
+            variant="primary"
+            className="h-10 px-4 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Nueva tripulación
-          </button>
+          </Button>
         </div>
 
         {/* Crew Grid */}

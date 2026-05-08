@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { AircraftFilterBar, AircraftFilters } from "./_components/AircraftFilterBar";
 import { AircraftTable, Aircraft } from "./_components/AircraftTable";
 import { AircraftPagination } from "./_components/AircraftPagination";
@@ -168,13 +169,14 @@ export default function AircraftListPage() {
         {/* Table Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-small font-semibold text-text">Flota activa</h2>
-          <button
+          <Button
             onClick={handleNewAircraft}
-            className="h-10 px-4 rounded-xl bg-text text-white text-small font-medium hover:bg-text/90 transition-colors flex items-center gap-2"
+            variant="primary"
+            className="h-10 px-4 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Nueva aeronave
-          </button>
+          </Button>
         </div>
 
         {/* Aircraft Table */}

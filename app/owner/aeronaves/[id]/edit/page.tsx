@@ -2,10 +2,27 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Image as ImageIcon, File } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
+import { InputGroup } from "@/components/molecules/InputGroup";
+import { SelectGroup } from "@/components/molecules/SelectGroup";
+import { ImageUpload } from "@/components/molecules/ImageUpload";
+import { DocumentUpload } from "@/components/molecules/DocumentUpload";
+
+interface AircraftFormData {
+  model: string;
+  registration: string;
+  year: string;
+  seats: string;
+  baseAirport: string;
+  images: File[];
+  proofOfOwnership: File | null;
+  permits: File | null;
+  powerOfAttorney: File | null;
+}
 
 // Mock data - en producción esto vendría de una API
-const mockAircraftData: Record<string, any> = {
+const mockAircraftData: Record<string, Omit<AircraftFormData, 'images' | 'proofOfOwnership' | 'permits' | 'powerOfAttorney'>> = {
   "1": {
     model: "Gulfstream G650",
     registration: "EC-MBX",
@@ -43,7 +60,13 @@ export default function EditAircraftPage() {
     baseAirport: "",
   };
 
-  const [formData, setFormData] = useState(existingAircraft);
+  const [formData, setFormData] = useState<AircraftFormData>({
+    ...existingAircraft,
+    images: [],
+    proofOfOwnership: null,
+    permits: null,
+    powerOfAttorney: null,
+  });
 
   const handleBack = () => {
     router.push(`/owner/aeronaves/${aircraftId}`);
@@ -63,13 +86,14 @@ export default function EditAircraftPage() {
     <div className="w-full bg-[#f6f6f4] min-h-screen">
       {/* Header Section */}
       <div className="px-12 py-8">
-        <button
+        <Button
           onClick={handleBack}
-          className="flex items-center gap-3 mb-5 text-sm font-medium text-text hover:opacity-70 transition-opacity"
+          variant="link"
+          className="flex items-center gap-3 mb-5 p-0 text-sm font-medium text-text hover:opacity-70"
         >
           <ArrowLeft className="w-6 h-6" />
           Volver a la aeronave
-        </button>
+        </Button>
 
         <div className="flex flex-col gap-2">
           <h1 className="text-[32px] font-semibold text-text">Editar aeronave</h1>
@@ -86,101 +110,74 @@ export default function EditAircraftPage() {
           <h2 className="text-[11px] font-semibold text-text">Información general</h2>
 
           <div className="flex flex-col gap-4">
-            {/* Model */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Modelo de la aeronave</label>
-              <input
-                type="text"
-                value={formData.model}
-                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                placeholder="p. ej. Cessna 208B Grand Caravan"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Modelo de la aeronave"
+              type="text"
+              value={formData.model}
+              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              placeholder="p. ej. Cessna 208B Grand Caravan"
+            />
 
-            {/* Registration */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Matrícula / Tail number</label>
-              <input
-                type="text"
-                value={formData.registration}
-                onChange={(e) => setFormData({ ...formData, registration: e.target.value })}
-                placeholder="p. ej. N2345XY"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Matrícula / Tail number"
+              type="text"
+              value={formData.registration}
+              onChange={(e) => setFormData({ ...formData, registration: e.target.value })}
+              placeholder="p. ej. N2345XY"
+            />
 
-            {/* Year */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Año del avión</label>
-              <input
-                type="text"
-                value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                placeholder="p. ej. 2020"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Año del avión"
+              type="text"
+              value={formData.year}
+              onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+              placeholder="p. ej. 2020"
+            />
 
-            {/* Seats */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Número de asientos</label>
-              <input
-                type="text"
-                value={formData.seats}
-                onChange={(e) => setFormData({ ...formData, seats: e.target.value })}
-                placeholder="p. ej. 8"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Número de asientos"
+              type="text"
+              value={formData.seats}
+              onChange={(e) => setFormData({ ...formData, seats: e.target.value })}
+              placeholder="p. ej. 8"
+            />
 
-            {/* Base Airport */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Aeropuerto base</label>
-              <select
-                value={formData.baseAirport}
-                onChange={(e) => setFormData({ ...formData, baseAirport: e.target.value })}
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs text-text outline-none focus:border-text transition-colors"
-              >
-                <option value="" disabled className="text-[#CCCCCC]">
-                  Selecciona un aeropuerto
-                </option>
-                <option value="madrid">Madrid (MAD)</option>
-                <option value="barcelona">Barcelona (BCN)</option>
-                <option value="sevilla">Sevilla (SVQ)</option>
-                <option value="malaga">Málaga (AGP)</option>
-                <option value="valencia">Valencia (VLC)</option>
-              </select>
-            </div>
+            <SelectGroup
+              label="Aeropuerto base"
+              value={formData.baseAirport}
+              onChange={(e) => setFormData({ ...formData, baseAirport: e.target.value })}
+            >
+              <option value="" disabled className="text-[#CCCCCC]">
+                Selecciona un aeropuerto
+              </option>
+              <option value="madrid">Madrid (MAD)</option>
+              <option value="barcelona">Barcelona (BCN)</option>
+              <option value="sevilla">Sevilla (SVQ)</option>
+              <option value="malaga">Málaga (AGP)</option>
+              <option value="valencia">Valencia (VLC)</option>
+            </SelectGroup>
           </div>
         </div>
 
         {/* Images Section */}
         <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
           <h2 className="text-[11px] font-semibold text-text">Imágenes de la aeronave</h2>
+          <p className="text-xs text-[#666666]">
+            Sube múltiples fotografías de tu aeronave
+          </p>
 
-          <div className="flex flex-col gap-3">
-            <p className="text-xs text-[#666666]">
-              Sube múltiples fotografías de tu aeronave
-            </p>
+          <ImageUpload
+            accept="image/png,image/jpeg,image/jpg"
+            onUpload={(file: File) => {
+              setFormData((prev) => ({ ...prev, images: [...prev.images, file] }));
+            }}
+            pendingTitle="Arrastra imágenes aquí o haz clic para cargar"
+            pendingDescription="PNG, JPG (máximo 5 MB cada una)"
+          />
 
-            {/* Upload Area */}
-            <div className="flex flex-col items-center justify-center gap-4 h-[120px] border-2 border-border rounded-xl bg-[#F9F9F7] cursor-pointer hover:bg-[#f5f5f3] transition-colors">
-              <ImageIcon className="w-8 h-8 text-[#999999]" />
-              <div className="flex flex-col items-center gap-1">
-                <p className="text-[13px] font-medium text-text">
-                  Arrastra imágenes aquí o haz clic para cargar
-                </p>
-                <p className="text-[11px] text-[#999999]">
-                  PNG, JPG (máximo 5 MB cada una)
-                </p>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-[#666666]">
-              Estas imágenes serán visibles para Mobius durante la validación
-            </p>
-          </div>
+          <p className="text-[11px] text-[#666666]">
+            Estas imágenes serán visibles para Mobius durante la validación
+          </p>
         </div>
 
         {/* Documentation Section */}
@@ -192,70 +189,51 @@ export default function EditAircraftPage() {
               Todos los documentos serán revisados manualmente por Mobius Fly
             </p>
 
-            {/* Proof of Ownership */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-text">Proof of ownership</label>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col items-center justify-center gap-4 h-[132px] border border-border rounded-xl bg-[#F9F9F7] cursor-pointer hover:bg-[#f5f5f3] transition-colors">
-                  <File className="w-8 h-8 text-[#999999]" />
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-[13px] font-medium text-text">
-                      Arrastra un PDF aquí o haz clic para cargar
-                    </p>
-                    <p className="text-[11px] text-[#999999]">Máximo 10 MB</p>
-                  </div>
-                </div>
-              </div>
+              <DocumentUpload
+                accept=".pdf"
+                onUpload={(file: File) => setFormData({ ...formData, proofOfOwnership: file })}
+                pendingDescription="Máximo 10 MB"
+              />
             </div>
 
-            {/* Permits AFAC/DGAC */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-text">Permisos AFAC / DGAC</label>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col items-center justify-center gap-4 h-[132px] border border-border rounded-xl bg-[#F9F9F7] cursor-pointer hover:bg-[#f5f5f3] transition-colors">
-                  <File className="w-8 h-8 text-[#999999]" />
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-[13px] font-medium text-text">
-                      Arrastra un PDF aquí o haz clic para cargar
-                    </p>
-                    <p className="text-[11px] text-[#999999]">Máximo 10 MB</p>
-                  </div>
-                </div>
-              </div>
+              <DocumentUpload
+                accept=".pdf"
+                onUpload={(file: File) => setFormData({ ...formData, permits: file })}
+                pendingDescription="Máximo 10 MB"
+              />
             </div>
 
-            {/* Power of Attorney */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-text">Carta poder notariada</label>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col items-center justify-center gap-4 h-[132px] border border-border rounded-xl bg-[#F9F9F7] cursor-pointer hover:bg-[#f5f5f3] transition-colors">
-                  <File className="w-8 h-8 text-[#999999]" />
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-[13px] font-medium text-text">
-                      Arrastra un PDF aquí o haz clic para cargar
-                    </p>
-                    <p className="text-[11px] text-[#999999]">Máximo 10 MB</p>
-                  </div>
-                </div>
-              </div>
+              <DocumentUpload
+                accept=".pdf"
+                onUpload={(file: File) => setFormData({ ...formData, powerOfAttorney: file })}
+                pendingDescription="Máximo 10 MB"
+              />
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-center gap-4 pt-8">
-          <button
+          <Button
             onClick={handleUpdate}
-            className="w-60 h-10 rounded-xl bg-text text-white text-[13px] font-semibold hover:bg-text/90 transition-colors"
+            variant="primary"
+            className="w-60 h-10"
           >
             Actualizar aeronave
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleCancel}
-            className="w-60 h-10 rounded-xl bg-white border border-border text-[13px] font-semibold text-text hover:bg-neutral/5 transition-colors"
+            variant="outline"
+            className="w-60 h-10"
           >
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     </div>

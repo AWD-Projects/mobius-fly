@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { FlightsFilterBar, FlightsFilters } from "./_components/FlightsFilterBar";
 import { FlightsTable, Flight } from "./_components/FlightsTable";
@@ -157,13 +158,14 @@ export default function FlightsListPage() {
         {/* Table Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-small font-semibold text-text">Vuelos próximos</h2>
-          <button
+          <Button
             onClick={handleNewFlight}
-            className="h-10 px-4 rounded-xl bg-text text-white text-small font-medium hover:bg-text/90 transition-colors flex items-center gap-2"
+            variant="primary"
+            className="h-10 px-4 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Nuevo vuelo
-          </button>
+          </Button>
         </div>
 
         {/* Flights Table */}

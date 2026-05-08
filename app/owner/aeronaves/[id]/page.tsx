@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { Image } from "lucide-react";
 
@@ -165,12 +166,13 @@ export default function AircraftDetailPage() {
                 <Image className="w-8 h-8 text-muted/40" />
               </div>
             </div>
-            <button
+            <Button
               onClick={handleViewMore}
-              className="w-full h-10 rounded-xl border border-border text-xs font-medium text-muted hover:bg-neutral/5 transition-colors flex items-center justify-center gap-2"
+              variant="outline"
+              className="w-full h-10"
             >
               Ver más
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -235,19 +237,21 @@ export default function AircraftDetailPage() {
           <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-3">
             <h2 className="text-sm font-semibold text-text">Acciones</h2>
 
-            <button
+            <Button
               onClick={handleMarkMaintenance}
-              className="w-full h-10 rounded-xl bg-text text-white text-xs font-medium hover:bg-text/90 transition-colors"
+              variant="primary"
+              className="w-full h-10"
             >
               Marcar como mantenimiento
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={handleEdit}
-              className="w-full h-10 rounded-xl border border-border text-xs font-medium text-muted hover:bg-neutral/5 transition-colors"
+              variant="outline"
+              className="w-full h-10"
             >
               Editar aeronave
-            </button>
+            </Button>
           </div>
         </div>
       </div>

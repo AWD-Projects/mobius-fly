@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 
 interface AssignedFlight {
@@ -274,19 +275,21 @@ export default function CrewDetailPage() {
           <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-3">
             <h2 className="text-[13px] font-semibold text-text">Acciones</h2>
 
-            <button
+            <Button
               onClick={handleMarkUnavailable}
-              className="w-full h-10 rounded-xl bg-text text-white text-xs font-medium hover:bg-text/90 transition-colors"
+              variant="primary"
+              className="w-full h-10"
             >
               Marcar como No disponible
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={handleEdit}
-              className="w-full h-10 rounded-xl border border-border text-xs font-medium text-[#666666] hover:bg-neutral/5 transition-colors"
+              variant="outline"
+              className="w-full h-10"
             >
               Editar tripulante
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/molecules/Table";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
+import { IconButton } from "@/components/atoms/IconButton";
 import { Pencil, Eye } from "lucide-react";
 
 export interface Aircraft {
@@ -81,20 +82,20 @@ export const AircraftTable: React.FC<AircraftTableProps> = ({ aircraft, onView, 
             </TableCell>
             <TableCell style={{ flex: 1 }}>
               <div className="flex items-center gap-3">
-                <button
+                <IconButton
                   onClick={() => onView(item.id)}
-                  className="p-0 hover:opacity-70 transition-opacity"
+                  icon={<Eye className="w-[18px] h-[18px] text-info" strokeWidth={1.5} />}
+                  variant="default"
+                  size="sm"
                   aria-label="Ver detalles"
-                >
-                  <Eye className="w-[18px] h-[18px] text-info" strokeWidth={1.5} />
-                </button>
-                <button
+                />
+                <IconButton
                   onClick={() => onEdit(item.id)}
-                  className="p-0 hover:opacity-70 transition-opacity"
+                  icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+                  variant="default"
+                  size="sm"
                   aria-label="Editar"
-                >
-                  <Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />
-                </button>
+                />
               </div>
             </TableCell>
           </TableRow>

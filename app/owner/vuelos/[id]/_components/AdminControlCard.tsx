@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "@/components/atoms/Button";
 import { Download } from "lucide-react";
 
 export interface Passenger {
@@ -88,13 +89,14 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
         </div>
 
         {/* Download Link */}
-        <button
+        <Button
           onClick={onDownloadManifest}
-          className="flex items-center justify-center gap-1.5 w-full pt-3 text-xs font-medium text-[#666666] hover:text-text transition-colors"
+          variant="ghost"
+          className="flex items-center justify-center gap-1.5 w-full pt-3 h-auto"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Descargar manifiesto PDF</span>
-        </button>
+        </Button>
       </div>
 
       {/* Actions Section */}
@@ -103,20 +105,22 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
 
         <div className="flex flex-col gap-4">
           {/* Primary CTA */}
-          <button
+          <Button
             onClick={onMarkInFlight}
-            className="w-full h-12 rounded-xl bg-text text-white text-sm font-medium hover:bg-text/90 transition-colors"
+            variant="primary"
+            className="w-full h-12"
           >
             Marcar como En vuelo
-          </button>
+          </Button>
 
           {/* Secondary CTA */}
-          <button
+          <Button
             onClick={onEditFlight}
-            className="w-full h-12 rounded-xl border border-border text-sm font-medium text-[#666666] hover:bg-neutral/5 transition-colors"
+            variant="outline"
+            className="w-full h-12"
           >
             Editar vuelo
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
+import { InputGroup } from "@/components/molecules/InputGroup";
+import { SelectGroup } from "@/components/molecules/SelectGroup";
 
 export default function AddCrewMemberPage() {
   const router = useRouter();
@@ -34,13 +37,14 @@ export default function AddCrewMemberPage() {
     <div className="w-full bg-[#f6f6f4] min-h-screen">
       {/* Header Section */}
       <div className="px-12 py-8">
-        <button
+        <Button
           onClick={handleBack}
-          className="flex items-center gap-3 mb-5 text-sm font-medium text-text hover:opacity-70 transition-opacity"
+          variant="link"
+          className="flex items-center gap-3 mb-5 p-0 text-sm font-medium text-text hover:opacity-70"
         >
           <ArrowLeft className="w-6 h-6" />
           Volver a tripulación
-        </button>
+        </Button>
 
         <div className="flex flex-col gap-2">
           <h1 className="text-[32px] font-semibold text-text">Agregar tripulante</h1>
@@ -57,92 +61,72 @@ export default function AddCrewMemberPage() {
           <h2 className="text-[11px] font-semibold text-text">Información del tripulante</h2>
 
           <div className="flex flex-col gap-4">
-            {/* First Name */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Nombre(s)</label>
-              <input
-                type="text"
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                placeholder="p. ej. Juan"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Nombre(s)"
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              placeholder="p. ej. Juan"
+            />
 
-            {/* Last Name */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Apellido(s)</label>
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                placeholder="p. ej. Pérez García"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Apellido(s)"
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              placeholder="p. ej. Pérez García"
+            />
 
-            {/* Role */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Rol del tripulante</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs text-text outline-none focus:border-text transition-colors"
-              >
-                <option value="" disabled className="text-[#CCCCCC]">
-                  Selecciona un rol
-                </option>
-                <option value="capitan">Capitán / Piloto</option>
-                <option value="copiloto">Copiloto / Piloto</option>
-                <option value="tcp">TCP / Sobrecargo</option>
-                <option value="mecanico">Mecánico</option>
-                <option value="asistente">Asistente de vuelo</option>
-              </select>
-              <p className="text-[11px] text-[#999999]">
-                El rol define la disponibilidad del tripulante en diferentes tipos de vuelos
-              </p>
-            </div>
+            <SelectGroup
+              label="Rol del tripulante"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              helperText="El rol define la disponibilidad del tripulante en diferentes tipos de vuelos"
+            >
+              <option value="" disabled className="text-[#CCCCCC]">
+                Selecciona un rol
+              </option>
+              <option value="capitan">Capitán / Piloto</option>
+              <option value="copiloto">Copiloto / Piloto</option>
+              <option value="tcp">TCP / Sobrecargo</option>
+              <option value="mecanico">Mecánico</option>
+              <option value="asistente">Asistente de vuelo</option>
+            </SelectGroup>
 
-            {/* License Number */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Número de licencia</label>
-              <input
-                type="text"
-                value={formData.licenseNumber}
-                onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                placeholder="p. ej. PEC-2023-45678"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Número de licencia"
+              type="text"
+              value={formData.licenseNumber}
+              onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
+              placeholder="p. ej. PEC-2023-45678"
+            />
 
-            {/* Contact Number */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text">Número de contacto</label>
-              <input
-                type="tel"
-                value={formData.contactNumber}
-                onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-                placeholder="p. ej. +52 5566 7766 43"
-                className="h-10 px-3 rounded-lg border border-border bg-transparent text-xs placeholder:text-[#CCCCCC] outline-none focus:border-text transition-colors"
-              />
-            </div>
+            <InputGroup
+              label="Número de contacto"
+              type="tel"
+              value={formData.contactNumber}
+              onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
+              placeholder="p. ej. +52 5566 7766 43"
+            />
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-center gap-4 pt-8">
-          <button
+          <Button
             onClick={handleSave}
-            className="w-60 h-10 rounded-xl bg-text text-white text-sm font-medium hover:bg-text/90 transition-colors"
+            variant="primary"
+            className="w-60 h-10"
           >
             Guardar tripulante
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleCancel}
-            className="w-60 h-10 rounded-xl bg-white border border-border text-sm font-medium text-text hover:bg-neutral/5 transition-colors"
+            variant="outline"
+            className="w-60 h-10"
           >
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     </div>
