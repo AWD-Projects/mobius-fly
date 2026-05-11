@@ -226,6 +226,70 @@ export async function updateCrewMemberStatus(
     return { error: null };
 }
 
+// ─── deleteCrewMember ─────────────────────────────────────────────────────────
+
+export async function deleteCrewMember(
+    crewId:  string,
+    ownerId: string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    // 1. Get flight IDs this crew member is assigned to
+    const { data: assignments } = await supabase
+        .from("flight_crew")
+        .select("flight_id")
+        .eq("crew_member_id", crewId);
+
+    const flightIds = ((assignments ?? []) as any[]).map((a) => a.flight_id);
+
+    // 2. Check if any of those flights are still active
+    if (flightIds.length > 0) {
+        const { data: activeStatuses } = await supabase
+            .from("flight_status")
+            .select("id")
+            .in("code", ["SCHEDULED", "DELAYED", "IN_FLIGHT", "ON_TIME"]);
+
+        const activeStatusIds = ((activeStatuses ?? []) as any[]).map((s) => s.id);
+
+        const { count } = await supabase
+            .from("flights")
+            .select("id", { count: "exact", head: true })
+            .in("id", flightIds)
+            .in("status_id", activeStatusIds);
+
+        if ((count ?? 0) > 0) {
+            return { error: "No se puede eliminar: el tripulante tiene vuelos activos asignados." };
+        }
+    }
+
+    // 3. Remove flight_crew entries (NO ACTION FK — must clean up manually)
+    if (flightIds.length > 0) {
+        const { error: fcError } = await supabase
+            .from("flight_crew")
+            .delete()
+            .eq("crew_member_id", crewId);
+
+        if (fcError) {
+            console.error("[deleteCrewMember] flight_crew:", fcError.message);
+            return { error: fcError.message };
+        }
+    }
+
+    // 4. Delete crew member (crew_documents cascade automatically)
+    const { error } = await supabase
+        .from("crew_members")
+        .delete()
+        .eq("id", crewId)
+        .eq("owner_id", ownerId);
+
+    if (error) {
+        console.error("[deleteCrewMember] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
+}
+
 // ─── getCrewList ──────────────────────────────────────────────────────────────
 
 export async function getCrewList(userId: string): Promise<CrewListItem[]> {

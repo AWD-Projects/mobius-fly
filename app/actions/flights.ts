@@ -720,6 +720,56 @@ export async function updateFlight(
     return { error: null };
 }
 
+// ─── deleteFlight ─────────────────────────────────────────────────────────────
+
+export async function deleteFlight(
+    flightId: string,
+    ownerId:  string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    // Block if any CONFIRMED reservations exist (NO ACTION FK)
+    const { count: resCount } = await supabase
+        .from("reservations")
+        .select("id", { count: "exact", head: true })
+        .eq("flight_id", flightId)
+        .not("status_id", "is", null);
+
+    // Resolve CANCELLED/REFUNDED status IDs to exclude them
+    const { data: cancelledStatuses } = await supabase
+        .from("reservation_status")
+        .select("id")
+        .in("code", ["CANCELLED", "REFUNDED"]);
+
+    const cancelledIds = (cancelledStatuses ?? []).map((s: { id: string }) => s.id);
+
+    const { count: activeResCount } = cancelledIds.length > 0
+        ? await supabase
+            .from("reservations")
+            .select("id", { count: "exact", head: true })
+            .eq("flight_id", flightId)
+            .not("status_id", "in", `(${cancelledIds.join(",")})`)
+        : { count: resCount };
+
+    if ((activeResCount ?? 0) > 0) {
+        return { error: "No se puede eliminar: el vuelo tiene reservaciones activas. Cancélalas primero." };
+    }
+
+    // Delete flight (flight_crew, flight_manifests, flight_reviews cascade)
+    const { error } = await supabase
+        .from("flights")
+        .delete()
+        .eq("id", flightId)
+        .eq("owner_id", ownerId);
+
+    if (error) {
+        console.error("[deleteFlight] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
+}
+
 // ─── getAirports ──────────────────────────────────────────────────────────────
 
 export async function getAirports(): Promise<Airport[]> {

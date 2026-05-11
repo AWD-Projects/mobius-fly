@@ -9,7 +9,15 @@ export default async function CrewListPage() {
 
     if (!user) redirect("/login");
 
+    const { data: owner } = await supabase
+        .from("owners")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+    if (!owner) redirect("/owner/dashboard");
+
     const crew = await getCrewList(user.id);
 
-    return <CrewListContent crew={crew} />;
+    return <CrewListContent crew={crew} ownerId={owner.id} />;
 }

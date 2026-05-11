@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Eye, Edit2 } from "lucide-react";
+import React, { useState } from "react";
+import { Eye, Edit2, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { IconButton } from "@/components/atoms/IconButton";
 
@@ -15,9 +15,10 @@ export interface CrewMember {
 }
 
 export interface CrewCardProps {
-  member: CrewMember;
-  onView: (id: string) => void;
-  onEdit: (id: string) => void;
+  member:    CrewMember;
+  onView:    (id: string) => void;
+  onEdit:    (id: string) => void;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const statusConfig = {
@@ -26,8 +27,10 @@ const statusConfig = {
   pending: { label: "Pendiente", status: "pending" as const },
 };
 
-export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit }) => {
-  // Generar iniciales del nombre
+export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit, onDelete }) => {
+  const [confirming, setConfirming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getInitials = (name: string) => {
     const parts = name.split(" ");
     if (parts.length >= 2) {
@@ -37,6 +40,14 @@ export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit }) =>
   };
 
   const initials = getInitials(member.name);
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    await onDelete(member.id);
+    setIsDeleting(false);
+    setConfirming(false);
+  };
 
   return (
     <div className="w-full bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
@@ -83,22 +94,53 @@ export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit }) =>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-2 pt-2">
-        <IconButton
-          onClick={() => onView(member.id)}
-          icon={<Eye className="w-[18px] h-[18px] text-info" strokeWidth={1.5} />}
-          variant="default"
-          size="sm"
-          aria-label="Ver detalles"
-        />
-        <IconButton
-          onClick={() => onEdit(member.id)}
-          icon={<Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
-          variant="default"
-          size="sm"
-          aria-label="Editar"
-        />
-      </div>
+      {!confirming ? (
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <IconButton
+            onClick={() => onView(member.id)}
+            icon={<Eye className="w-[18px] h-[18px] text-info" strokeWidth={1.5} />}
+            variant="default"
+            size="sm"
+            aria-label="Ver detalles"
+          />
+          <IconButton
+            onClick={() => onEdit(member.id)}
+            icon={<Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+            variant="default"
+            size="sm"
+            aria-label="Editar"
+          />
+          {onDelete && (
+            <IconButton
+              onClick={() => setConfirming(true)}
+              icon={<Trash2 className="w-[18px] h-[18px] text-red-400" strokeWidth={1.5} />}
+              variant="default"
+              size="sm"
+              aria-label="Eliminar"
+            />
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 pt-2">
+          <p className="text-[10px] text-center text-[#666666]">¿Eliminar tripulante?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={isDeleting}
+              className="flex-1 h-8 rounded-lg border border-border text-[11px] text-muted hover:bg-[#f6f6f4] transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="flex-1 h-8 rounded-lg border border-red-200 text-[11px] text-red-600 hover:bg-red-50 transition-colors"
+            >
+              {isDeleting ? "..." : "Confirmar"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

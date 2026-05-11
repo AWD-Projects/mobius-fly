@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
     Table,
     TableHeader,
@@ -11,7 +11,7 @@ import {
 } from "@/components/molecules/Table";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { IconButton } from "@/components/atoms/IconButton";
-import { Pencil, Eye } from "lucide-react";
+import { Pencil, Eye, Trash2 } from "lucide-react";
 
 export interface Flight {
     id:       string;
@@ -24,9 +24,53 @@ export interface Flight {
 }
 
 export interface FlightsTableProps {
-    flights: Flight[];
-    onView?: (id: string) => void;
-    onEdit:  (id: string) => void;
+    flights:  Flight[];
+    onView?:  (id: string) => void;
+    onEdit:   (id: string) => void;
+    onDelete?:(id: string) => Promise<void>;
+}
+
+function DeleteCell({ id, onDelete }: { id: string; onDelete: (id: string) => Promise<void> }) {
+    const [confirming, setConfirming] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirm = async () => {
+        setIsDeleting(true);
+        await onDelete(id);
+        setIsDeleting(false);
+        setConfirming(false);
+    };
+
+    if (!confirming) {
+        return (
+            <IconButton
+                onClick={() => setConfirming(true)}
+                icon={<Trash2 className="w-[18px] h-[18px] text-red-400" strokeWidth={1.5} />}
+                variant="default"
+                size="sm"
+                aria-label="Eliminar"
+            />
+        );
+    }
+
+    return (
+        <div className="flex gap-1.5 items-center">
+            <button
+                onClick={() => setConfirming(false)}
+                disabled={isDeleting}
+                className="h-7 px-2 rounded border border-border text-[10px] text-muted hover:bg-[#f6f6f4] transition-colors"
+            >
+                Cancelar
+            </button>
+            <button
+                onClick={handleConfirm}
+                disabled={isDeleting}
+                className="h-7 px-2 rounded border border-red-200 text-[10px] text-red-600 hover:bg-red-50 transition-colors"
+            >
+                {isDeleting ? "..." : "Confirmar"}
+            </button>
+        </div>
+    );
 }
 
 const statusConfig: Record<Flight["status"], { label: string; status: "pending" | "info" | "success" | "inactive" }> = {
@@ -43,7 +87,7 @@ const typeConfig = {
     personal: { label: "Redondo",  color: "#E8F5E9", textColor: "#2E7D32" },
 };
 
-export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onEdit }) => {
+export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onEdit, onDelete }) => {
     return (
         <Table>
             <TableHeader>
@@ -94,6 +138,7 @@ export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onE
                                         size="sm"
                                         aria-label="Editar"
                                     />
+                                    {onDelete && <DeleteCell id={flight.id} onDelete={onDelete} />}
                                 </div>
                             </TableCell>
                         </TableRow>

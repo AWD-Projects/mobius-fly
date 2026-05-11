@@ -7,12 +7,15 @@ import { Button } from "@/components/atoms/Button";
 import { FlightsFilterBar, FlightsFilters } from "./FlightsFilterBar";
 import { FlightsTable, Flight } from "./FlightsTable";
 import { FlightsPagination } from "./FlightsPagination";
+import { toast } from "@/components/atoms/Toast";
+import { deleteFlight } from "@/app/actions/flights";
 import type { OwnerFlightListItem } from "@/app/actions/flights";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
     flights: OwnerFlightListItem[];
+    ownerId: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,13 +50,24 @@ function toDisplayFlight(item: OwnerFlightListItem): Flight {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function FlightsListContent({ flights }: Props) {
+export function FlightsListContent({ flights: initialFlights, ownerId }: Props) {
     const router = useRouter();
+    const [flightList, setFlightList] = useState<OwnerFlightListItem[]>(initialFlights);
     const [filters, setFilters] = useState<FlightsFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    const display = flights.map(toDisplayFlight);
+    const handleDelete = async (id: string) => {
+        const { error } = await deleteFlight(id, ownerId);
+        if (error) {
+            toast.error("No se pudo eliminar", error);
+        } else {
+            setFlightList((prev) => prev.filter((f) => f.id !== id));
+            toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
+        }
+    };
+
+    const display = flightList.map(toDisplayFlight);
 
     const filtered = display.filter((f) => {
         if (filters.origin      && !f.route.toLowerCase().startsWith(filters.origin.toLowerCase())) return false;
@@ -62,7 +76,7 @@ export function FlightsListContent({ flights }: Props) {
         if (filters.type        && f.type   !== filters.type)   return false;
         if (filters.status      && f.status !== filters.status) return false;
         if (filters.date) {
-            const raw = flights.find((r) => r.id === f.id);
+            const raw = flightList.find((r) => r.id === f.id);
             if (raw && !raw.departure_datetime.startsWith(filters.date)) return false;
         }
         return true;
@@ -103,6 +117,7 @@ export function FlightsListContent({ flights }: Props) {
                     flights={paginated}
                     onView={(id) => router.push(`/owner/vuelos/${id}`)}
                     onEdit={(id) => router.push(`/owner/vuelos/${id}/edit`)}
+                    onDelete={handleDelete}
                 />
 
                 <FlightsPagination

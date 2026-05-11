@@ -7,12 +7,15 @@ import { Button } from "@/components/atoms/Button";
 import { AircraftFilterBar, AircraftFilters } from "./AircraftFilterBar";
 import { AircraftTable, Aircraft } from "./AircraftTable";
 import { AircraftPagination } from "./AircraftPagination";
+import { toast } from "@/components/atoms/Toast";
+import { deleteAircraft } from "@/app/actions/aircraft";
 import type { AircraftListItem } from "@/app/actions/aircraft";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
     aircraft: AircraftListItem[];
+    ownerId:  string;
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -37,13 +40,24 @@ function toDisplayAircraft(item: AircraftListItem): Aircraft {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AircraftListContent({ aircraft }: Props) {
+export function AircraftListContent({ aircraft: initialAircraft, ownerId }: Props) {
     const router = useRouter();
+    const [aircraftList, setAircraftList] = useState<AircraftListItem[]>(initialAircraft);
     const [filters, setFilters] = useState<AircraftFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    const display = aircraft.map(toDisplayAircraft);
+    const handleDelete = async (id: string) => {
+        const { error } = await deleteAircraft(id, ownerId);
+        if (error) {
+            toast.error("No se pudo eliminar", error);
+        } else {
+            setAircraftList((prev) => prev.filter((a) => a.id !== id));
+            toast.success("Aeronave eliminada", "La aeronave fue eliminada correctamente.");
+        }
+    };
+
+    const display = aircraftList.map(toDisplayAircraft);
 
     const filtered = display.filter((a) => {
         if (filters.type && a.type !== filters.type) return false;
@@ -92,6 +106,7 @@ export function AircraftListContent({ aircraft }: Props) {
                     aircraft={paginated}
                     onView={(id) => router.push(`/owner/aeronaves/${id}`)}
                     onEdit={(id) => router.push(`/owner/aeronaves/${id}/edit`)}
+                    onDelete={handleDelete}
                 />
 
                 <AircraftPagination

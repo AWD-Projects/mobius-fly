@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/Button";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { toast } from "@/components/atoms/Toast";
-import { updateCrewMemberStatus } from "@/app/actions/crew";
+import { updateCrewMemberStatus, deleteCrewMember } from "@/app/actions/crew";
 import type { CrewDetailData } from "@/app/actions/crew";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -61,6 +61,7 @@ export function CrewDetailContent({ data, ownerId }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [currentStatus, setCurrentStatus] = useState(data.status);
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const roleCode  = data.crew_role?.code ?? "";
     const roleLabel = data.crew_role?.name ?? ROLE_LABEL[roleCode] ?? roleCode;
@@ -73,6 +74,19 @@ export function CrewDetailContent({ data, ownerId }: Props) {
     const lastFlight = data.assigned_flights
         .filter((f) => f.departure_datetime)
         .sort((a, b) => new Date(b.departure_datetime).getTime() - new Date(a.departure_datetime).getTime())[0];
+
+    const handleDelete = () => {
+        startTransition(async () => {
+            const { error } = await deleteCrewMember(data.id, ownerId);
+            if (error) {
+                toast.error("No se pudo eliminar", error);
+                setConfirmDelete(false);
+            } else {
+                toast.success("Tripulante eliminado", `${data.first_name} ${data.last_name} fue eliminado.`);
+                router.push("/owner/tripulacion");
+            }
+        });
+    };
 
     const handleToggleStatus = () => {
         const next = isActive ? "INACTIVE" : "ACTIVE";
@@ -285,6 +299,41 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                         >
                             Editar tripulante
                         </Button>
+
+                        {!confirmDelete ? (
+                            <Button
+                                onClick={() => setConfirmDelete(true)}
+                                variant="outline"
+                                className="w-full h-10 text-red-600 border-red-200 hover:bg-red-50"
+                                disabled={isPending}
+                            >
+                                Eliminar tripulante
+                            </Button>
+                        ) : (
+                            <div className="flex flex-col gap-2 pt-1">
+                                <p className="text-[11px] text-center text-[#666666]">
+                                    ¿Confirmar eliminación? Esta acción no se puede deshacer.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => setConfirmDelete(false)}
+                                        variant="outline"
+                                        className="flex-1 h-9 text-xs"
+                                        disabled={isPending}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        onClick={handleDelete}
+                                        variant="outline"
+                                        className="flex-1 h-9 text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                        disabled={isPending}
+                                    >
+                                        {isPending ? "Eliminando..." : "Confirmar"}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

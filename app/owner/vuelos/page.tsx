@@ -19,5 +19,5 @@ export default async function FlightsListPage() {
 
     const flights = await getOwnerFlightList(user.id);
 
-    return <FlightsListContent flights={flights} />;
+    return <FlightsListContent flights={flights} ownerId={owner.id} />;
 }

@@ -226,6 +226,39 @@ export async function updateAircraftStatus(
     return { error: null };
 }
 
+// ─── deleteAircraft ───────────────────────────────────────────────────────────
+
+export async function deleteAircraft(
+    aircraftId: string,
+    ownerId:    string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    // Block if any flights reference this aircraft (aircraft_id is NOT NULL)
+    const { count } = await supabase
+        .from("flights")
+        .select("id", { count: "exact", head: true })
+        .eq("aircraft_id", aircraftId);
+
+    if ((count ?? 0) > 0) {
+        return { error: "No se puede eliminar: la aeronave tiene vuelos asociados. Elimina o reasigna los vuelos primero." };
+    }
+
+    // Delete aircraft (aircraft_documents cascade automatically)
+    const { error } = await supabase
+        .from("aircrafts")
+        .delete()
+        .eq("id", aircraftId)
+        .eq("owner_id", ownerId);
+
+    if (error) {
+        console.error("[deleteAircraft] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 async function getPendingStatusId(supabase: Awaited<ReturnType<typeof createClient>>) {

@@ -7,12 +7,15 @@ import { Plus } from "lucide-react";
 import { CrewFilterBar, type CrewFilters } from "./CrewFilterBar";
 import { CrewCard, type CrewMember } from "./CrewCard";
 import { CrewPagination } from "./CrewPagination";
+import { toast } from "@/components/atoms/Toast";
+import { deleteCrewMember } from "@/app/actions/crew";
 import type { CrewListItem } from "@/app/actions/crew";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    crew: CrewListItem[];
+    crew:    CrewListItem[];
+    ownerId: string;
 }
 
 // ─── Maps ─────────────────────────────────────────────────────────────────────
@@ -49,18 +52,29 @@ function toCrewMember(item: CrewListItem): CrewMember {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CrewListContent({ crew }: Props) {
+export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
     const router = useRouter();
+    const [crewList, setCrewList] = useState<CrewListItem[]>(initialCrew);
     const [filters, setFilters] = useState<CrewFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 4;
 
-    const allMembers = crew.map(toCrewMember);
+    const handleDelete = async (id: string) => {
+        const { error } = await deleteCrewMember(id, ownerId);
+        if (error) {
+            toast.error("No se pudo eliminar", error);
+        } else {
+            setCrewList((prev) => prev.filter((c) => c.id !== id));
+            toast.success("Tripulante eliminado", "El tripulante fue eliminado correctamente.");
+        }
+    };
+
+    const allMembers = crewList.map(toCrewMember);
 
     const filteredMembers = allMembers.filter((member) => {
         if (filters.role) {
             const targetCode = ROLE_FILTER_CODE[filters.role];
-            const memberCode = crew.find((c) => c.id === member.id)?.crew_role?.code ?? "";
+            const memberCode = crewList.find((c) => c.id === member.id)?.crew_role?.code ?? "";
             if (targetCode && memberCode !== targetCode) return false;
         }
         if (filters.status && member.status !== filters.status) return false;
@@ -119,6 +133,7 @@ export function CrewListContent({ crew }: Props) {
                                 member={member}
                                 onView={(id) => router.push(`/owner/tripulacion/${id}`)}
                                 onEdit={(id) => router.push(`/owner/tripulacion/${id}/edit`)}
+                                onDelete={handleDelete}
                             />
                         ))}
                     </div>

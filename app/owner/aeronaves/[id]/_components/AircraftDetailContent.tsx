@@ -6,7 +6,7 @@ import { Image } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { toast } from "@/components/atoms/Toast";
-import { updateAircraftStatus } from "@/app/actions/aircraft";
+import { updateAircraftStatus, deleteAircraft } from "@/app/actions/aircraft";
 import type { AircraftDetailData } from "@/app/actions/aircraft";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -42,11 +42,25 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [currentStatus, setCurrentStatus] = useState(data.status.toUpperCase());
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const statusCfg  = STATUS_CONFIG[currentStatus] ?? { label: currentStatus, status: "inactive" as const };
     const isActive   = currentStatus === "ACTIVE";
     const isMaint    = currentStatus === "MAINTENANCE";
     const name       = data.manufacturer ? `${data.manufacturer} ${data.model}` : data.model;
+
+    const handleDelete = () => {
+        startTransition(async () => {
+            const { error } = await deleteAircraft(data.id, ownerId);
+            if (error) {
+                toast.error("No se pudo eliminar", error);
+                setConfirmDelete(false);
+            } else {
+                toast.success("Aeronave eliminada", `${name} fue eliminada correctamente.`);
+                router.push("/owner/aeronaves");
+            }
+        });
+    };
 
     const handleSetStatus = (next: string) => {
         startTransition(async () => {
@@ -253,6 +267,41 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
                         >
                             Editar aeronave
                         </Button>
+
+                        {!confirmDelete ? (
+                            <Button
+                                onClick={() => setConfirmDelete(true)}
+                                variant="outline"
+                                className="w-full h-10 text-red-600 border-red-200 hover:bg-red-50"
+                                disabled={isPending}
+                            >
+                                Eliminar aeronave
+                            </Button>
+                        ) : (
+                            <div className="flex flex-col gap-2 pt-1">
+                                <p className="text-[11px] text-center text-[#666666]">
+                                    ¿Confirmar eliminación? Esta acción no se puede deshacer.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => setConfirmDelete(false)}
+                                        variant="outline"
+                                        className="flex-1 h-9 text-xs"
+                                        disabled={isPending}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        onClick={handleDelete}
+                                        variant="outline"
+                                        className="flex-1 h-9 text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                        disabled={isPending}
+                                    >
+                                        {isPending ? "Eliminando..." : "Confirmar"}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
