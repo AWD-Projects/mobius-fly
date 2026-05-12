@@ -576,6 +576,38 @@ export interface CreateFlightInput {
     crewMemberIds:           string[];
 }
 
+export async function checkAircraftAvailability(
+    aircraftId: string,
+    departureDatetime: string,
+    arrivalDatetime: string,
+): Promise<{ available: boolean }> {
+    const supabase = await createClient();
+
+    const { data: closedStatuses } = await supabase
+        .from("flight_status")
+        .select("id")
+        .in("code", ["COMPLETED", "CANCELLED"]);
+
+    const closedIds = (closedStatuses ?? []).map((r: any) => r.id);
+
+    let query = supabase
+        .from("flights")
+        .select("id")
+        .eq("aircraft_id", aircraftId)
+        .lt("departure_datetime", arrivalDatetime)
+        .gt("arrival_datetime",   departureDatetime)
+        .limit(1);
+
+    if (closedIds.length > 0) {
+        query = query.not("status_id", "in", `(${closedIds.join(",")})`);
+    }
+
+    const { data } = await query;
+    return { available: !data || data.length === 0 };
+}
+
+// ─── createFlight ─────────────────────────────────────────────────────────────
+
 export async function createFlight(
     ownerId: string,
     input: CreateFlightInput,
@@ -591,6 +623,32 @@ export async function createFlight(
 
     if (!statusRow) {
         return { error: "No se pudo obtener el estado del vuelo", id: null };
+    }
+
+    // Validate aircraft has no overlapping flights
+    const { data: closedStatuses } = await supabase
+        .from("flight_status")
+        .select("id")
+        .in("code", ["COMPLETED", "CANCELLED"]);
+
+    const closedIds = (closedStatuses ?? []).map((r: any) => r.id);
+
+    let overlapQuery = supabase
+        .from("flights")
+        .select("id")
+        .eq("aircraft_id", input.aircraftId)
+        .lt("departure_datetime", input.arrivalDatetime)
+        .gt("arrival_datetime",   input.departureDatetime)
+        .limit(1);
+
+    if (closedIds.length > 0) {
+        overlapQuery = overlapQuery.not("status_id", "in", `(${closedIds.join(",")})`);
+    }
+
+    const { data: overlapping } = await overlapQuery;
+
+    if (overlapping && overlapping.length > 0) {
+        return { error: "La aeronave ya tiene un vuelo asignado en ese horario", id: null };
     }
 
     const { data: flight, error: flightError } = await supabase

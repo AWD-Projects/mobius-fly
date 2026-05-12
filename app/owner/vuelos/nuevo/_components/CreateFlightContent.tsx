@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
@@ -11,6 +11,7 @@ import { DocumentUpload, formatFileSize } from "@/components/molecules/DocumentU
 import { toast } from "@/components/atoms/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { createFlight } from "@/app/actions/flights";
+import { getAvailableAircraftForTimeSlot } from "@/app/actions/aircraft";
 import type { Airport } from "@/types/app.types";
 import type { AircraftListItem } from "@/app/actions/aircraft";
 import type { CrewListItem } from "@/app/actions/crew";
@@ -65,6 +66,8 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
     const [isPending, startTransition] = useTransition();
     const [flightType, setFlightType] = useState<FlightType>("sencillo");
     const [flightPlan, setFlightPlan] = useState<File | null>(null);
+    const [filteredAircraft, setFilteredAircraft] = useState<typeof aircraft>(aircraft);
+    const [loadingAircraft, setLoadingAircraft] = useState(false);
 
     const [form, setForm] = useState<FormState>({
         originId:       "",
@@ -90,6 +93,8 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
             setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
     // Computed values
+    const datesReady      = !!(form.departureDate && form.departureTime && form.arrivalDate && form.arrivalTime);
+    const availableAircraft = datesReady ? filteredAircraft : aircraft;
     const selectedAircraft = aircraft.find((a) => a.id === form.aircraftId);
     const priceNum          = parseFloat(form.pricePerSeat) || 0;
     const fullPrice         = priceNum * (selectedAircraft?.seats ?? form.seatsForSale);
@@ -98,6 +103,34 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
     const otherCrew       = crew.filter((c) => c.status.toUpperCase() === "ACTIVE");
     const usedCrewIds     = new Set([form.captainId, ...form.additionalCrew].filter(Boolean));
     const availableForAdd = otherCrew.filter((c) => !usedCrewIds.has(c.id) || form.additionalCrew.includes(c.id));
+
+    useEffect(() => {
+        // When dates are incomplete the derived `availableAircraft` already shows all aircraft — no setState needed
+        if (!datesReady) return;
+
+        let cancelled = false;
+
+        const fetchAvailable = async () => {
+            setLoadingAircraft(true);
+            const list = await getAvailableAircraftForTimeSlot(
+                ownerId,
+                toISO(form.departureDate, form.departureTime),
+                toISO(form.arrivalDate,   form.arrivalTime),
+            );
+            if (cancelled) return;
+            setFilteredAircraft(list);
+            // If the previously selected aircraft is no longer available, clear it
+            if (form.aircraftId && !list.find((a) => a.id === form.aircraftId)) {
+                setForm((prev) => ({ ...prev, aircraftId: "" }));
+                setErrors((prev) => ({ ...prev, aircraftId: "La aeronave seleccionada no está disponible en ese horario" }));
+            }
+            setLoadingAircraft(false);
+        };
+
+        fetchAvailable();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.departureDate, form.departureTime, form.arrivalDate, form.arrivalTime, datesReady]);
 
     const validate = () => {
         const e: typeof errors = {};
@@ -366,9 +399,12 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                         value={form.aircraftId}
                         onChange={set("aircraftId")}
                         error={errors.aircraftId}
+                        disabled={loadingAircraft}
                     >
-                        <option value="">Seleccionar aeronave</option>
-                        {aircraft.map((a) => (
+                        <option value="">
+                            {loadingAircraft ? "Cargando aeronaves disponibles..." : "Seleccionar aeronave"}
+                        </option>
+                        {availableAircraft.map((a) => (
                             <option key={a.id} value={a.id}>
                                 {a.manufacturer ? `${a.manufacturer} ${a.model}` : a.model} ({a.tail_number}) · {a.seats} asientos
                             </option>

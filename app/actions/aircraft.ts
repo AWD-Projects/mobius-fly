@@ -64,6 +64,7 @@ export async function getAircraftList(userId: string): Promise<AircraftListItem[
         .from("aircrafts")
         .select("id, model, manufacturer, tail_number, seats, year, status, photos")
         .eq("owner_id", owner.id)
+        .eq("status", "ACTIVE")
         .order("model", { ascending: true });
 
     if (error) {
@@ -71,6 +72,55 @@ export async function getAircraftList(userId: string): Promise<AircraftListItem[
         return [];
     }
 
+    return (data ?? []) as AircraftListItem[];
+}
+
+// ─── getAvailableAircraftForTimeSlot ─────────────────────────────────────────
+
+export async function getAvailableAircraftForTimeSlot(
+    ownerId: string,
+    departureDatetime: string,
+    arrivalDatetime: string,
+): Promise<AircraftListItem[]> {
+    const supabase = await createClient();
+
+    const { data: closedStatuses } = await supabase
+        .from("flight_status")
+        .select("id")
+        .in("code", ["COMPLETED", "CANCELLED"]);
+
+    const closedIds = (closedStatuses ?? []).map((r: any) => r.id);
+
+    // Get aircraft IDs that have a conflicting flight in the requested time slot
+    let conflictQuery = supabase
+        .from("flights")
+        .select("aircraft_id")
+        .lt("departure_datetime", arrivalDatetime)
+        .gt("arrival_datetime",   departureDatetime);
+
+    if (closedIds.length > 0) {
+        conflictQuery = conflictQuery.not("status_id", "in", `(${closedIds.join(",")})`);
+    }
+
+    const { data: conflicting } = await conflictQuery;
+    const busyIds = [...new Set((conflicting ?? []).map((f: any) => f.aircraft_id))];
+
+    let query = supabase
+        .from("aircrafts")
+        .select("id, model, manufacturer, tail_number, seats, year, status, photos")
+        .eq("owner_id", ownerId)
+        .eq("status", "ACTIVE")
+        .order("model", { ascending: true });
+
+    if (busyIds.length > 0) {
+        query = query.not("id", "in", `(${busyIds.join(",")})`);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+        console.error("[getAvailableAircraftForTimeSlot] error:", error.message);
+        return [];
+    }
     return (data ?? []) as AircraftListItem[];
 }
 
