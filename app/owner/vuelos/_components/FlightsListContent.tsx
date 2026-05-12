@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { FlightsFilterBar, FlightsFilters } from "./FlightsFilterBar";
 import { FlightsTable, Flight } from "./FlightsTable";
@@ -14,8 +14,10 @@ import type { OwnerFlightListItem } from "@/app/actions/flights";
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    flights: OwnerFlightListItem[];
-    ownerId: string;
+    flights:     OwnerFlightListItem[];
+    ownerId:     string;
+    hasAircraft: boolean;
+    hasCaptain:  boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -51,7 +53,7 @@ function toDisplayFlight(item: OwnerFlightListItem): Flight {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function FlightsListContent({ flights: initialFlights, ownerId }: Props) {
+export function FlightsListContent({ flights: initialFlights, ownerId, hasAircraft, hasCaptain }: Props) {
     const router = useRouter();
     const [flightList, setFlightList] = useState<OwnerFlightListItem[]>(initialFlights);
     const [filters, setFilters] = useState<FlightsFilters>({});
@@ -67,6 +69,8 @@ export function FlightsListContent({ flights: initialFlights, ownerId }: Props) 
             toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
         }
     };
+
+    const canCreate = hasAircraft && hasCaptain;
 
     const display = flightList.map(toDisplayFlight);
 
@@ -102,12 +106,51 @@ export function FlightsListContent({ flights: initialFlights, ownerId }: Props) 
             />
 
             <div className="px-12 py-0 flex flex-col gap-[18px]">
+                {!canCreate && (
+                    <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl bg-[#FFF3E0] border border-[#FB8C00]/25">
+                        <AlertCircle className="w-4 h-4 text-[#E65100] shrink-0 mt-0.5" />
+                        <div className="flex flex-col gap-2">
+                            <p className="text-sm font-semibold text-[#E65100]">Completa tu perfil para crear vuelos</p>
+                            <p className="text-xs text-[#E65100]/80">
+                                Para publicar un vuelo necesitas tener al menos:
+                            </p>
+                            <ul className="flex flex-col gap-1">
+                                {!hasAircraft && (
+                                    <li className="flex items-center gap-2 text-xs text-[#E65100]/80">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]/60 shrink-0" />
+                                        Al menos una aeronave en estado <span className="font-semibold">Activo</span> —{" "}
+                                        <button
+                                            onClick={() => router.push("/owner/aeronaves")}
+                                            className="underline font-medium hover:opacity-80"
+                                        >
+                                            Ir a aeronaves
+                                        </button>
+                                    </li>
+                                )}
+                                {!hasCaptain && (
+                                    <li className="flex items-center gap-2 text-xs text-[#E65100]/80">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]/60 shrink-0" />
+                                        Al menos un Capitán / Piloto en estado <span className="font-semibold">Activo</span> —{" "}
+                                        <button
+                                            onClick={() => router.push("/owner/tripulacion")}
+                                            className="underline font-medium hover:opacity-80"
+                                        >
+                                            Ir a tripulación
+                                        </button>
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between">
                     <h2 className="text-small font-semibold text-text">Vuelos próximos</h2>
                     <Button
-                        onClick={() => router.push("/owner/vuelos/nuevo")}
+                        onClick={() => canCreate && router.push("/owner/vuelos/nuevo")}
                         variant="primary"
-                        className="h-10 px-4 flex items-center gap-2"
+                        className="h-10 px-4 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        disabled={!canCreate}
                     >
                         <Plus className="w-4 h-4" />
                         Nuevo vuelo

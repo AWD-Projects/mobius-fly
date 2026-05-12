@@ -25,6 +25,11 @@ export default async function CreateFlightPage() {
         getCrewList(user.id),
     ]);
 
+    const hasAircraft = aircraft.length > 0;
+    const hasCaptain  = crew.some((c) => c.crew_role?.code === "CAPTAIN");
+
+    if (!hasAircraft || !hasCaptain) redirect("/owner/vuelos");
+
     return (
         <CreateFlightContent
             ownerId={owner.id}
