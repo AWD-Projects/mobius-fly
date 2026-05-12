@@ -21,12 +21,13 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, Flight["status"]> = {
-    SCHEDULED:  "scheduled",
-    DELAYED:    "delayed",
-    IN_FLIGHT:  "in-flight",
-    ON_TIME:    "confirmed",
-    COMPLETED:  "completed",
-    CANCELLED:  "cancelled",
+    SCHEDULED:      "scheduled",
+    DELAYED:        "delayed",
+    IN_FLIGHT:      "in-flight",
+    ON_TIME:        "confirmed",
+    COMPLETED:      "completed",
+    CANCELLED:      "cancelled",
+    PENDING_REVIEW: "pending_review",
 };
 
 function formatDate(iso: string): string {

@@ -13,12 +13,13 @@ export interface FlightDetailHeroProps {
 }
 
 const STATUS_CFG: Record<string, { label: string; status: "pending" | "info" | "success" | "inactive" }> = {
-    SCHEDULED: { label: "Programado", status: "pending"  },
-    DELAYED:   { label: "Retrasado",  status: "pending"  },
-    IN_FLIGHT: { label: "En vuelo",   status: "info"     },
-    ON_TIME:   { label: "A tiempo",   status: "success"  },
-    COMPLETED: { label: "Completado", status: "inactive" },
-    CANCELLED: { label: "Cancelado",  status: "inactive" },
+    SCHEDULED:      { label: "Programado",  status: "pending"  },
+    DELAYED:        { label: "Retrasado",   status: "pending"  },
+    IN_FLIGHT:      { label: "En vuelo",    status: "info"     },
+    ON_TIME:        { label: "A tiempo",    status: "success"  },
+    COMPLETED:      { label: "Completado",  status: "inactive" },
+    CANCELLED:      { label: "Cancelado",   status: "inactive" },
+    PENDING_REVIEW: { label: "En revisión", status: "pending"  },
 };
 
 export const FlightDetailHero: React.FC<FlightDetailHeroProps> = ({

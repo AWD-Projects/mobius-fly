@@ -582,11 +582,11 @@ export async function createFlight(
 ): Promise<{ error: string | null; id: string | null }> {
     const supabase = await createClient();
 
-    // Resolve SCHEDULED status id
+    // Resolve PENDING_REVIEW status id
     const { data: statusRow } = await supabase
         .from("flight_status")
         .select("id")
-        .eq("code", "SCHEDULED")
+        .eq("code", "PENDING_REVIEW")
         .single();
 
     if (!statusRow) {

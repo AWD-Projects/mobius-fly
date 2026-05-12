@@ -59,18 +59,18 @@ export const AircraftInfoCard: React.FC<AircraftInfoCardProps> = ({
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded"
               style={{
-                backgroundColor: statusConfig[status].color,
+                backgroundColor: (statusConfig[status] ?? statusConfig.active).color,
               }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: statusConfig[status].textColor }}
+                style={{ backgroundColor: (statusConfig[status] ?? statusConfig.active).textColor }}
               />
               <span
                 className="text-[11px] font-medium"
-                style={{ color: statusConfig[status].textColor }}
+                style={{ color: (statusConfig[status] ?? statusConfig.active).textColor }}
               >
-                {statusConfig[status].label}
+                {(statusConfig[status] ?? statusConfig.active).label}
               </span>
             </div>
           </div>

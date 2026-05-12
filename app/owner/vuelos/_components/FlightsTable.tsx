@@ -19,7 +19,7 @@ export interface Flight {
     date:     string;
     aircraft: string;
     type:     "charter" | "personal";
-    status:   "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed";
+    status:   "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review";
     capacity: string;
 }
 
@@ -74,12 +74,13 @@ function DeleteCell({ id, onDelete }: { id: string; onDelete: (id: string) => Pr
 }
 
 const statusConfig: Record<Flight["status"], { label: string; status: "pending" | "info" | "success" | "inactive" }> = {
-    scheduled:  { label: "Programado",  status: "pending"  },
-    delayed:    { label: "Retrasado",   status: "pending"  },
-    "in-flight":{ label: "En vuelo",    status: "info"     },
-    confirmed:  { label: "A tiempo",    status: "success"  },
-    completed:  { label: "Completado",  status: "inactive" },
-    cancelled:  { label: "Cancelado",   status: "inactive" },
+    scheduled:      { label: "Programado",   status: "pending"  },
+    delayed:        { label: "Retrasado",    status: "pending"  },
+    "in-flight":    { label: "En vuelo",     status: "info"     },
+    confirmed:      { label: "A tiempo",     status: "success"  },
+    completed:      { label: "Completado",   status: "inactive" },
+    cancelled:      { label: "Cancelado",    status: "inactive" },
+    pending_review: { label: "En revisión",  status: "pending"  },
 };
 
 const typeConfig = {
