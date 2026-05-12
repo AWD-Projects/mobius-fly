@@ -80,6 +80,20 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                 statusCode={statusCode}
             />
 
+            {statusCode === "PENDING_REVIEW" && (
+                <div className="px-12 pt-6">
+                    <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl bg-[#FFF8E1] border border-[#F9A825]/30">
+                        <span className="mt-1 w-2 h-2 rounded-full bg-[#F9A825] shrink-0" />
+                        <div className="flex flex-col gap-1">
+                            <p className="text-sm font-semibold text-[#7A5800]">Tu vuelo está siendo validado</p>
+                            <p className="text-xs text-[#7A5800]/80">
+                                Nuestro equipo está revisando los datos de tu vuelo. Estará listo y visible para compradores en no más de 48 horas.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="px-12 py-10 flex gap-10">
                 {/* Left Column */}
                 <div className="flex-1 flex flex-col gap-8" style={{ maxWidth: "856px" }}>

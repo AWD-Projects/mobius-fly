@@ -58,6 +58,14 @@ const schema = z.object({
         return `${d.arrivalDate}T${d.arrivalTime}` > `${d.departureDate}T${d.departureTime}`;
     },
     { message: "La llegada debe ser posterior a la salida", path: ["arrivalDate"] },
+).refine(
+    (d) => {
+        if (!d.departureDate || !d.departureTime) return true;
+        const dep    = new Date(`${d.departureDate}T${d.departureTime}`);
+        const minDep = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        return dep >= minDep;
+    },
+    { message: "La salida debe programarse con al menos 24 hrs de anticipación", path: ["departureDate"] },
 );
 
 type FormData = z.infer<typeof schema>;
@@ -178,6 +186,18 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [departureDate, departureTime, arrivalDate, arrivalTime]);
+
+    useEffect(() => {
+        if (!(departureDate && departureTime)) return;
+        const dep    = new Date(`${departureDate}T${departureTime}`);
+        const minDep = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        if (dep < minDep) {
+            setError("departureDate", { type: "manual", message: "La salida debe programarse con al menos 24 hrs de anticipación" });
+        } else {
+            clearErrors("departureDate");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [departureDate, departureTime]);
 
     const selectedAircraft = aircraft.find((a) => a.id === aircraftId);
     const priceNum         = parseFloat(pricePerSeat) || 0;

@@ -61,6 +61,14 @@ const schema = z.object({
         return `${d.arrivalDate}T${d.arrivalTime}` > `${d.departureDate}T${d.departureTime}`;
     },
     { message: "La llegada debe ser posterior a la salida", path: ["arrivalDate"] },
+).refine(
+    (d) => {
+        if (!d.departureDate || !d.departureTime) return true;
+        const dep    = new Date(`${d.departureDate}T${d.departureTime}`);
+        const minDep = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        return dep >= minDep;
+    },
+    { message: "La salida debe programarse con al menos 24 hrs de anticipación", path: ["departureDate"] },
 );
 
 type FormData = z.infer<typeof schema>;
@@ -211,9 +219,27 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [departureDate, departureTime, arrivalDate, arrivalTime]);
 
-    const selectedAircraft = aircraft.find((a) => a.id === aircraftId);
-    const priceNum         = parseFloat(pricePerSeat) || 0;
-    const fullPrice        = priceNum * (selectedAircraft?.seats ?? seatsForSale);
+    useEffect(() => {
+        if (!(departureDate && departureTime)) return;
+        const dep    = new Date(`${departureDate}T${departureTime}`);
+        const minDep = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        if (dep < minDep) {
+            setError("departureDate", { type: "manual", message: "La salida debe programarse con al menos 24 hrs de anticipación" });
+        } else {
+            clearErrors("departureDate");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [departureDate, departureTime]);
+
+    const requiredSeats = initial.aircraft?.seats ?? null;
+
+    const selectedAircraft  = aircraft.find((a) => a.id === aircraftId);
+    const seatFilteredAircraft = requiredSeats != null
+        ? availableAircraft.filter((a) => a.seats >= requiredSeats)
+        : availableAircraft;
+
+    const priceNum  = parseFloat(pricePerSeat) || 0;
+    const fullPrice = priceNum * (selectedAircraft?.seats ?? seatsForSale);
 
     const captains    = availableCrew.filter((c) => c.crew_role?.code === "CAPTAIN");
     const otherCrew   = availableCrew;
@@ -385,9 +411,14 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                 {/* Aircraft */}
                 <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-3">
                     <h2 className="text-[11px] font-semibold text-text">Aeronave asignada</h2>
+                    {requiredSeats != null && (
+                        <p className="text-[11px] text-muted -mt-1">
+                            Solo se muestran aeronaves con {requiredSeats} asientos o más (igual o mayor capacidad que la aeronave original)
+                        </p>
+                    )}
                     <SelectGroup label="" error={errors.aircraftId?.message} disabled={loadingAircraft} {...register("aircraftId")}>
                         <option value="">{loadingAircraft ? "Cargando aeronaves disponibles..." : "Seleccionar aeronave"}</option>
-                        {availableAircraft.map((a) => (
+                        {seatFilteredAircraft.map((a) => (
                             <option key={a.id} value={a.id}>
                                 {a.manufacturer ? `${a.manufacturer} ${a.model}` : a.model} ({a.tail_number}) · {a.seats} asientos
                             </option>
