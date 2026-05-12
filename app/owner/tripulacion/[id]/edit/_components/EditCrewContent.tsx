@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { InputGroup } from "@/components/molecules/InputGroup";
@@ -25,6 +28,18 @@ interface Props {
     };
 }
 
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+const schema = z.object({
+    firstName:     z.string().min(1, "El nombre es obligatorio"),
+    lastName:      z.string().min(1, "El apellido es obligatorio"),
+    crewRoleId:    z.string().min(1, "Selecciona un rol"),
+    licenseNumber: z.string().optional(),
+    phone:         z.string().optional(),
+});
+
+type FormData = z.infer<typeof schema>;
+
 const ROLE_LABEL: Record<string, string> = {
     CAPTAIN:          "Capitán / Piloto",
     FIRST_OFFICER:    "Copiloto / Piloto",
@@ -36,35 +51,27 @@ const ROLE_LABEL: Record<string, string> = {
 export function EditCrewContent({ crewId, ownerId, crewRoles, initial }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [form, setForm] = useState(initial);
-    const [errors, setErrors] = useState<Partial<typeof initial>>({});
 
-    const set = (key: keyof typeof form) =>
-        (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-            setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+        resolver: zodResolver(schema),
+        defaultValues: initial,
+    });
 
-    const validate = () => {
-        const next: Partial<typeof form> = {};
-        if (!form.firstName.trim())  next.firstName  = "El nombre es obligatorio";
-        if (!form.lastName.trim())   next.lastName   = "El apellido es obligatorio";
-        if (!form.crewRoleId)        next.crewRoleId = "Selecciona un rol";
-        setErrors(next);
-        return Object.keys(next).length === 0;
-    };
-
-    const handleUpdate = () => {
-        if (!validate()) return;
-
+    const onSubmit = handleSubmit((data) => {
         startTransition(async () => {
-            const { error } = await updateCrewMember(crewId, ownerId, form);
+            const { error } = await updateCrewMember(crewId, ownerId, {
+                ...data,
+                licenseNumber: data.licenseNumber ?? "",
+                phone:         data.phone         ?? "",
+            });
             if (error) {
                 toast.error("Error al actualizar", error);
             } else {
-                toast.success("Tripulante actualizado", `${form.firstName} ${form.lastName} fue actualizado exitosamente`);
+                toast.success("Tripulante actualizado", `${data.firstName} ${data.lastName} fue actualizado exitosamente`);
                 router.push(`/owner/tripulacion/${crewId}`);
             }
         });
-    };
+    });
 
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
@@ -81,14 +88,12 @@ export function EditCrewContent({ crewId, ownerId, crewRoles, initial }: Props) 
 
                 <div className="flex flex-col gap-2">
                     <h1 className="text-[32px] font-semibold text-text">Editar tripulante</h1>
-                    <p className="text-sm text-[#666666]">
-                        Modifica la información del miembro de tripulación
-                    </p>
+                    <p className="text-sm text-[#666666]">Modifica la información del miembro de tripulación</p>
                 </div>
             </div>
 
             {/* Form */}
-            <div className="px-12 pb-8 flex flex-col gap-7">
+            <form onSubmit={onSubmit} className="px-12 pb-8 flex flex-col gap-7">
                 <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                     <h2 className="text-[11px] font-semibold text-text">Información del tripulante</h2>
 
@@ -96,27 +101,24 @@ export function EditCrewContent({ crewId, ownerId, crewRoles, initial }: Props) 
                         <InputGroup
                             label="Nombre(s)"
                             type="text"
-                            value={form.firstName}
-                            onChange={set("firstName")}
                             placeholder="p. ej. Juan"
-                            error={errors.firstName}
+                            error={errors.firstName?.message}
+                            {...register("firstName")}
                         />
 
                         <InputGroup
                             label="Apellido(s)"
                             type="text"
-                            value={form.lastName}
-                            onChange={set("lastName")}
                             placeholder="p. ej. Pérez García"
-                            error={errors.lastName}
+                            error={errors.lastName?.message}
+                            {...register("lastName")}
                         />
 
                         <SelectGroup
                             label="Rol del tripulante"
-                            value={form.crewRoleId}
-                            onChange={set("crewRoleId")}
                             helperText="El rol define la disponibilidad del tripulante en diferentes tipos de vuelos"
-                            error={errors.crewRoleId}
+                            error={errors.crewRoleId?.message}
+                            {...register("crewRoleId")}
                         >
                             <option value="" disabled>Selecciona un rol</option>
                             {crewRoles.map((role) => (
@@ -129,32 +131,26 @@ export function EditCrewContent({ crewId, ownerId, crewRoles, initial }: Props) 
                         <InputGroup
                             label="Número de licencia"
                             type="text"
-                            value={form.licenseNumber}
-                            onChange={set("licenseNumber")}
                             placeholder="p. ej. PEC-2023-45678"
+                            {...register("licenseNumber")}
                         />
 
                         <InputGroup
                             label="Número de contacto"
                             type="tel"
-                            value={form.phone}
-                            onChange={set("phone")}
                             placeholder="p. ej. +52 5566 7766 43"
+                            {...register("phone")}
                         />
                     </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center justify-center gap-4 pt-8">
-                    <Button
-                        onClick={handleUpdate}
-                        variant="primary"
-                        className="w-60 h-10"
-                        disabled={isPending}
-                    >
+                    <Button type="submit" variant="primary" className="w-60 h-10" disabled={isPending}>
                         {isPending ? "Actualizando..." : "Actualizar tripulante"}
                     </Button>
                     <Button
+                        type="button"
                         onClick={() => router.push(`/owner/tripulacion/${crewId}`)}
                         variant="outline"
                         className="w-60 h-10"
@@ -163,7 +159,7 @@ export function EditCrewContent({ crewId, ownerId, crewRoles, initial }: Props) 
                         Cancelar
                     </Button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

@@ -290,6 +290,65 @@ export async function deleteCrewMember(
     return { error: null };
 }
 
+// ─── getAvailableCrewForTimeSlot ─────────────────────────────────────────────
+
+export async function getAvailableCrewForTimeSlot(
+    ownerId: string,
+    departureDatetime: string,
+    arrivalDatetime: string,
+    excludeFlightId?: string,
+): Promise<CrewListItem[]> {
+    const supabase = await createClient();
+
+    const { data: closedStatuses } = await supabase
+        .from("flight_status")
+        .select("id")
+        .in("code", ["COMPLETED", "CANCELLED"]);
+
+    const closedIds = (closedStatuses ?? []).map((r: any) => r.id);
+
+    // Find crew members assigned to a flight that overlaps the requested slot
+    let conflictQuery = supabase
+        .from("flight_crew")
+        .select("crew_member_id, flights!flight_crew_flight_id_fkey(departure_datetime, arrival_datetime, status_id)")
+        .filter("flights.departure_datetime", "lt", arrivalDatetime)
+        .filter("flights.arrival_datetime",   "gt", departureDatetime);
+
+    if (closedIds.length > 0) {
+        conflictQuery = conflictQuery.not(
+            "flights.status_id", "in", `(${closedIds.join(",")})`,
+        );
+    }
+    if (excludeFlightId) {
+        conflictQuery = conflictQuery.neq("flight_id", excludeFlightId);
+    }
+
+    const { data: conflicting } = await conflictQuery;
+    const busyIds = [...new Set((conflicting ?? [])
+        .filter((r: any) => r.flights !== null)
+        .map((r: any) => r.crew_member_id))];
+
+    let query = supabase
+        .from("crew_members")
+        .select(
+            "id, first_name, last_name, status, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+        )
+        .eq("owner_id", ownerId)
+        .eq("status", "ACTIVE")
+        .order("first_name", { ascending: true });
+
+    if (busyIds.length > 0) {
+        query = query.not("id", "in", `(${busyIds.join(",")})`);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+        console.error("[getAvailableCrewForTimeSlot] error:", error.message);
+        return [];
+    }
+    return (data ?? []) as unknown as CrewListItem[];
+}
+
 // ─── getCrewList ──────────────────────────────────────────────────────────────
 
 export async function getCrewList(userId: string): Promise<CrewListItem[]> {
@@ -309,6 +368,7 @@ export async function getCrewList(userId: string): Promise<CrewListItem[]> {
             "id, first_name, last_name, status, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", owner.id)
+        .eq("status", "ACTIVE")
         .order("first_name", { ascending: true });
 
     if (error) {

@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Input } from "@/components/atoms/Input";
 import { Button } from "@/components/atoms/Button";
 import { toast } from "@/components/atoms/Toast";
@@ -15,6 +18,14 @@ interface Props {
     documents:   OwnerDocumentRow[];
     userProfile: UserProfileSnapshot;
 }
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+const schema = z.object({
+    fleetName: z.string().optional(),
+});
+
+type FormData = z.infer<typeof schema>;
 
 // ─── Config maps ──────────────────────────────────────────────────────────────
 
@@ -38,21 +49,25 @@ const OWNER_STATUS_CONFIG: Record<string, { label: string; bg: string; dot: stri
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PerfilContent({ owner, documents, userProfile }: Props) {
-    const [fleetName, setFleetName] = useState(owner.fleet_name ?? "");
     const [isPending, startTransition] = useTransition();
+
+    const { register, handleSubmit } = useForm<FormData>({
+        resolver: zodResolver(schema),
+        defaultValues: { fleetName: owner.fleet_name ?? "" },
+    });
 
     const ownerStatusCfg = OWNER_STATUS_CONFIG[owner.status] ?? OWNER_STATUS_CONFIG.PENDING_ONBOARDING;
 
-    const handleSaveFleetName = () => {
+    const onSubmit = handleSubmit((data) => {
         startTransition(async () => {
-            const { error } = await updateFleetName(owner.id, fleetName);
+            const { error } = await updateFleetName(owner.id, data.fleetName ?? "");
             if (error) {
                 toast.error("Error al guardar", error);
             } else {
                 toast.success("Cambios guardados", "Nombre de flota actualizado");
             }
         });
-    };
+    });
 
     const handleReplaceDocument = (id: string) => {
         console.log("Replace document:", id);
@@ -66,7 +81,6 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                     <h1 className="text-[26px] font-semibold text-text">Perfil</h1>
                     <p className="text-sm text-[#999999]">Configuración de cuenta del propietario</p>
                 </div>
-
                 <div className="flex flex-col gap-2">
                     <span className="text-xs font-medium text-[#999999]">Estado de la cuenta</span>
                     <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md ${ownerStatusCfg.bg}`}>
@@ -79,31 +93,18 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
             {/* Main Content */}
             <div className="px-12 pb-8 flex flex-col gap-6">
                 {/* Fleet Name */}
-                <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
+                <form onSubmit={onSubmit} className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
                     <h2 className="text-sm font-semibold text-text">Nombre de la flota</h2>
                     <p className="text-xs text-[#999999]">Nombre identificador de tu flota</p>
-
-                    <Input
-                        type="text"
-                        value={fleetName}
-                        onChange={(e) => setFleetName(e.target.value)}
-                        className="h-10"
-                    />
-
-                    <Button
-                        onClick={handleSaveFleetName}
-                        variant="primary"
-                        className="w-40 h-10"
-                        disabled={isPending}
-                    >
+                    <Input type="text" className="h-10" {...register("fleetName")} />
+                    <Button type="submit" variant="primary" className="w-40 h-10" disabled={isPending}>
                         {isPending ? "Guardando..." : "Guardar cambios"}
                     </Button>
-                </div>
+                </form>
 
                 {/* Personal Data */}
                 <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
                     <h2 className="text-sm font-semibold text-text">Datos personales</h2>
-
                     <div className="flex flex-col">
                         <div className="flex items-center justify-between py-3 border-b border-[#F0F0F0]">
                             <span className="text-xs font-medium text-[#999999]">Nombre completo</span>
@@ -111,28 +112,22 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                                 {`${userProfile.first_name} ${userProfile.last_name}`.trim() || "—"}
                             </span>
                         </div>
-
                         <div className="flex items-center justify-between py-3 border-b border-[#F0F0F0]">
                             <span className="text-xs font-medium text-[#999999]">Correo electrónico</span>
                             <span className="text-[13px] font-semibold text-text">{userProfile.email || "—"}</span>
                         </div>
-
                         <div className="flex items-center justify-between py-3 border-b border-[#F0F0F0]">
                             <span className="text-xs font-medium text-[#999999]">Teléfono</span>
                             <span className="text-[13px] font-semibold text-text">
-                                {userProfile.phone
-                                    ? `${userProfile.country_code ?? ""} ${userProfile.phone}`.trim()
-                                    : "—"}
+                                {userProfile.phone ? `${userProfile.country_code ?? ""} ${userProfile.phone}`.trim() : "—"}
                             </span>
                         </div>
-
                         <div className="flex items-center justify-between py-3 border-b border-[#F0F0F0]">
                             <span className="text-xs font-medium text-[#999999]">Rol</span>
                             <span className="text-[13px] font-semibold text-text">
                                 {userProfile.role === "OWNER" ? "Propietario / Admin" : (userProfile.role || "—")}
                             </span>
                         </div>
-
                         <div className="flex items-center justify-between py-3">
                             <span className="text-xs font-medium text-[#999999]">Nacionalidad</span>
                             <span className="text-[13px] font-semibold text-text">{userProfile.nationality || "—"}</span>
@@ -143,7 +138,6 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                 {/* Documents */}
                 <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
                     <h2 className="text-sm font-semibold text-text">Documentos del propietario</h2>
-
                     {documents.length === 0 ? (
                         <p className="text-xs text-[#999999]">No hay documentos cargados.</p>
                     ) : (
@@ -159,16 +153,13 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                                     <span className="text-xs font-medium text-[#666666]">Acción</span>
                                 </div>
                             </div>
-
                             {documents.map((doc, index) => {
                                 const statusCode = (doc.document_status?.code ?? "PENDING") as DocumentStatusCode;
                                 const cfg = DOC_STATUS_CONFIG[statusCode] ?? DOC_STATUS_CONFIG.PENDING;
                                 return (
                                     <div
                                         key={doc.id}
-                                        className={`flex items-center px-6 py-[18px] ${
-                                            index < documents.length - 1 ? "border-b border-[#F0F0F0]" : ""
-                                        }`}
+                                        className={`flex items-center px-6 py-[18px] ${index < documents.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
                                     >
                                         <div style={{ width: 220 }}>
                                             <span className="text-[13px] font-medium text-text">
@@ -186,6 +177,7 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                                         </div>
                                         <div style={{ width: 150 }}>
                                             <Button
+                                                type="button"
                                                 onClick={() => handleReplaceDocument(doc.id)}
                                                 variant="link"
                                                 className="h-auto p-0 text-xs text-info"

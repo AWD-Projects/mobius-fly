@@ -2,6 +2,9 @@
 
 import React, { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { InputGroup } from "@/components/molecules/InputGroup";
@@ -12,6 +15,7 @@ import { toast } from "@/components/atoms/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { createFlight } from "@/app/actions/flights";
 import { getAvailableAircraftForTimeSlot } from "@/app/actions/aircraft";
+import { getAvailableCrewForTimeSlot } from "@/app/actions/crew";
 import type { Airport } from "@/types/app.types";
 import type { AircraftListItem } from "@/app/actions/aircraft";
 import type { CrewListItem } from "@/app/actions/crew";
@@ -27,27 +31,36 @@ interface Props {
 
 type FlightType = "sencillo" | "redondo";
 
-interface FormState {
-    // Outbound
-    originId:        string;
-    destinationId:   string;
-    fboOrigin:       string;
-    fboDestination:  string;
-    departureDate:   string;
-    departureTime:   string;
-    arrivalDate:     string;
-    arrivalTime:     string;
-    // Return (ROUND_TRIP only)
-    returnDate:      string;
-    returnTime:      string;
-    // Aircraft & crew
-    aircraftId:      string;
-    captainId:       string;
-    additionalCrew:  string[];
-    // Commercial
-    seatsForSale:    number;
-    pricePerSeat:    string;
-}
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+const schema = z.object({
+    originId:       z.string().min(1, "Selecciona el aeropuerto de origen"),
+    destinationId:  z.string().min(1, "Selecciona el aeropuerto de destino"),
+    fboOrigin:      z.string().optional(),
+    fboDestination: z.string().optional(),
+    departureDate:  z.string().min(1, "Fecha requerida"),
+    departureTime:  z.string().min(1, "Hora requerida"),
+    arrivalDate:    z.string().min(1, "Fecha requerida"),
+    arrivalTime:    z.string().min(1, "Hora requerida"),
+    returnDate:     z.string().optional(),
+    returnTime:     z.string().optional(),
+    aircraftId:     z.string().min(1, "Selecciona una aeronave"),
+    captainId:      z.string().min(1, "Selecciona un capitán"),
+    additionalCrew: z.array(z.object({ id: z.string() })).optional(),
+    seatsForSale:   z.number().min(1),
+    pricePerSeat:   z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, "Precio inválido"),
+}).refine(
+    (d) => !d.originId || !d.destinationId || d.originId !== d.destinationId,
+    { message: "El destino debe ser diferente al origen", path: ["destinationId"] },
+).refine(
+    (d) => {
+        if (!d.departureDate || !d.departureTime || !d.arrivalDate || !d.arrivalTime) return true;
+        return `${d.arrivalDate}T${d.arrivalTime}` > `${d.departureDate}T${d.departureTime}`;
+    },
+    { message: "La llegada debe ser posterior a la salida", path: ["arrivalDate"] },
+);
+
+type FormData = z.infer<typeof schema>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -66,92 +79,113 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
     const [isPending, startTransition] = useTransition();
     const [flightType, setFlightType] = useState<FlightType>("sencillo");
     const [flightPlan, setFlightPlan] = useState<File | null>(null);
-    const [filteredAircraft, setFilteredAircraft] = useState<typeof aircraft>(aircraft);
+    const [filteredAircraft, setFilteredAircraft] = useState<AircraftListItem[]>(aircraft);
+    const [filteredCrew, setFilteredCrew] = useState<CrewListItem[]>(crew);
     const [loadingAircraft, setLoadingAircraft] = useState(false);
 
-    const [form, setForm] = useState<FormState>({
-        originId:       "",
-        destinationId:  "",
-        fboOrigin:      "",
-        fboDestination: "",
-        departureDate:  "",
-        departureTime:  "",
-        arrivalDate:    "",
-        arrivalTime:    "",
-        returnDate:     "",
-        returnTime:     "",
-        aircraftId:     "",
-        captainId:      "",
-        additionalCrew: [],
-        seatsForSale:   4,
-        pricePerSeat:   "",
+    const {
+        register,
+        handleSubmit,
+        control,
+        watch,
+        setValue,
+        setError,
+        clearErrors,
+        formState: { errors },
+    } = useForm<FormData>({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            originId: "", destinationId: "", fboOrigin: "", fboDestination: "",
+            departureDate: "", departureTime: "", arrivalDate: "", arrivalTime: "",
+            returnDate: "", returnTime: "",
+            aircraftId: "", captainId: "",
+            additionalCrew: [],
+            seatsForSale: 4, pricePerSeat: "",
+        },
     });
-    const [errors, setErrors] = useState<Partial<Record<keyof FormState | "general", string>>>({});
 
-    const set = (key: keyof FormState) =>
-        (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-            setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    const { fields, append, remove } = useFieldArray({ control, name: "additionalCrew" });
 
-    // Computed values
-    const datesReady      = !!(form.departureDate && form.departureTime && form.arrivalDate && form.arrivalTime);
-    const availableAircraft = datesReady ? filteredAircraft : aircraft;
-    const selectedAircraft = aircraft.find((a) => a.id === form.aircraftId);
-    const priceNum          = parseFloat(form.pricePerSeat) || 0;
-    const fullPrice         = priceNum * (selectedAircraft?.seats ?? form.seatsForSale);
+    const [
+        departureDate, departureTime, arrivalDate, arrivalTime,
+        aircraftId, captainId, additionalCrew, seatsForSale, pricePerSeat,
+        originId, destinationId,
+    ] = watch([
+        "departureDate", "departureTime", "arrivalDate", "arrivalTime",
+        "aircraftId", "captainId", "additionalCrew", "seatsForSale", "pricePerSeat",
+        "originId", "destinationId",
+    ]);
 
-    const captains        = crew.filter((c) => c.crew_role?.code === "CAPTAIN"  && c.status.toUpperCase() === "ACTIVE");
-    const otherCrew       = crew.filter((c) => c.status.toUpperCase() === "ACTIVE");
-    const usedCrewIds     = new Set([form.captainId, ...form.additionalCrew].filter(Boolean));
-    const availableForAdd = otherCrew.filter((c) => !usedCrewIds.has(c.id) || form.additionalCrew.includes(c.id));
+    // Filter available aircraft and crew when all 4 date/time fields are set
+    const canCheck = !!(departureDate && departureTime && arrivalDate && arrivalTime);
+    const availableAircraft = canCheck ? filteredAircraft : aircraft;
+    const availableCrew     = canCheck ? filteredCrew : crew;
 
     useEffect(() => {
-        // When dates are incomplete the derived `availableAircraft` already shows all aircraft — no setState needed
-        if (!datesReady) return;
+        if (!canCheck) return;
+
+        clearErrors(["aircraftId", "captainId"]);
 
         let cancelled = false;
 
         const fetchAvailable = async () => {
             setLoadingAircraft(true);
-            const list = await getAvailableAircraftForTimeSlot(
-                ownerId,
-                toISO(form.departureDate, form.departureTime),
-                toISO(form.arrivalDate,   form.arrivalTime),
-            );
+            const departure = toISO(departureDate, departureTime);
+            const arrival   = toISO(arrivalDate, arrivalTime);
+
+            const [aircraftList, crewList] = await Promise.all([
+                getAvailableAircraftForTimeSlot(ownerId, departure, arrival),
+                getAvailableCrewForTimeSlot(ownerId, departure, arrival),
+            ]);
             if (cancelled) return;
-            setFilteredAircraft(list);
-            // If the previously selected aircraft is no longer available, clear it
-            if (form.aircraftId && !list.find((a) => a.id === form.aircraftId)) {
-                setForm((prev) => ({ ...prev, aircraftId: "" }));
-                setErrors((prev) => ({ ...prev, aircraftId: "La aeronave seleccionada no está disponible en ese horario" }));
+
+            setFilteredAircraft(aircraftList);
+            setFilteredCrew(crewList);
+
+            if (aircraftId && !aircraftList.find((a) => a.id === aircraftId)) {
+                setValue("aircraftId", "");
+                setError("aircraftId", { message: "La aeronave seleccionada no está disponible en ese horario" });
+            } else {
+                clearErrors("aircraftId");
             }
+            if (captainId && !crewList.find((c) => c.id === captainId)) {
+                setValue("captainId", "");
+                setError("captainId", { message: "El capitán seleccionado no está disponible en ese horario" });
+            } else {
+                clearErrors("captainId");
+            }
+            const availableIds = new Set(crewList.map((c) => c.id));
+            (additionalCrew ?? []).forEach((entry, i) => {
+                if (entry.id && !availableIds.has(entry.id)) setValue(`additionalCrew.${i}.id`, "");
+            });
+
             setLoadingAircraft(false);
         };
 
         fetchAvailable();
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [form.departureDate, form.departureTime, form.arrivalDate, form.arrivalTime, datesReady]);
+    }, [departureDate, departureTime, arrivalDate, arrivalTime, canCheck]);
 
-    const validate = () => {
-        const e: typeof errors = {};
-        if (!form.originId)       e.originId       = "Selecciona el aeropuerto de origen";
-        if (!form.destinationId)  e.destinationId  = "Selecciona el aeropuerto de destino";
-        if (form.originId && form.originId === form.destinationId) e.destinationId = "El destino debe ser diferente al origen";
-        if (!form.departureDate)  e.departureDate  = "Fecha requerida";
-        if (!form.departureTime)  e.departureTime  = "Hora requerida";
-        if (!form.arrivalDate)    e.arrivalDate    = "Fecha requerida";
-        if (!form.arrivalTime)    e.arrivalTime    = "Hora requerida";
-        if (flightType === "redondo") {
-            if (!form.returnDate) e.returnDate = "Fecha requerida";
-            if (!form.returnTime) e.returnTime = "Hora requerida";
+    useEffect(() => {
+        if (!(departureDate && departureTime && arrivalDate && arrivalTime)) return;
+        const dep = `${departureDate}T${departureTime}`;
+        const arr = `${arrivalDate}T${arrivalTime}`;
+        if (arr <= dep) {
+            setError("arrivalDate", { type: "manual", message: "La llegada debe ser posterior a la salida" });
+        } else {
+            clearErrors("arrivalDate");
         }
-        if (!form.aircraftId)    e.aircraftId    = "Selecciona una aeronave";
-        if (!form.captainId)     e.captainId     = "Selecciona un capitán";
-        if (!form.pricePerSeat || isNaN(priceNum) || priceNum <= 0)
-            e.pricePerSeat = "Precio inválido";
-        setErrors(e);
-        return Object.keys(e).length === 0;
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [departureDate, departureTime, arrivalDate, arrivalTime]);
+
+    const selectedAircraft = aircraft.find((a) => a.id === aircraftId);
+    const priceNum         = parseFloat(pricePerSeat) || 0;
+    const fullPrice        = priceNum * (selectedAircraft?.seats ?? seatsForSale);
+
+    const captains        = availableCrew.filter((c) => c.crew_role?.code === "CAPTAIN");
+    const otherCrew       = availableCrew;
+    const usedCrewIds     = new Set([captainId, ...(additionalCrew ?? []).map((c) => c.id)].filter(Boolean));
 
     const uploadFlightPlan = async (userId: string): Promise<string | null> => {
         if (!flightPlan) return null;
@@ -165,31 +199,28 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
         return data?.signedUrl ?? null;
     };
 
-    const handleSubmit = (isVisible: boolean) => {
-        if (!validate()) return;
-
+    const onSubmit = (isVisible: boolean) => handleSubmit(async (data) => {
         startTransition(async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase!.auth.getUser();
             const uid = user?.id ?? ownerId;
 
             const flightPlanUrl = await uploadFlightPlan(uid);
-
-            const allCrew = [form.captainId, ...form.additionalCrew.filter(Boolean)];
+            const allCrew = [data.captainId, ...(data.additionalCrew ?? []).map((c) => c.id).filter(Boolean)];
 
             const { error, id } = await createFlight(ownerId, {
                 flightType:              flightType === "redondo" ? "ROUND_TRIP" : "ONE_WAY",
-                departureAirportId:      form.originId,
-                arrivalAirportId:        form.destinationId,
-                departureFboName:        form.fboOrigin,
-                arrivalFboName:          form.fboDestination,
-                departureDatetime:       toISO(form.departureDate, form.departureTime),
-                arrivalDatetime:         toISO(form.arrivalDate, form.arrivalTime),
-                returnDepartureDatetime: flightType === "redondo"
-                    ? toISO(form.returnDate, form.returnTime)
+                departureAirportId:      data.originId,
+                arrivalAirportId:        data.destinationId,
+                departureFboName:        data.fboOrigin ?? "",
+                arrivalFboName:          data.fboDestination ?? "",
+                departureDatetime:       toISO(data.departureDate, data.departureTime),
+                arrivalDatetime:         toISO(data.arrivalDate, data.arrivalTime),
+                returnDepartureDatetime: flightType === "redondo" && data.returnDate && data.returnTime
+                    ? toISO(data.returnDate, data.returnTime)
                     : null,
-                aircraftId:              form.aircraftId,
-                totalSeats:              form.seatsForSale,
+                aircraftId:              data.aircraftId,
+                totalSeats:              data.seatsForSale,
                 pricePerSeat:            priceNum,
                 priceFullAircraft:       fullPrice,
                 flightPlanUrl,
@@ -207,17 +238,13 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                 router.push(id ? `/owner/vuelos/${id}` : "/owner/vuelos");
             }
         });
-    };
+    })();
 
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
             {/* Header */}
             <div className="px-12 py-8">
-                <Button
-                    onClick={() => router.push("/owner/vuelos")}
-                    variant="link"
-                    className="flex items-center gap-3 mb-5 p-0 text-xs font-medium text-muted hover:text-text"
-                >
+                <Button onClick={() => router.push("/owner/vuelos")} variant="link" className="flex items-center gap-3 mb-5 p-0 text-xs font-medium text-muted hover:text-text">
                     <ArrowLeft className="w-4 h-4" />
                     Volver a vuelos
                 </Button>
@@ -233,10 +260,9 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                     {(["sencillo", "redondo"] as FlightType[]).map((t, i) => (
                         <button
                             key={t}
+                            type="button"
                             onClick={() => setFlightType(t)}
-                            className={`flex-1 h-11 border border-border transition-colors ${
-                                i === 0 ? "rounded-l-xl" : "rounded-r-xl border-l-0"
-                            } ${flightType === t ? "bg-white text-text font-medium" : "bg-[#f6f6f4] text-muted"}`}
+                            className={`flex-1 h-11 border border-border transition-colors ${i === 0 ? "rounded-l-xl" : "rounded-r-xl border-l-0"} ${flightType === t ? "bg-white text-text font-medium" : "bg-[#f6f6f4] text-muted"}`}
                         >
                             {t === "sencillo" ? "Sencillo" : "Redondo"}
                         </button>
@@ -248,143 +274,70 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                     <h2 className="text-[11px] font-semibold text-text">
                         {flightType === "sencillo" ? "Vuelo de ida" : "Vuelos de ida y regreso"}
                     </h2>
+                    {flightType === "redondo" && <h3 className="text-xs font-semibold text-text">Vuelo de ida</h3>}
 
-                    {flightType === "redondo" && (
-                        <h3 className="text-xs font-semibold text-text">Vuelo de ida</h3>
-                    )}
-
-                    {/* Airports */}
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <SelectGroup
-                                label="Origen"
-                                value={form.originId}
-                                onChange={set("originId")}
-                                error={errors.originId}
-                            >
+                            <SelectGroup label="Origen" error={errors.originId?.message} {...register("originId")}>
                                 <option value="">Seleccionar aeropuerto</option>
-                                {airports.map((a) => (
-                                    <option key={a.id} value={a.id}>{airportLabel(a)}</option>
-                                ))}
+                                {airports.map((a) => <option key={a.id} value={a.id}>{airportLabel(a)}</option>)}
                             </SelectGroup>
                         </div>
                         <div className="flex-1">
-                            <SelectGroup
-                                label="Destino"
-                                value={form.destinationId}
-                                onChange={set("destinationId")}
-                                error={errors.destinationId}
-                            >
+                            <SelectGroup label="Destino" error={errors.destinationId?.message} {...register("destinationId")}>
                                 <option value="">Seleccionar aeropuerto</option>
-                                {airports.map((a) => (
-                                    <option key={a.id} value={a.id}>{airportLabel(a)}</option>
-                                ))}
+                                {airports.map((a) => <option key={a.id} value={a.id}>{airportLabel(a)}</option>)}
                             </SelectGroup>
                         </div>
                     </div>
 
                     <div className="w-full h-px bg-[#F0F0F0]" />
 
-                    {/* FBOs */}
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup
-                                label="FBO de origen"
-                                type="text"
-                                value={form.fboOrigin}
-                                onChange={set("fboOrigin")}
-                                placeholder="Dirección del FBO"
-                            />
+                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" {...register("fboOrigin")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup
-                                label="FBO de destino (opcional)"
-                                type="text"
-                                value={form.fboDestination}
-                                onChange={set("fboDestination")}
-                                placeholder="Dirección del FBO"
-                            />
+                            <InputGroup label="FBO de destino (opcional)" type="text" placeholder="Dirección del FBO" {...register("fboDestination")} />
                         </div>
                     </div>
 
                     <div className="w-full h-px bg-[#F0F0F0]" />
 
-                    {/* Departure */}
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup
-                                label="Fecha de salida"
-                                type="date"
-                                value={form.departureDate}
-                                onChange={set("departureDate")}
-                                error={errors.departureDate}
-                            />
+                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} {...register("departureDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup
-                                label="Hora de salida"
-                                type="time"
-                                value={form.departureTime}
-                                onChange={set("departureTime")}
-                                error={errors.departureTime}
-                            />
+                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} {...register("departureTime")} />
                         </div>
                     </div>
 
-                    {/* Arrival */}
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup
-                                label="Fecha de llegada"
-                                type="date"
-                                value={form.arrivalDate}
-                                onChange={set("arrivalDate")}
-                                error={errors.arrivalDate}
-                            />
+                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} {...register("arrivalDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup
-                                label="Hora de llegada"
-                                type="time"
-                                value={form.arrivalTime}
-                                onChange={set("arrivalTime")}
-                                error={errors.arrivalTime}
-                            />
+                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} {...register("arrivalTime")} />
                         </div>
                     </div>
 
-                    {/* Return section */}
                     {flightType === "redondo" && (
                         <>
                             <div className="w-full h-px bg-border" />
                             <h3 className="text-xs font-semibold text-text">Vuelo de regreso</h3>
-
-                            {/* Show auto-reversed airports */}
-                            {form.originId && form.destinationId && (
+                            {originId && destinationId && (
                                 <p className="text-[11px] text-muted -mt-2">
-                                    {airportLabel(airports.find(a => a.id === form.destinationId)!)} →{" "}
-                                    {airportLabel(airports.find(a => a.id === form.originId)!)}
+                                    {airportLabel(airports.find((a) => a.id === destinationId)!)} →{" "}
+                                    {airportLabel(airports.find((a) => a.id === originId)!)}
                                 </p>
                             )}
-
                             <div className="flex gap-8">
                                 <div className="flex-1">
-                                    <InputGroup
-                                        label="Fecha de salida"
-                                        type="date"
-                                        value={form.returnDate}
-                                        onChange={set("returnDate")}
-                                        error={errors.returnDate}
-                                    />
+                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} {...register("returnDate")} />
                                 </div>
                                 <div className="flex-1">
-                                    <InputGroup
-                                        label="Hora de salida"
-                                        type="time"
-                                        value={form.returnTime}
-                                        onChange={set("returnTime")}
-                                        error={errors.returnTime}
-                                    />
+                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} {...register("returnTime")} />
                                 </div>
                             </div>
                         </>
@@ -394,16 +347,8 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                 {/* Aircraft */}
                 <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-3">
                     <h2 className="text-[11px] font-semibold text-text">Aeronave asignada</h2>
-                    <SelectGroup
-                        label=""
-                        value={form.aircraftId}
-                        onChange={set("aircraftId")}
-                        error={errors.aircraftId}
-                        disabled={loadingAircraft}
-                    >
-                        <option value="">
-                            {loadingAircraft ? "Cargando aeronaves disponibles..." : "Seleccionar aeronave"}
-                        </option>
+                    <SelectGroup label="" error={errors.aircraftId?.message} disabled={loadingAircraft} {...register("aircraftId")}>
+                        <option value="">{loadingAircraft ? "Cargando aeronaves disponibles..." : "Seleccionar aeronave"}</option>
                         {availableAircraft.map((a) => (
                             <option key={a.id} value={a.id}>
                                 {a.manufacturer ? `${a.manufacturer} ${a.model}` : a.model} ({a.tail_number}) · {a.seats} asientos
@@ -416,12 +361,7 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                 <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                     <h2 className="text-[11px] font-semibold text-text">Tripulación asignada</h2>
 
-                    <SelectGroup
-                        label="Capitán / Piloto"
-                        value={form.captainId}
-                        onChange={set("captainId")}
-                        error={errors.captainId}
-                    >
+                    <SelectGroup label="Capitán / Piloto" error={errors.captainId?.message} {...register("captainId")}>
                         <option value="">Seleccionar capitán</option>
                         {captains.map((c) => (
                             <option key={c.id} value={c.id}>
@@ -434,27 +374,16 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
 
                     <div>
                         <h3 className="text-xs font-medium text-text mb-1">Tripulación adicional (opcional)</h3>
-                        <p className="text-[11px] text-muted mb-3">
-                            Copiloto, mecánico, asistente u otro miembro de tripulación
-                        </p>
+                        <p className="text-[11px] text-muted mb-3">Copiloto, mecánico, asistente u otro miembro de tripulación</p>
 
-                        {form.additionalCrew.length > 0 && (
+                        {fields.length > 0 && (
                             <div className="flex flex-col gap-3 mb-3">
-                                {form.additionalCrew.map((crewId, index) => (
-                                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-[#FAFAFA] border border-border">
-                                        <SelectGroup
-                                            label=""
-                                            value={crewId}
-                                            onChange={(e) => {
-                                                const next = [...form.additionalCrew];
-                                                next[index] = e.target.value;
-                                                setForm((prev) => ({ ...prev, additionalCrew: next }));
-                                            }}
-                                            className="flex-1"
-                                        >
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="flex items-center gap-3 p-3 rounded-lg bg-[#FAFAFA] border border-border">
+                                        <SelectGroup label="" className="flex-1" {...register(`additionalCrew.${index}.id`)}>
                                             <option value="">Seleccionar tripulante</option>
                                             {otherCrew
-                                                .filter((c) => c.id !== form.captainId && (!usedCrewIds.has(c.id) || c.id === crewId))
+                                                .filter((c) => c.id !== captainId && (!usedCrewIds.has(c.id) || c.id === fields[index].id))
                                                 .map((c) => (
                                                     <option key={c.id} value={c.id}>
                                                         {c.first_name} {c.last_name}
@@ -463,15 +392,7 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                                                     </option>
                                                 ))}
                                         </SelectGroup>
-                                        <Button
-                                            onClick={() => setForm((prev) => ({
-                                                ...prev,
-                                                additionalCrew: prev.additionalCrew.filter((_, i) => i !== index),
-                                            }))}
-                                            variant="outline"
-                                            className="w-9 h-9 p-0 shrink-0"
-                                            aria-label="Eliminar tripulante"
-                                        >
+                                        <Button type="button" onClick={() => remove(index)} variant="outline" className="w-9 h-9 p-0 shrink-0" aria-label="Eliminar tripulante">
                                             <Trash2 className="w-4 h-4 text-muted" />
                                         </Button>
                                     </div>
@@ -479,11 +400,7 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                             </div>
                         )}
 
-                        <Button
-                            onClick={() => setForm((prev) => ({ ...prev, additionalCrew: [...prev.additionalCrew, ""] }))}
-                            variant="outline"
-                            className="w-full h-10 flex items-center justify-center gap-2"
-                        >
+                        <Button type="button" onClick={() => append({ id: "" })} variant="outline" className="w-full h-10 flex items-center justify-center gap-2">
                             <Plus className="w-4 h-4" />
                             Agregar tripulante
                         </Button>
@@ -492,20 +409,24 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
 
                 {/* Commercial + Flight Plan */}
                 <div className="flex gap-7">
-                    {/* Commercial */}
                     <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                         <h2 className="text-[11px] font-semibold text-text">Configuración comercial</h2>
-
                         <h3 className="text-xs font-medium text-text">Opciones de venta</h3>
 
                         <div className="flex gap-3">
                             <div className="flex-1">
-                                <NumericCounter
-                                    label="Asientos para venta"
-                                    value={form.seatsForSale}
-                                    onChange={(v) => setForm((prev) => ({ ...prev, seatsForSale: v }))}
-                                    min={1}
-                                    max={selectedAircraft?.seats ?? 20}
+                                <Controller
+                                    control={control}
+                                    name="seatsForSale"
+                                    render={({ field }) => (
+                                        <NumericCounter
+                                            label="Asientos para venta"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            min={1}
+                                            max={selectedAircraft?.seats ?? 20}
+                                        />
+                                    )}
                                 />
                             </div>
 
@@ -513,18 +434,10 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                                 <label className="text-xs font-medium text-text">Precio por asiento</label>
                                 <div className={`flex items-center h-10 px-3 rounded-lg border ${errors.pricePerSeat ? "border-error" : "border-border"}`}>
                                     <span className="text-sm text-muted">$</span>
-                                    <input
-                                        type="number"
-                                        value={form.pricePerSeat}
-                                        onChange={set("pricePerSeat")}
-                                        placeholder="0.00"
-                                        className="flex-1 bg-transparent text-sm outline-none ml-2"
-                                    />
+                                    <input type="number" placeholder="0.00" className="flex-1 bg-transparent text-sm outline-none ml-2" {...register("pricePerSeat")} />
                                     <span className="text-sm text-muted">MXN</span>
                                 </div>
-                                {errors.pricePerSeat && (
-                                    <span className="text-xs text-error">{errors.pricePerSeat}</span>
-                                )}
+                                {errors.pricePerSeat && <span className="text-xs text-error">{errors.pricePerSeat.message}</span>}
                             </div>
                         </div>
 
@@ -533,20 +446,18 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                             <div className="h-10 px-3 rounded-lg border border-border flex items-center gap-2 bg-[#FAFAFA]">
                                 <span className="text-sm text-muted">$</span>
                                 <span className="text-sm text-text">
-                                    {fullPrice > 0
-                                        ? fullPrice.toLocaleString("es-MX", { style: "currency", currency: "MXN" })
-                                        : "—"}
+                                    {fullPrice > 0 ? fullPrice.toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—"}
                                 </span>
                             </div>
                             {selectedAircraft && (
                                 <p className="text-[11px] text-muted">
-                                    Calculado con {selectedAircraft.seats} asientos del {selectedAircraft.manufacturer ? `${selectedAircraft.manufacturer} ${selectedAircraft.model}` : selectedAircraft.model}
+                                    Calculado con {selectedAircraft.seats} asientos del{" "}
+                                    {selectedAircraft.manufacturer ? `${selectedAircraft.manufacturer} ${selectedAircraft.model}` : selectedAircraft.model}
                                 </p>
                             )}
                         </div>
                     </div>
 
-                    {/* Flight Plan */}
                     <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                         <h2 className="text-[11px] font-semibold text-text">Plan de vuelo</h2>
                         <p className="text-[11px] text-muted">Carga el PDF con el plan de vuelo detallado</p>
@@ -563,20 +474,10 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
 
                 {/* Actions */}
                 <div className="flex items-center justify-center gap-4 pt-8">
-                    <Button
-                        onClick={() => handleSubmit(true)}
-                        variant="primary"
-                        className="w-60 h-10"
-                        disabled={isPending}
-                    >
+                    <Button type="button" onClick={() => onSubmit(true)} variant="primary" className="w-60 h-10" disabled={isPending}>
                         {isPending ? "Publicando..." : "Publicar vuelo"}
                     </Button>
-                    <Button
-                        onClick={() => handleSubmit(false)}
-                        variant="outline"
-                        className="w-60 h-10"
-                        disabled={isPending}
-                    >
+                    <Button type="button" onClick={() => onSubmit(false)} variant="outline" className="w-60 h-10" disabled={isPending}>
                         {isPending ? "Guardando..." : "Guardar borrador"}
                     </Button>
                 </div>

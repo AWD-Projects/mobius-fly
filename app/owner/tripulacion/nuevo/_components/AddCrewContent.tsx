@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { InputGroup } from "@/components/molecules/InputGroup";
@@ -13,9 +16,21 @@ import type { CrewRoleRow } from "@/app/actions/crew";
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    ownerId:    string;
-    crewRoles:  CrewRoleRow[];
+    ownerId:   string;
+    crewRoles: CrewRoleRow[];
 }
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+const schema = z.object({
+    firstName:     z.string().min(1, "El nombre es obligatorio"),
+    lastName:      z.string().min(1, "El apellido es obligatorio"),
+    crewRoleId:    z.string().min(1, "Selecciona un rol"),
+    licenseNumber: z.string().optional(),
+    phone:         z.string().optional(),
+});
+
+type FormData = z.infer<typeof schema>;
 
 // ─── Role display labels ──────────────────────────────────────────────────────
 
@@ -31,42 +46,26 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
-    const [form, setForm] = useState({
-        firstName:     "",
-        lastName:      "",
-        crewRoleId:    "",
-        licenseNumber: "",
-        phone:         "",
+    const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+        resolver: zodResolver(schema),
+        defaultValues: { firstName: "", lastName: "", crewRoleId: "", licenseNumber: "", phone: "" },
     });
 
-    const [errors, setErrors] = useState<Partial<typeof form>>({});
-
-    const set = (key: keyof typeof form) =>
-        (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-            setForm((prev) => ({ ...prev, [key]: e.target.value }));
-
-    const validate = () => {
-        const next: Partial<typeof form> = {};
-        if (!form.firstName.trim())  next.firstName  = "El nombre es obligatorio";
-        if (!form.lastName.trim())   next.lastName   = "El apellido es obligatorio";
-        if (!form.crewRoleId)        next.crewRoleId = "Selecciona un rol";
-        setErrors(next);
-        return Object.keys(next).length === 0;
-    };
-
-    const handleSave = () => {
-        if (!validate()) return;
-
+    const onSubmit = handleSubmit((data) => {
         startTransition(async () => {
-            const { error } = await addCrewMember(ownerId, form);
+            const { error } = await addCrewMember(ownerId, {
+                ...data,
+                licenseNumber: data.licenseNumber ?? "",
+                phone:         data.phone         ?? "",
+            });
             if (error) {
                 toast.error("Error al guardar", error);
             } else {
-                toast.success("Tripulante agregado", `${form.firstName} ${form.lastName} fue registrado exitosamente`);
+                toast.success("Tripulante agregado", `${data.firstName} ${data.lastName} fue registrado exitosamente`);
                 router.push("/owner/tripulacion");
             }
         });
-    };
+    });
 
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
@@ -90,7 +89,7 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
             </div>
 
             {/* Form */}
-            <div className="px-12 pb-8 flex flex-col gap-7">
+            <form onSubmit={onSubmit} className="px-12 pb-8 flex flex-col gap-7">
                 <div className="bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                     <h2 className="text-[11px] font-semibold text-text">Información del tripulante</h2>
 
@@ -98,27 +97,24 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
                         <InputGroup
                             label="Nombre(s)"
                             type="text"
-                            value={form.firstName}
-                            onChange={set("firstName")}
                             placeholder="p. ej. Juan"
-                            error={errors.firstName}
+                            error={errors.firstName?.message}
+                            {...register("firstName")}
                         />
 
                         <InputGroup
                             label="Apellido(s)"
                             type="text"
-                            value={form.lastName}
-                            onChange={set("lastName")}
                             placeholder="p. ej. Pérez García"
-                            error={errors.lastName}
+                            error={errors.lastName?.message}
+                            {...register("lastName")}
                         />
 
                         <SelectGroup
                             label="Rol del tripulante"
-                            value={form.crewRoleId}
-                            onChange={set("crewRoleId")}
                             helperText="El rol define la disponibilidad del tripulante en diferentes tipos de vuelos"
-                            error={errors.crewRoleId}
+                            error={errors.crewRoleId?.message}
+                            {...register("crewRoleId")}
                         >
                             <option value="" disabled>Selecciona un rol</option>
                             {crewRoles.map((role) => (
@@ -131,32 +127,26 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
                         <InputGroup
                             label="Número de licencia"
                             type="text"
-                            value={form.licenseNumber}
-                            onChange={set("licenseNumber")}
                             placeholder="p. ej. PEC-2023-45678"
+                            {...register("licenseNumber")}
                         />
 
                         <InputGroup
                             label="Número de contacto"
                             type="tel"
-                            value={form.phone}
-                            onChange={set("phone")}
                             placeholder="p. ej. +52 5566 7766 43"
+                            {...register("phone")}
                         />
                     </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center justify-center gap-4 pt-8">
-                    <Button
-                        onClick={handleSave}
-                        variant="primary"
-                        className="w-60 h-10"
-                        disabled={isPending}
-                    >
+                    <Button type="submit" variant="primary" className="w-60 h-10" disabled={isPending}>
                         {isPending ? "Guardando..." : "Guardar tripulante"}
                     </Button>
                     <Button
+                        type="button"
                         onClick={() => router.push("/owner/tripulacion")}
                         variant="outline"
                         className="w-60 h-10"
@@ -165,7 +155,7 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
                         Cancelar
                     </Button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

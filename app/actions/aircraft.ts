@@ -81,6 +81,7 @@ export async function getAvailableAircraftForTimeSlot(
     ownerId: string,
     departureDatetime: string,
     arrivalDatetime: string,
+    excludeFlightId?: string,
 ): Promise<AircraftListItem[]> {
     const supabase = await createClient();
 
@@ -100,6 +101,9 @@ export async function getAvailableAircraftForTimeSlot(
 
     if (closedIds.length > 0) {
         conflictQuery = conflictQuery.not("status_id", "in", `(${closedIds.join(",")})`);
+    }
+    if (excludeFlightId) {
+        conflictQuery = conflictQuery.neq("id", excludeFlightId);
     }
 
     const { data: conflicting } = await conflictQuery;
