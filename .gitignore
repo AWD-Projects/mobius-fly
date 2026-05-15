@@ -18,6 +18,12 @@
 *.pem
 *.pdf
 
+# docs internos
+/docs
+
+# configuración local de Claude
+/.claude
+
 # debug
 npm-debug.log*
 yarn-debug.log*
