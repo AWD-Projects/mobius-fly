@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type { DocumentStatusCode } from "@/types/app.types";
 
+const PENDING_REVIEW_STATUS_ID = "d0309d7b-ec5f-4e01-9a40-7801eb265144";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface OwnerRow {
@@ -86,5 +88,32 @@ export async function updateFleetName(
         return { error: error.message };
     }
 
+    return { error: null };
+}
+
+// ─── replaceOwnerDocument ─────────────────────────────────────────────────────
+
+export async function replaceOwnerDocument(
+    documentId: string,
+    storagePath: string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autorizado" };
+
+    const { error } = await supabase
+        .from("user_documents")
+        .update({
+            document_url:       storagePath,
+            document_status_id: PENDING_REVIEW_STATUS_ID,
+            rejected_reason:    null,
+        })
+        .eq("id", documentId)
+        .eq("user_id", user.id);
+
+    if (error) {
+        console.error("[replaceOwnerDocument] error:", error.message);
+        return { error: error.message };
+    }
     return { error: null };
 }

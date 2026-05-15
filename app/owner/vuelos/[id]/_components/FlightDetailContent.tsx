@@ -115,6 +115,7 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                             time:     `${formatTime(data.departure_datetime)} → ${formatTime(data.arrival_datetime)}`,
                             duration: diffMinutes(data.departure_datetime, data.arrival_datetime),
                         }}
+                        flightPlanUrl={data.flight_plan_url}
                     />
 
                     {data.aircraft && (

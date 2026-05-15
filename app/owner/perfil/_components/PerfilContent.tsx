@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useTransition, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "@/components/atoms/Input";
 import { Button } from "@/components/atoms/Button";
 import { toast } from "@/components/atoms/Toast";
-import { updateFleetName } from "@/app/actions/owner";
+import { createClient } from "@/lib/supabase/client";
+import { updateFleetName, replaceOwnerDocument } from "@/app/actions/owner";
 import type { OwnerRow, OwnerDocumentRow, UserProfileSnapshot } from "@/app/actions/owner";
 import type { DocumentStatusCode } from "@/types/app.types";
 
@@ -48,8 +49,12 @@ const OWNER_STATUS_CONFIG: Record<string, { label: string; bg: string; dot: stri
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function PerfilContent({ owner, documents, userProfile }: Props) {
+export function PerfilContent({ owner, documents: initialDocuments, userProfile }: Props) {
     const [isPending, startTransition] = useTransition();
+    const [docs, setDocs] = useState<OwnerDocumentRow[]>(initialDocuments);
+    const [replacingId, setReplacingId] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const pendingDocIdRef = useRef<string | null>(null);
 
     const { register, handleSubmit } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -69,8 +74,66 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
         });
     });
 
-    const handleReplaceDocument = (id: string) => {
-        console.log("Replace document:", id);
+    const handleReplaceDocument = (docId: string) => {
+        pendingDocIdRef.current = docId;
+        fileInputRef.current?.click();
+    };
+
+    const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        const docId = pendingDocIdRef.current;
+        if (!file || !docId) return;
+
+        const ALLOWED = ["application/pdf", "image/jpeg", "image/png"];
+        if (!ALLOWED.includes(file.type)) {
+            toast.error("Archivo no válido", "Solo se aceptan PDF, JPEG o PNG.");
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("Archivo muy grande", "El archivo no puede superar 10 MB.");
+            return;
+        }
+
+        setReplacingId(docId);
+        try {
+            const supabase = createClient();
+            if (!supabase) { toast.error("Error", "No se pudo conectar con el servidor."); return; }
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { toast.error("Error", "No se pudo verificar tu sesión."); return; }
+
+            const ext = file.name.split(".").pop() ?? "bin";
+            const { randomUUID } = await import("crypto");
+            const storagePath = `${user.id}/${randomUUID()}.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from("identity-documents")
+                .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+            if (uploadError) {
+                toast.error("Error al subir", "No se pudo cargar el documento. Intenta de nuevo.");
+                return;
+            }
+
+            const { error } = await replaceOwnerDocument(docId, storagePath);
+            if (error) {
+                await supabase.storage.from("identity-documents").remove([storagePath]);
+                toast.error("Error al actualizar", error);
+                return;
+            }
+
+            setDocs((prev) =>
+                prev.map((d) =>
+                    d.id === docId
+                        ? { ...d, document_url: storagePath, rejected_reason: null, document_status: { code: "PENDING" } }
+                        : d,
+                ),
+            );
+            toast.success("Documento enviado", "Tu documento está en revisión.");
+        } finally {
+            setReplacingId(null);
+            pendingDocIdRef.current = null;
+        }
     };
 
     return (
@@ -138,7 +201,17 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                 {/* Documents */}
                 <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
                     <h2 className="text-sm font-semibold text-text">Documentos del propietario</h2>
-                    {documents.length === 0 ? (
+
+                    {/* Hidden file input shared across all document rows */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,image/jpeg,image/png"
+                        className="hidden"
+                        onChange={handleFileSelected}
+                    />
+
+                    {docs.length === 0 ? (
                         <p className="text-xs text-[#999999]">No hay documentos cargados.</p>
                     ) : (
                         <div className="w-full">
@@ -153,13 +226,14 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                                     <span className="text-xs font-medium text-[#666666]">Acción</span>
                                 </div>
                             </div>
-                            {documents.map((doc, index) => {
+                            {docs.map((doc, index) => {
                                 const statusCode = (doc.document_status?.code ?? "PENDING") as DocumentStatusCode;
                                 const cfg = DOC_STATUS_CONFIG[statusCode] ?? DOC_STATUS_CONFIG.PENDING;
+                                const isReplacing = replacingId === doc.id;
                                 return (
                                     <div
                                         key={doc.id}
-                                        className={`flex items-center px-6 py-[18px] ${index < documents.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
+                                        className={`flex items-center px-6 py-[18px] ${index < docs.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
                                     >
                                         <div style={{ width: 220 }}>
                                             <span className="text-[13px] font-medium text-text">
@@ -181,8 +255,10 @@ export function PerfilContent({ owner, documents, userProfile }: Props) {
                                                 onClick={() => handleReplaceDocument(doc.id)}
                                                 variant="link"
                                                 className="h-auto p-0 text-xs text-info"
+                                                isLoading={isReplacing}
+                                                disabled={replacingId !== null}
                                             >
-                                                Reemplazar
+                                                {isReplacing ? "Subiendo..." : "Reemplazar"}
                                             </Button>
                                         </div>
                                     </div>

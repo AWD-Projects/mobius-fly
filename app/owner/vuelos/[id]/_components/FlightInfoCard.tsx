@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Repeat, CircleDot, MapPin, Building2, Clock } from "lucide-react";
+import { Repeat, CircleDot, MapPin, Building2, Clock, FileText } from "lucide-react";
 
 export interface FlightInfoCardProps {
   flightType: string;
@@ -21,6 +21,7 @@ export interface FlightInfoCardProps {
     time: string;
     duration: string;
   };
+  flightPlanUrl?: string | null;
 }
 
 export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
@@ -29,6 +30,7 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
   destination,
   fbo,
   schedule,
+  flightPlanUrl,
 }) => {
   return (
     <div className="w-full">
@@ -99,6 +101,27 @@ export const FlightInfoCard: React.FC<FlightInfoCardProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Flight Plan Download */}
+        {flightPlanUrl && (
+          <>
+            <div className="w-full h-px bg-[#F0F0F0]" />
+            <div className="flex items-center gap-3.5">
+              <FileText className="w-[18px] h-[18px] text-muted flex-shrink-0" />
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Plan de vuelo</span>
+                <a
+                  href={flightPlanUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] font-medium text-text underline underline-offset-2 hover:opacity-70 transition-opacity w-fit"
+                >
+                  Descargar PDF
+                </a>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
