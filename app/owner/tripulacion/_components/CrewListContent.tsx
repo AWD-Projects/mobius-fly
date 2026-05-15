@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { CrewFilterBar, type CrewFilters } from "./CrewFilterBar";
 import { CrewCard, type CrewMember } from "./CrewCard";
 import { CrewPagination } from "./CrewPagination";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 import { toast } from "@/components/atoms/Toast";
 import { deleteCrewMember } from "@/app/actions/crew";
 import type { CrewListItem } from "@/app/actions/crew";
@@ -57,14 +58,22 @@ export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
     const [crewList, setCrewList] = useState<CrewListItem[]>(initialCrew);
     const [filters, setFilters] = useState<CrewFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 4;
 
-    const handleDelete = async (id: string) => {
-        const { error } = await deleteCrewMember(id, ownerId);
+    const handleDeleteRequest = (id: string) => setConfirmDeleteId(id);
+
+    const handleDeleteConfirm = async () => {
+        if (!confirmDeleteId) return;
+        setIsDeleting(true);
+        const { error } = await deleteCrewMember(confirmDeleteId, ownerId);
+        setIsDeleting(false);
+        setConfirmDeleteId(null);
         if (error) {
             toast.error("No se pudo eliminar", error);
         } else {
-            setCrewList((prev) => prev.filter((c) => c.id !== id));
+            setCrewList((prev) => prev.filter((c) => c.id !== confirmDeleteId));
             toast.success("Tripulante eliminado", "El tripulante fue eliminado correctamente.");
         }
     };
@@ -133,7 +142,7 @@ export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
                                 member={member}
                                 onView={(id) => router.push(`/owner/tripulacion/${id}`)}
                                 onEdit={(id) => router.push(`/owner/tripulacion/${id}/edit`)}
-                                onDelete={handleDelete}
+                                onDelete={handleDeleteRequest}
                             />
                         ))}
                     </div>
@@ -147,6 +156,18 @@ export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
                     onPageChange={setCurrentPage}
                 />
             </div>
+
+            <ConfirmDialog
+                open={confirmDeleteId !== null}
+                title="Eliminar tripulante"
+                description="¿Estás seguro de que deseas eliminar este tripulante? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                isLoading={isDeleting}
+                destructive
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
         </div>
     );
 }

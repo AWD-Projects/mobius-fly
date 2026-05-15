@@ -7,6 +7,7 @@ import { Button } from "@/components/atoms/Button";
 import { AircraftFilterBar, AircraftFilters } from "./AircraftFilterBar";
 import { AircraftTable, Aircraft } from "./AircraftTable";
 import { AircraftPagination } from "./AircraftPagination";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 import { toast } from "@/components/atoms/Toast";
 import { deleteAircraft } from "@/app/actions/aircraft";
 import type { AircraftListItem } from "@/app/actions/aircraft";
@@ -45,14 +46,22 @@ export function AircraftListContent({ aircraft: initialAircraft, ownerId }: Prop
     const [aircraftList, setAircraftList] = useState<AircraftListItem[]>(initialAircraft);
     const [filters, setFilters] = useState<AircraftFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 5;
 
-    const handleDelete = async (id: string) => {
-        const { error } = await deleteAircraft(id, ownerId);
+    const handleDeleteRequest = (id: string) => setConfirmDeleteId(id);
+
+    const handleDeleteConfirm = async () => {
+        if (!confirmDeleteId) return;
+        setIsDeleting(true);
+        const { error } = await deleteAircraft(confirmDeleteId, ownerId);
+        setIsDeleting(false);
+        setConfirmDeleteId(null);
         if (error) {
             toast.error("No se pudo eliminar", error);
         } else {
-            setAircraftList((prev) => prev.filter((a) => a.id !== id));
+            setAircraftList((prev) => prev.filter((a) => a.id !== confirmDeleteId));
             toast.success("Aeronave eliminada", "La aeronave fue eliminada correctamente.");
         }
     };
@@ -106,7 +115,7 @@ export function AircraftListContent({ aircraft: initialAircraft, ownerId }: Prop
                     aircraft={paginated}
                     onView={(id) => router.push(`/owner/aeronaves/${id}`)}
                     onEdit={(id) => router.push(`/owner/aeronaves/${id}/edit`)}
-                    onDelete={handleDelete}
+                    onDelete={handleDeleteRequest}
                 />
 
                 <AircraftPagination
@@ -117,6 +126,18 @@ export function AircraftListContent({ aircraft: initialAircraft, ownerId }: Prop
                     onPageChange={setCurrentPage}
                 />
             </div>
+
+            <ConfirmDialog
+                open={confirmDeleteId !== null}
+                title="Eliminar aeronave"
+                description="¿Estás seguro de que deseas eliminar esta aeronave? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                isLoading={isDeleting}
+                destructive
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
         </div>
     );
 }

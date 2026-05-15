@@ -49,6 +49,23 @@ export interface AddAircraftInput {
 
 // ─── getAircraftList ──────────────────────────────────────────────────────────
 
+async function getUnapprovedAircraftIds(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string[]> {
+    const { data: approvedStatus } = await supabase
+        .from("document_status")
+        .select("id")
+        .eq("code", "APPROVED")
+        .single();
+
+    if (!approvedStatus) return [];
+
+    const { data: nonApproved } = await supabase
+        .from("aircraft_documents")
+        .select("aircraft_id")
+        .neq("document_status_id", approvedStatus.id);
+
+    return [...new Set((nonApproved ?? []).map((d: any) => d.aircraft_id))];
+}
+
 export async function getAircraftList(userId: string): Promise<AircraftListItem[]> {
     const supabase = await createClient();
 
@@ -60,12 +77,20 @@ export async function getAircraftList(userId: string): Promise<AircraftListItem[
 
     if (!owner) return [];
 
-    const { data, error } = await supabase
+    const unapprovedIds = await getUnapprovedAircraftIds(supabase);
+
+    let query = supabase
         .from("aircrafts")
         .select("id, model, manufacturer, tail_number, seats, year, status, photos")
         .eq("owner_id", owner.id)
         .eq("status", "ACTIVE")
         .order("model", { ascending: true });
+
+    if (unapprovedIds.length > 0) {
+        query = query.not("id", "in", `(${unapprovedIds.join(",")})`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error("[getAircraftList] error:", error.message);
@@ -109,6 +134,9 @@ export async function getAvailableAircraftForTimeSlot(
     const { data: conflicting } = await conflictQuery;
     const busyIds = [...new Set((conflicting ?? []).map((f: any) => f.aircraft_id))];
 
+    const unapprovedIds = await getUnapprovedAircraftIds(supabase);
+    const excludedIds = [...new Set([...busyIds, ...unapprovedIds])];
+
     let query = supabase
         .from("aircrafts")
         .select("id, model, manufacturer, tail_number, seats, year, status, photos")
@@ -116,8 +144,8 @@ export async function getAvailableAircraftForTimeSlot(
         .eq("status", "ACTIVE")
         .order("model", { ascending: true });
 
-    if (busyIds.length > 0) {
-        query = query.not("id", "in", `(${busyIds.join(",")})`);
+    if (excludedIds.length > 0) {
+        query = query.not("id", "in", `(${excludedIds.join(",")})`);
     }
 
     const { data, error } = await query;

@@ -9,6 +9,7 @@ export interface CrewListItem {
     first_name: string;
     last_name: string;
     status: string;
+    is_approved: boolean;
     license_number: string | null;
     email: string | null;
     phone: string | null;
@@ -65,6 +66,7 @@ export async function addCrewMember(
             license_number: input.licenseNumber.trim() || null,
             phone:          input.phone.trim() || null,
             status:         "ACTIVE",
+            is_approved:    false,
         })
         .select("id")
         .single();
@@ -331,10 +333,11 @@ export async function getAvailableCrewForTimeSlot(
     let query = supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", ownerId)
         .eq("status", "ACTIVE")
+        .eq("is_approved", true)
         .order("first_name", { ascending: true });
 
     if (busyIds.length > 0) {
@@ -365,10 +368,9 @@ export async function getCrewList(userId: string): Promise<CrewListItem[]> {
     const { data, error } = await supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", owner.id)
-        .eq("status", "ACTIVE")
         .order("first_name", { ascending: true });
 
     if (error) {

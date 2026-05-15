@@ -7,6 +7,7 @@ import { Button } from "@/components/atoms/Button";
 import { FlightsFilterBar, FlightsFilters } from "./FlightsFilterBar";
 import { FlightsTable, Flight } from "./FlightsTable";
 import { FlightsPagination } from "./FlightsPagination";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 import { toast } from "@/components/atoms/Toast";
 import { deleteFlight } from "@/app/actions/flights";
 import type { OwnerFlightListItem } from "@/app/actions/flights";
@@ -58,15 +59,30 @@ export function FlightsListContent({ flights: initialFlights, ownerId, hasAircra
     const [flightList, setFlightList] = useState<OwnerFlightListItem[]>(initialFlights);
     const [filters, setFilters] = useState<FlightsFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 5;
 
-    const handleDelete = async (id: string) => {
-        const { error } = await deleteFlight(id, ownerId);
+    const handleDeleteRequest = (id: string) => setConfirmDeleteId(id);
+
+    const handleDeleteConfirm = async () => {
+        if (!confirmDeleteId) return;
+        setIsDeleting(true);
+        const { error, notifiedPassengers } = await deleteFlight(confirmDeleteId, ownerId);
+        setIsDeleting(false);
+        setConfirmDeleteId(null);
         if (error) {
             toast.error("No se pudo eliminar", error);
         } else {
-            setFlightList((prev) => prev.filter((f) => f.id !== id));
-            toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
+            setFlightList((prev) => prev.filter((f) => f.id !== confirmDeleteId));
+            if (notifiedPassengers > 0) {
+                toast.success(
+                    "Vuelo cancelado",
+                    `Se notificó a ${notifiedPassengers} ${notifiedPassengers === 1 ? "pasajero" : "pasajeros"} por correo.`,
+                );
+            } else {
+                toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
+            }
         }
     };
 
@@ -161,7 +177,7 @@ export function FlightsListContent({ flights: initialFlights, ownerId, hasAircra
                     flights={paginated}
                     onView={(id) => router.push(`/owner/vuelos/${id}`)}
                     onEdit={(id) => router.push(`/owner/vuelos/${id}/edit`)}
-                    onDelete={handleDelete}
+                    onDelete={handleDeleteRequest}
                 />
 
                 <FlightsPagination
@@ -172,6 +188,18 @@ export function FlightsListContent({ flights: initialFlights, ownerId, hasAircra
                     onPageChange={setCurrentPage}
                 />
             </div>
+
+            <ConfirmDialog
+                open={confirmDeleteId !== null}
+                title="Eliminar vuelo"
+                description="¿Estás seguro de que deseas eliminar este vuelo? Si tiene pasajeros con reservaciones activas, se les notificará por correo."
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                isLoading={isDeleting}
+                destructive
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
         </div>
     );
 }

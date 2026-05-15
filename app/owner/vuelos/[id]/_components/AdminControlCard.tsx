@@ -5,22 +5,22 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/Button";
 import { Download } from "lucide-react";
 import { toast } from "@/components/atoms/Toast";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 import { updateFlightStatus, deleteFlight } from "@/app/actions/flights";
 import type { OwnerFlightPassenger } from "@/app/actions/flights";
 
 export interface AdminControlCardProps {
-    flightId:      string;
-    ownerId:       string;
-    statusCode:    string;
-    totalSeats:    number;
-    soldSeats:     number;
-    availableSeats:number;
-    pricePerSeat:  string;
-    passengers:    OwnerFlightPassenger[];
-    onStatusChange:(code: string) => void;
+    flightId:       string;
+    ownerId:        string;
+    statusCode:     string;
+    totalSeats:     number;
+    soldSeats:      number;
+    availableSeats: number;
+    pricePerSeat:   string;
+    passengers:     OwnerFlightPassenger[];
+    onStatusChange: (code: string) => void;
 }
 
-// Status transitions available to the owner
 const TRANSITIONS: Record<string, { label: string; next: string }[]> = {
     SCHEDULED: [{ label: "Marcar como En vuelo", next: "IN_FLIGHT" }, { label: "Cancelar vuelo", next: "CANCELLED" }],
     DELAYED:   [{ label: "Marcar como En vuelo", next: "IN_FLIGHT" }, { label: "Cancelar vuelo", next: "CANCELLED" }],
@@ -41,13 +41,18 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
 }) => {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [pendingStatusNext, setPendingStatusNext] = useState<string | null>(null);
 
     const transitions = TRANSITIONS[statusCode] ?? [];
+    const hasPassengers = passengers.length > 0;
 
     const handleStatusChange = (next: string, label: string) => {
+        setPendingStatusNext(next);
         startTransition(async () => {
             const { error } = await updateFlightStatus(flightId, ownerId, next);
+            setPendingStatusNext(null);
             if (error) {
                 toast.error("Error al actualizar", error);
             } else {
@@ -57,17 +62,24 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
         });
     };
 
-    const handleDelete = () => {
-        startTransition(async () => {
-            const { error } = await deleteFlight(flightId, ownerId);
-            if (error) {
-                toast.error("No se pudo eliminar", error);
-                setConfirmDelete(false);
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        const { error, notifiedPassengers } = await deleteFlight(flightId, ownerId);
+        setIsDeleting(false);
+        setShowDeleteDialog(false);
+        if (error) {
+            toast.error("No se pudo eliminar", error);
+        } else {
+            if (notifiedPassengers > 0) {
+                toast.success(
+                    "Vuelo cancelado",
+                    `Se notificó a ${notifiedPassengers} ${notifiedPassengers === 1 ? "pasajero" : "pasajeros"} por correo.`,
+                );
             } else {
                 toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
-                router.push("/owner/vuelos");
             }
-        });
+            router.push("/owner/vuelos");
+        }
     };
 
     return (
@@ -148,56 +160,51 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                             onClick={() => handleStatusChange(next, label)}
                             variant={next === "CANCELLED" ? "outline" : "primary"}
                             className="w-full h-12"
-                            disabled={isPending}
+                            isLoading={isPending && pendingStatusNext === next}
+                            disabled={isPending || isDeleting}
                         >
-                            {isPending ? "Actualizando..." : label}
+                            {label}
                         </Button>
                     ))}
                     <Button
                         onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
                         variant="outline"
                         className="w-full h-12"
-                        disabled={isPending}
+                        disabled={isPending || isDeleting}
                     >
                         Editar vuelo
                     </Button>
-
-                    {!confirmDelete ? (
-                        <Button
-                            onClick={() => setConfirmDelete(true)}
-                            variant="outline"
-                            className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50"
-                            disabled={isPending}
-                        >
-                            Eliminar vuelo
-                        </Button>
-                    ) : (
-                        <div className="flex flex-col gap-2 pt-1">
-                            <p className="text-[11px] text-center text-[#666666]">
-                                ¿Confirmar eliminación? Esta acción no se puede deshacer.
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    onClick={() => setConfirmDelete(false)}
-                                    variant="outline"
-                                    className="flex-1 h-9 text-xs"
-                                    disabled={isPending}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    onClick={handleDelete}
-                                    variant="outline"
-                                    className="flex-1 h-9 text-xs text-red-600 border-red-300 hover:bg-red-50"
-                                    disabled={isPending}
-                                >
-                                    {isPending ? "Eliminando..." : "Confirmar"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                    <Button
+                        onClick={() => setShowDeleteDialog(true)}
+                        variant="outline"
+                        className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50"
+                        disabled={isPending || isDeleting}
+                    >
+                        Eliminar vuelo
+                    </Button>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={showDeleteDialog}
+                title="Eliminar vuelo"
+                description={
+                    hasPassengers
+                        ? "Este vuelo tiene pasajeros con reservaciones activas. Al eliminar el vuelo, se les notificará por correo electrónico."
+                        : "¿Estás seguro de que deseas eliminar este vuelo? Esta acción no se puede deshacer."
+                }
+                warning={
+                    hasPassengers
+                        ? `Se enviará un correo de cancelación a ${passengers.length} ${passengers.length === 1 ? "pasajero" : "pasajeros"}. El equipo de Mobius Fly se pondrá en contacto con ellos para procesar su reembolso o compensación.`
+                        : undefined
+                }
+                confirmLabel="Eliminar vuelo"
+                cancelLabel="Cancelar"
+                isLoading={isDeleting}
+                destructive
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteDialog(false)}
+            />
         </div>
     );
 };

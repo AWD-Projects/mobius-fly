@@ -783,17 +783,10 @@ export async function updateFlight(
 export async function deleteFlight(
     flightId: string,
     ownerId:  string,
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; notifiedPassengers: number }> {
     const supabase = await createClient();
 
-    // Block if any CONFIRMED reservations exist (NO ACTION FK)
-    const { count: resCount } = await supabase
-        .from("reservations")
-        .select("id", { count: "exact", head: true })
-        .eq("flight_id", flightId)
-        .not("status_id", "is", null);
-
-    // Resolve CANCELLED/REFUNDED status IDs to exclude them
+    // Resolve CANCELLED/REFUNDED status IDs to exclude from active count
     const { data: cancelledStatuses } = await supabase
         .from("reservation_status")
         .select("id")
@@ -801,16 +794,85 @@ export async function deleteFlight(
 
     const cancelledIds = (cancelledStatuses ?? []).map((s: { id: string }) => s.id);
 
-    const { count: activeResCount } = cancelledIds.length > 0
-        ? await supabase
-            .from("reservations")
-            .select("id", { count: "exact", head: true })
-            .eq("flight_id", flightId)
-            .not("status_id", "in", `(${cancelledIds.join(",")})`)
-        : { count: resCount };
+    // Fetch active reservations with passenger contact info for notifications
+    let activeResQuery = supabase
+        .from("reservations")
+        .select(`
+            id,
+            reservation_passengers (
+                full_name,
+                email
+            )
+        `)
+        .eq("flight_id", flightId);
 
-    if ((activeResCount ?? 0) > 0) {
-        return { error: "No se puede eliminar: el vuelo tiene reservaciones activas. Cancélalas primero." };
+    if (cancelledIds.length > 0) {
+        activeResQuery = activeResQuery.not("status_id", "in", `(${cancelledIds.join(",")})`);
+    }
+
+    const { data: activeReservations } = await activeResQuery;
+
+    // Collect unique passenger emails
+    const passengers: { name: string; email: string }[] = [];
+    for (const res of activeReservations ?? []) {
+        for (const p of (res.reservation_passengers as any[] ?? [])) {
+            if (p.email) passengers.push({ name: p.full_name ?? "", email: p.email });
+        }
+    }
+
+    // Send cancellation emails if there are active passengers
+    if (passengers.length > 0) {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY ?? "");
+
+        const emailPromises = passengers.map((p) =>
+            resend.emails.send({
+                from: process.env.RESEND_FROM_EMAIL ?? "noreply@amoxtli.tech",
+                to: p.email,
+                subject: "Tu vuelo ha sido cancelado — Mobius Fly",
+                html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#F6F6F4;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#F6F6F4;padding:40px 20px;">
+    <tr><td align="center">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="520"
+             style="background:#fff;border-radius:12px;overflow:hidden;">
+        <tr>
+          <td style="background:#C4A77D;padding:28px 32px;text-align:center;">
+            <h1 style="margin:0;color:#fff;font-size:24px;font-weight:600;letter-spacing:-0.02em;">Mobius Fly</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:40px 32px;">
+            <p style="margin:0 0 16px;color:#39424E;font-size:16px;font-weight:600;">Hola${p.name ? `, ${p.name.split(" ")[0]}` : ""},</p>
+            <p style="margin:0 0 16px;color:#39424E;font-size:14px;line-height:1.6;">
+              Lamentamos informarte que tu vuelo ha sido <strong>cancelado</strong> por el propietario de la aeronave.
+            </p>
+            <p style="margin:0 0 24px;color:#39424E;font-size:14px;line-height:1.6;">
+              El equipo de Mobius Fly se pondrá en contacto contigo a la brevedad para procesar tu reembolso o compensación correspondiente.
+            </p>
+            <p style="margin:0;color:#39424E;font-size:14px;">
+              Si tienes dudas, escríbenos a{" "}
+              <a href="mailto:contacto@mobiusfly.com" style="color:#C4A77D;">contacto@mobiusfly.com</a>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px;background:#F6F6F4;text-align:center;">
+            <p style="margin:0;color:#39424E;font-size:12px;opacity:0.6;">© Mobius Fly — Vuelos privados</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+            }).catch(() => null),
+        );
+
+        await Promise.all(emailPromises);
     }
 
     // Delete flight (flight_crew, flight_manifests, flight_reviews cascade)
@@ -822,10 +884,10 @@ export async function deleteFlight(
 
     if (error) {
         console.error("[deleteFlight] error:", error.message);
-        return { error: error.message };
+        return { error: error.message, notifiedPassengers: 0 };
     }
 
-    return { error: null };
+    return { error: null, notifiedPassengers: passengers.length };
 }
 
 // ─── getAirports ──────────────────────────────────────────────────────────────
