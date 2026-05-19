@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,27 +44,42 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function AddCrewContent({ ownerId, crewRoles }: Props) {
     const router = useRouter();
-    const [isPending, startTransition] = useTransition();
+    const [isPending, setIsPending] = useState(false);
 
     const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: { firstName: "", lastName: "", crewRoleId: "", licenseNumber: "", phone: "" },
     });
 
-    const onSubmit = handleSubmit((data) => {
-        startTransition(async () => {
+    const onSubmit = handleSubmit(async (data) => {
+        setIsPending(true);
+        const run = async () => {
             const { error } = await addCrewMember(ownerId, {
                 ...data,
                 licenseNumber: data.licenseNumber ?? "",
                 phone:         data.phone         ?? "",
             });
-            if (error) {
-                toast.error("Error al guardar", error);
-            } else {
-                toast.success("Tripulante agregado", `${data.firstName} ${data.lastName} fue registrado exitosamente`);
-                router.push("/owner/tripulacion");
-            }
-        });
+            if (error) throw new Error(error);
+        };
+
+        try {
+            await toast.promise(run, {
+                loading: { title: "Guardando tripulante", description: "Registrando información..." },
+                success: () => ({
+                    title: "Tripulante agregado",
+                    description: `${data.firstName} ${data.lastName} fue registrado exitosamente`,
+                }),
+                error: (err: unknown) => ({
+                    title: "Error al guardar",
+                    description: err instanceof Error ? err.message : String(err),
+                }),
+            });
+            router.push("/owner/tripulacion");
+        } catch {
+            // error already shown by toast
+        } finally {
+            setIsPending(false);
+        }
     });
 
     return (
@@ -142,8 +157,8 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
 
                 {/* Actions */}
                 <div className="flex items-center justify-center gap-4 pt-8">
-                    <Button type="submit" variant="primary" className="w-60 h-10" disabled={isPending}>
-                        {isPending ? "Guardando..." : "Guardar tripulante"}
+                    <Button type="submit" variant="primary" className="w-60 h-10" isLoading={isPending}>
+                        Guardar tripulante
                     </Button>
                     <Button
                         type="button"

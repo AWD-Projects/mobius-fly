@@ -7,16 +7,18 @@ import { Plus } from "lucide-react";
 import { CrewFilterBar, type CrewFilters } from "./CrewFilterBar";
 import { CrewCard, type CrewMember } from "./CrewCard";
 import { CrewPagination } from "./CrewPagination";
+import { AddCrewModal } from "./AddCrewModal";
 import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 import { toast } from "@/components/atoms/Toast";
 import { deleteCrewMember } from "@/app/actions/crew";
-import type { CrewListItem } from "@/app/actions/crew";
+import type { CrewListItem, CrewRoleRow } from "@/app/actions/crew";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    crew:    CrewListItem[];
-    ownerId: string;
+    crew:      CrewListItem[];
+    ownerId:   string;
+    crewRoles: CrewRoleRow[];
 }
 
 // ─── Maps ─────────────────────────────────────────────────────────────────────
@@ -33,36 +35,34 @@ const ROLE_FILTER_CODE: Record<string, string> = {
     "cabin-crew": "FLIGHT_ATTENDANT",
 };
 
-function mapStatus(s: string): "active" | "inactive" | "pending" {
-    const lower = s.toLowerCase();
-    if (lower === "inactive") return "inactive";
-    if (lower === "pending")  return "pending";
-    return "active";
-}
-
 function toCrewMember(item: CrewListItem): CrewMember {
+    let status: CrewMember["status"];
+    if (item.status === "ACTIVE") {
+        status = item.is_approved ? "active" : "pending";
+    } else {
+        status = "inactive";
+    }
     return {
         id:       item.id,
         name:     `${item.first_name} ${item.last_name}`.trim(),
         role:     ROLE_DISPLAY[item.crew_role?.code ?? ""] ?? (item.crew_role?.code ?? "—"),
         base:     "—",
         licenses: item.license_number ? [item.license_number] : [],
-        status:   mapStatus(item.status),
+        status,
     };
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
+export function CrewListContent({ crew: initialCrew, ownerId, crewRoles }: Props) {
     const router = useRouter();
     const [crewList, setCrewList] = useState<CrewListItem[]>(initialCrew);
     const [filters, setFilters] = useState<CrewFilters>({});
     const [currentPage, setCurrentPage] = useState(1);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 4;
-
-    const handleDeleteRequest = (id: string) => setConfirmDeleteId(id);
 
     const handleDeleteConfirm = async () => {
         if (!confirmDeleteId) return;
@@ -117,16 +117,14 @@ export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
             {/* Content */}
             <div className="px-12 py-0 flex flex-col gap-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-small font-semibold text-text">
-                        Tripulación disponibles
-                    </h2>
+                    <h2 className="text-small font-semibold text-text">Tripulación disponibles</h2>
                     <Button
-                        onClick={() => router.push("/owner/tripulacion/nuevo")}
+                        onClick={() => setShowAddModal(true)}
                         variant="primary"
                         className="h-10 px-4 flex items-center gap-2"
                     >
                         <Plus className="w-4 h-4" />
-                        Nueva tripulación
+                        Nuevo tripulante
                     </Button>
                 </div>
 
@@ -142,7 +140,7 @@ export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
                                 member={member}
                                 onView={(id) => router.push(`/owner/tripulacion/${id}`)}
                                 onEdit={(id) => router.push(`/owner/tripulacion/${id}/edit`)}
-                                onDelete={handleDeleteRequest}
+                                onDelete={(id) => setConfirmDeleteId(id)}
                             />
                         ))}
                     </div>
@@ -156,6 +154,14 @@ export function CrewListContent({ crew: initialCrew, ownerId }: Props) {
                     onPageChange={setCurrentPage}
                 />
             </div>
+
+            <AddCrewModal
+                open={showAddModal}
+                ownerId={ownerId}
+                crewRoles={crewRoles}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={(member) => setCrewList((prev) => [member, ...prev])}
+            />
 
             <ConfirmDialog
                 open={confirmDeleteId !== null}

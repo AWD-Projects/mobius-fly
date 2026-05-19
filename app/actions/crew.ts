@@ -53,7 +53,7 @@ export async function getCrewRoles(): Promise<CrewRoleRow[]> {
 export async function addCrewMember(
     ownerId: string,
     input: AddCrewMemberInput,
-): Promise<{ error: string | null; id: string | null }> {
+): Promise<{ error: string | null; member: CrewListItem | null }> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -68,15 +68,15 @@ export async function addCrewMember(
             status:         "ACTIVE",
             is_approved:    false,
         })
-        .select("id")
+        .select("id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)")
         .single();
 
     if (error) {
         console.error("[addCrewMember] error:", error.message);
-        return { error: error.message, id: null };
+        return { error: error.message, member: null };
     }
 
-    return { error: null, id: data.id };
+    return { error: null, member: data as unknown as CrewListItem };
 }
 
 export interface CrewDocumentRow {
@@ -349,6 +349,38 @@ export async function getAvailableCrewForTimeSlot(
         console.error("[getAvailableCrewForTimeSlot] error:", error.message);
         return [];
     }
+    return (data ?? []) as unknown as CrewListItem[];
+}
+
+// ─── getAvailableCrewList ─────────────────────────────────────────────────────
+// Returns only crew that can be assigned to flights: ACTIVE status + approved by Mobius.
+
+export async function getAvailableCrewList(userId: string): Promise<CrewListItem[]> {
+    const supabase = await createClient();
+
+    const { data: owner } = await supabase
+        .from("owners")
+        .select("id")
+        .eq("user_id", userId)
+        .single();
+
+    if (!owner) return [];
+
+    const { data, error } = await supabase
+        .from("crew_members")
+        .select(
+            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+        )
+        .eq("owner_id", owner.id)
+        .eq("status", "ACTIVE")
+        .eq("is_approved", true)
+        .order("first_name", { ascending: true });
+
+    if (error) {
+        console.error("[getAvailableCrewList] error:", error.message);
+        return [];
+    }
+
     return (data ?? []) as unknown as CrewListItem[];
 }
 

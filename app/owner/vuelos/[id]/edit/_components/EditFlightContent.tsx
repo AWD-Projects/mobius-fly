@@ -39,7 +39,7 @@ type FlightType = "sencillo" | "redondo";
 const schema = z.object({
     originId:       z.string().min(1, "Selecciona el aeropuerto de origen"),
     destinationId:  z.string().min(1, "Selecciona el aeropuerto de destino"),
-    fboOrigin:      z.string().optional(),
+    fboOrigin:      z.string().min(1, "FBO de origen requerido"),
     fboDestination: z.string().optional(),
     departureDate:  z.string().min(1, "Fecha requerida"),
     departureTime:  z.string().min(1, "Hora requerida"),
@@ -50,8 +50,9 @@ const schema = z.object({
     aircraftId:     z.string().min(1, "Selecciona una aeronave"),
     captainId:      z.string().min(1, "Selecciona un capitán"),
     additionalCrew: z.array(z.object({ id: z.string() })).optional(),
-    seatsForSale:   z.number().min(1),
-    pricePerSeat:   z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, "Precio inválido"),
+    seatsForSale:        z.number().min(1),
+    pricePerSeat:        z.string().refine((v) => { const n = parseFloat(v.replace(/,/g, "")); return !isNaN(n) && n > 0; }, "Precio inválido"),
+    priceFullAircraft:   z.string().refine((v) => { const n = parseFloat(v.replace(/,/g, "")); return !isNaN(n) && n > 0; }, "Precio inválido"),
 }).refine(
     (d) => !d.originId || !d.destinationId || d.originId !== d.destinationId,
     { message: "El destino debe ser diferente al origen", path: ["destinationId"] },
@@ -76,15 +77,19 @@ type FormData = z.infer<typeof schema>;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toISO(date: string, time: string): string {
-    return `${date}T${time}:00`;
+    return new Date(`${date}T${time}:00`).toISOString();
 }
 
 function isoDate(iso: string): string {
-    return iso ? iso.slice(0, 10) : "";
+    if (!iso) return "";
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function isoTime(iso: string): string {
-    return iso ? iso.slice(11, 16) : "";
+    if (!iso) return "";
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 function airportLabel(a: Airport): string {
@@ -101,6 +106,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     );
     const [flightPlan, setFlightPlan] = useState<File | null>(null);
     const [existingPlanUrl, setExistingPlanUrl] = useState<string | null>(initial.flight_plan_url);
+    const [flightPlanError, setFlightPlanError] = useState(false);
     const [filteredAircraft, setFilteredAircraft] = useState<AircraftListItem[]>(aircraft);
     const [filteredCrew, setFilteredCrew] = useState<CrewListItem[]>(crew);
     const [loadingAircraft, setLoadingAircraft] = useState(false);
@@ -141,7 +147,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
             captainId:      initialCaptain?.id ?? "",
             additionalCrew: initialAdditional,
             seatsForSale:   initial.total_seats,
-            pricePerSeat:   String(initial.price_per_seat),
+            pricePerSeat:        String(initial.price_per_seat),
+            priceFullAircraft:   String(initial.price_full_aircraft),
         },
     });
 
@@ -233,13 +240,19 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
     const requiredSeats = initial.aircraft?.seats ?? null;
 
+    // ── Auto-calculate full aircraft price ────────────────────────────────────
+    useEffect(() => {
+        const num   = parseFloat((pricePerSeat || "0").replace(/,/g, ""));
+        const seats = seatsForSale || 0;
+        const full  = num > 0 && seats > 0 ? String(num * seats) : "";
+        setValue("priceFullAircraft", full, { shouldValidate: !!full });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pricePerSeat, seatsForSale]);
+
     const selectedAircraft  = aircraft.find((a) => a.id === aircraftId);
     const seatFilteredAircraft = requiredSeats != null
         ? availableAircraft.filter((a) => a.seats >= requiredSeats)
         : availableAircraft;
-
-    const priceNum  = parseFloat(pricePerSeat) || 0;
-    const fullPrice = priceNum * (selectedAircraft?.seats ?? seatsForSale);
 
     const captains    = availableCrew.filter((c) => c.crew_role?.code === "CAPTAIN");
     const otherCrew   = availableCrew;
@@ -258,6 +271,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     };
 
     const onSubmit = (isVisible: boolean) => handleSubmit(async (data) => {
+        if (!flightPlan && !existingPlanUrl) { setFlightPlanError(true); return; }
+        setFlightPlanError(false);
         startTransition(async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase!.auth.getUser();
@@ -279,8 +294,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                     : null,
                 aircraftId:              data.aircraftId,
                 totalSeats:              data.seatsForSale,
-                pricePerSeat:            priceNum,
-                priceFullAircraft:       fullPrice,
+                pricePerSeat:            parseFloat(data.pricePerSeat.replace(/,/g, "")),
+                priceFullAircraft:       parseFloat(data.priceFullAircraft.replace(/,/g, "")),
                 flightPlanUrl,
                 isVisible,
                 crewMemberIds:           allCrew,
@@ -320,16 +335,17 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                 {/* Type Toggle */}
                 <div className="flex">
                     {(["sencillo", "redondo"] as FlightType[]).map((t, i) => (
-                        <button
+                        <Button
                             key={t}
                             type="button"
+                            variant="ghost"
                             onClick={() => setFlightType(t)}
                             className={`flex-1 h-11 border border-border transition-colors ${
                                 i === 0 ? "rounded-l-xl" : "rounded-r-xl border-l-0"
                             } ${flightType === t ? "bg-white text-text font-medium" : "bg-[#f6f6f4] text-muted"}`}
                         >
                             {t === "sencillo" ? "Sencillo" : "Redondo"}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
@@ -359,7 +375,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" {...register("fboOrigin")} />
+                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" error={errors.fboOrigin?.message} {...register("fboOrigin")} />
                         </div>
                         <div className="flex-1">
                             <InputGroup label="FBO de destino (opcional)" type="text" placeholder="Dirección del FBO" {...register("fboDestination")} />
@@ -480,7 +496,6 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                 <div className="flex gap-7">
                     <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                         <h2 className="text-[11px] font-semibold text-text">Configuración comercial</h2>
-                        <h3 className="text-xs font-medium text-text">Opciones de venta</h3>
 
                         <div className="flex gap-3">
                             <div className="flex-1">
@@ -499,31 +514,60 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                 />
                             </div>
 
-                            <div className="flex-1 flex flex-col gap-1.5">
-                                <label className="text-xs font-medium text-text">Precio por asiento</label>
-                                <div className={`flex items-center h-10 px-3 rounded-lg border ${errors.pricePerSeat ? "border-error" : "border-border"}`}>
-                                    <span className="text-sm text-muted">$</span>
-                                    <input type="number" placeholder="0.00" className="flex-1 bg-transparent text-sm outline-none ml-2" {...register("pricePerSeat")} />
-                                    <span className="text-sm text-muted">MXN</span>
-                                </div>
-                                {errors.pricePerSeat && <span className="text-xs text-error">{errors.pricePerSeat.message}</span>}
+                            <div className="flex-1">
+                                <Controller
+                                    name="pricePerSeat"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <InputGroup
+                                            label="Precio por asiento"
+                                            prefix="$"
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="0"
+                                            error={errors.pricePerSeat?.message}
+                                            value={field.value
+                                                ? Number(field.value.replace(/,/g, "")).toLocaleString("es-MX")
+                                                : ""}
+                                            onChange={(e) => {
+                                                const raw = e.target.value.replace(/[^0-9.]/g, "");
+                                                field.onChange(raw);
+                                            }}
+                                            onBlur={field.onBlur}
+                                            name={field.name}
+                                        />
+                                    )}
+                                />
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-text">Precio por avión completo</label>
-                            <div className="h-10 px-3 rounded-lg border border-border flex items-center gap-2 bg-[#FAFAFA]">
-                                <span className="text-sm text-muted">$</span>
-                                <span className="text-sm text-text">
-                                    {fullPrice > 0 ? fullPrice.toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—"}
-                                </span>
-                            </div>
-                            {selectedAircraft && (
-                                <p className="text-[11px] text-muted">
-                                    Calculado con {selectedAircraft.seats} asientos del{" "}
-                                    {selectedAircraft.manufacturer ? `${selectedAircraft.manufacturer} ${selectedAircraft.model}` : selectedAircraft.model}
-                                </p>
-                            )}
+                        <div>
+                            <Controller
+                                name="priceFullAircraft"
+                                control={control}
+                                render={({ field }) => (
+                                    <InputGroup
+                                        label="Precio por avión completo"
+                                        prefix="$"
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0"
+                                        error={errors.priceFullAircraft?.message}
+                                        helperText={selectedAircraft
+                                            ? `Auto-calculado · puedes editarlo para ofrecer un descuento`
+                                            : undefined}
+                                        value={field.value
+                                            ? Number(field.value.replace(/,/g, "")).toLocaleString("es-MX")
+                                            : ""}
+                                        onChange={(e) => {
+                                            const raw = e.target.value.replace(/[^0-9.]/g, "");
+                                            field.onChange(raw);
+                                        }}
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                    />
+                                )}
+                            />
                         </div>
                     </div>
 
@@ -533,23 +577,25 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                         {existingPlanUrl && !flightPlan && (
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#FAFAFA] border border-border">
                                 <span className="text-[12px] text-text truncate">Plan de vuelo actual</span>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     onClick={() => setExistingPlanUrl(null)}
-                                    className="text-[11px] text-muted hover:text-text ml-2 shrink-0"
+                                    className="text-[11px] text-muted hover:text-text ml-2 shrink-0 h-auto p-0"
                                 >
                                     Eliminar
-                                </button>
+                                </Button>
                             </div>
                         )}
                         {(!existingPlanUrl || flightPlan) && (
                             <DocumentUpload
                                 accept=".pdf"
                                 document={flightPlan ? { name: flightPlan.name, size: formatFileSize(flightPlan.size) } : undefined}
-                                onUpload={(file) => { setFlightPlan(file); setExistingPlanUrl(null); }}
+                                onUpload={(file) => { setFlightPlan(file); setExistingPlanUrl(null); setFlightPlanError(false); }}
                                 onRemove={() => setFlightPlan(null)}
                                 pendingTitle="Plan de vuelo"
                                 pendingDescription="Máximo 10 MB"
+                                error={flightPlanError}
                             />
                         )}
                     </div>

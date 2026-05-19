@@ -3,10 +3,12 @@
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/Button";
+import { ArrowLeft, CheckCircle, AlertCircle, Pencil, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { toast } from "@/components/atoms/Toast";
 import { updateCrewMemberStatus, deleteCrewMember } from "@/app/actions/crew";
 import type { CrewDetailData } from "@/app/actions/crew";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -33,16 +35,6 @@ const FLIGHT_STATUS_CONFIG: Record<string, { label: string; status: "success" | 
     CANCELLED:      { label: "Cancelado",   status: "inactive" },
 };
 
-const DOC_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-    APPROVED: { label: "Validado",   bg: "#E8F5E9", text: "#2E7D32" },
-    PENDING:  { label: "Pendiente",  bg: "#FFF8E1", text: "#F57F17" },
-    REJECTED: { label: "Rechazado",  bg: "#FFEBEE", text: "#C62828" },
-};
-
-const DOC_TYPE_LABEL: Record<string, string> = {
-    INE:      "INE / Cédula de identidad",
-    PASSPORT: "Pasaporte",
-};
 
 function formatDate(iso: string): string {
     if (!iso) return "—";
@@ -61,7 +53,7 @@ export function CrewDetailContent({ data, ownerId }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [currentStatus, setCurrentStatus] = useState(data.status);
-    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const roleCode  = data.crew_role?.code ?? "";
     const roleLabel = data.crew_role?.name ?? ROLE_LABEL[roleCode] ?? roleCode;
@@ -80,7 +72,6 @@ export function CrewDetailContent({ data, ownerId }: Props) {
             const { error } = await deleteCrewMember(data.id, ownerId);
             if (error) {
                 toast.error("No se pudo eliminar", error);
-                setConfirmDelete(false);
             } else {
                 toast.success("Tripulante eliminado", `${data.first_name} ${data.last_name} fue eliminado.`);
                 router.push("/owner/tripulacion");
@@ -108,6 +99,14 @@ export function CrewDetailContent({ data, ownerId }: Props) {
         <div className="w-full bg-[#f6f6f4] min-h-screen">
             {/* Header */}
             <div className="px-12 py-8">
+                <Button
+                    onClick={() => router.push("/owner/tripulacion")}
+                    variant="link"
+                    className="flex items-center gap-3 mb-5 p-0 text-sm font-medium text-text hover:opacity-70"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                    Volver a tripulación
+                </Button>
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-3">
@@ -240,103 +239,59 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                         </div>
                     </div>
 
-                    {/* Documents */}
-                    <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-3.5">
-                        <h2 className="text-[13px] font-semibold text-text">Documentación</h2>
-
-                        {data.documents.length === 0 ? (
-                            <p className="text-[11px] text-[#999999]">Sin documentos cargados.</p>
-                        ) : (
-                            data.documents.map((doc, index) => {
-                                const statusCode = doc.document_status?.code ?? "PENDING";
-                                const cfg = DOC_STATUS_CONFIG[statusCode] ?? DOC_STATUS_CONFIG.PENDING;
-                                return (
-                                    <div
-                                        key={doc.id}
-                                        className={`flex flex-col gap-2 py-3 ${index < data.documents.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
-                                    >
-                                        <span className="text-[11px] font-medium text-text">
-                                            {DOC_TYPE_LABEL[doc.document_type] ?? doc.document_type}
-                                        </span>
-                                        <span
-                                            className="text-[10px] font-medium px-2 py-0.5 rounded inline-flex items-center gap-1.5 w-fit"
-                                            style={{ backgroundColor: cfg.bg, color: cfg.text }}
-                                        >
-                                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.text }} />
-                                            {cfg.label}
-                                        </span>
-                                        {doc.rejected_reason && (
-                                            <span className="text-[10px] text-[#C62828]">{doc.rejected_reason}</span>
-                                        )}
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-
                     {/* Actions */}
-                    <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-3">
-                        <h2 className="text-[13px] font-semibold text-text">Acciones</h2>
+                    <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-2">
+                        <h2 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">Acciones</h2>
 
                         <Button
                             onClick={handleToggleStatus}
-                            variant="primary"
-                            className="w-full h-10"
-                            disabled={isPending}
+                            variant="outline"
+                            className="w-full h-10 justify-start gap-2.5"
+                            isLoading={isPending}
+                            icon={isActive
+                                ? <AlertCircle className="w-4 h-4 text-muted" />
+                                : <CheckCircle className="w-4 h-4 text-muted" />
+                            }
                         >
-                            {isPending
-                                ? "Actualizando..."
-                                : isActive
-                                ? "Marcar como No disponible"
-                                : "Marcar como Activo"}
+                            {isActive ? "Marcar como no disponible" : "Marcar como activo"}
                         </Button>
 
                         <Button
                             onClick={() => router.push(`/owner/tripulacion/${data.id}/edit`)}
-                            variant="outline"
-                            className="w-full h-10"
+                            variant="ghost"
+                            className="w-full h-10 justify-start gap-2.5"
                             disabled={isPending}
+                            icon={<Pencil className="w-4 h-4 text-muted" />}
                         >
                             Editar tripulante
                         </Button>
 
-                        {!confirmDelete ? (
-                            <Button
-                                onClick={() => setConfirmDelete(true)}
-                                variant="outline"
-                                className="w-full h-10 text-red-600 border-red-200 hover:bg-red-50"
-                                disabled={isPending}
-                            >
-                                Eliminar tripulante
-                            </Button>
-                        ) : (
-                            <div className="flex flex-col gap-2 pt-1">
-                                <p className="text-[11px] text-center text-[#666666]">
-                                    ¿Confirmar eliminación? Esta acción no se puede deshacer.
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => setConfirmDelete(false)}
-                                        variant="outline"
-                                        className="flex-1 h-9 text-xs"
-                                        disabled={isPending}
-                                    >
-                                        Cancelar
-                                    </Button>
-                                    <Button
-                                        onClick={handleDelete}
-                                        variant="outline"
-                                        className="flex-1 h-9 text-xs text-red-600 border-red-300 hover:bg-red-50"
-                                        disabled={isPending}
-                                    >
-                                        {isPending ? "Eliminando..." : "Confirmar"}
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
+                        <div className="w-full h-px bg-border mt-1" />
+
+                        <Button
+                            onClick={() => setShowDeleteDialog(true)}
+                            variant="ghost-destructive"
+                            className="w-full h-10 justify-start gap-2.5 text-[12px]"
+                            disabled={isPending}
+                            icon={<Trash2 className="w-4 h-4" />}
+                        >
+                            Eliminar tripulante
+                        </Button>
                     </div>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={showDeleteDialog}
+                title="Eliminar tripulante"
+                description="¿Estás seguro de que deseas eliminar este tripulante? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                isLoading={isPending}
+                destructive
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteDialog(false)}
+            />
         </div>
     );
 }

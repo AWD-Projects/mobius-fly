@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCrewList } from "@/app/actions/crew";
+import { getCrewList, getCrewRoles } from "@/app/actions/crew";
 import { CrewListContent } from "./_components/CrewListContent";
 
 export default async function CrewListPage() {
@@ -17,7 +17,10 @@ export default async function CrewListPage() {
 
     if (!owner) redirect("/owner/dashboard");
 
-    const crew = await getCrewList(user.id);
+    const [crew, crewRoles] = await Promise.all([
+        getCrewList(user.id),
+        getCrewRoles(),
+    ]);
 
-    return <CrewListContent crew={crew} ownerId={owner.id} />;
+    return <CrewListContent crew={crew} ownerId={owner.id} crewRoles={crewRoles} />;
 }

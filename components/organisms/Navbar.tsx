@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/atoms/Avatar";
+import { IconButton } from "@/components/atoms/IconButton";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -177,15 +178,16 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               >
                 Menu
               </span>
-              <button
+              <IconButton
+                variant="ghost"
+                size="sm"
+                icon={<X size={24} />}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "p-2 transition-opacity hover:opacity-80",
+                  "transition-opacity hover:opacity-80",
                   isHero ? "text-white" : "text-secondary"
                 )}
-              >
-                <X size={24} />
-              </button>
+              />
             </div>
 
             {/* Navigation Links */}
@@ -380,16 +382,17 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                 </button>
 
                 {/* Mobile Menu Button */}
-                <button
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  icon={isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label="Toggle menu"
                   className={cn(
-                    "lg:hidden flex items-center justify-center p-2 transition-opacity hover:opacity-80",
+                    "lg:hidden transition-opacity hover:opacity-80",
                     isHero ? "text-white" : "text-secondary"
                   )}
-                  aria-label="Toggle menu"
-                >
-                  {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
+                />
               </>
             ) : (
               <DropdownMenu>

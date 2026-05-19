@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Plane, ArrowRight } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
 
 export interface AircraftInfoCardProps {
   model: string;
@@ -34,13 +35,14 @@ export const AircraftInfoCard: React.FC<AircraftInfoCardProps> = ({
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-[11px] font-semibold text-text">Aeronave asignada</h2>
         {onViewAircraft && (
-          <button
+          <Button
+            variant="ghost"
             onClick={onViewAircraft}
             className="flex items-center gap-1 text-xs font-medium text-[#666666] hover:text-text transition-colors"
           >
             <span>Ver aeronave</span>
             <ArrowRight className="w-3 h-3" />
-          </button>
+          </Button>
         )}
       </div>
 

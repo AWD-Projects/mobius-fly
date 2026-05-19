@@ -114,7 +114,7 @@ export const FlightListCardSimple: React.FC<FlightListCardSimpleProps> = ({
                         <Plane size={14} strokeWidth={1.5} />
                         <span className="text-caption font-normal truncate max-w-[140px]">
                             {flight.aircraft_photo
-                                ? `${flight.flight_code.includes("MF") ? "Jet ejecutivo" : "Aeronave privada"}`
+                                ? `${flight.flight_code?.includes("MF") ? "Jet ejecutivo" : "Aeronave privada"}`
                                 : "Aeronave privada"}
                         </span>
                     </div>

@@ -21,20 +21,23 @@ interface Props {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-function seatsToType(seats: number): "jet" | "light" | "turboprop" {
-    if (seats <= 8)  return "light";
-    if (seats <= 16) return "jet";
-    return "turboprop";
-}
-
 function toDisplayAircraft(item: AircraftListItem): Aircraft {
+    let status: Aircraft["status"];
+    if (item.status === "ACTIVE") {
+        if      (item.doc_status === "missing")  status = "doc_missing";
+        else if (item.doc_status === "pending")  status = "doc_pending";
+        else if (item.doc_status === "rejected") status = "doc_rejected";
+        else                                     status = "active";
+    } else {
+        status = item.status.toLowerCase() as Aircraft["status"];
+    }
     return {
         id:           item.id,
         name:         item.manufacturer ? `${item.manufacturer} ${item.model}` : item.model,
         base:         "—",
         capacity:     `${item.seats} pasajeros`,
-        type:         seatsToType(item.seats),
-        status:       item.status.toLowerCase() as Aircraft["status"],
+        type:         item.aircraft_type ?? "jet",
+        status,
         registration: item.tail_number,
     };
 }

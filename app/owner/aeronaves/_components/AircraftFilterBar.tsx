@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Select } from "@/components/atoms/Select";
+import { SelectGroup } from "@/components/molecules/SelectGroup";
 import { Button } from "@/components/atoms/Button";
 
 export interface AircraftFilters {
@@ -31,38 +31,29 @@ export const AircraftFilterBar: React.FC<AircraftFilterBarProps> = ({ filters, o
     };
 
     return (
-        <div className="w-full px-12 py-6 flex items-end gap-4">
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Tipo</label>
-                <Select {...register("type")}>
-                    <option value="">Todos</option>
-                    <option value="jet">Jet Ejecutivo</option>
-                    <option value="turboprop">Turbohélice</option>
-                    <option value="light">Jet Ligero</option>
-                </Select>
-            </div>
+        <div className="w-full px-12 py-6 grid items-end gap-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr)) auto" }}>
+            <SelectGroup label="Tipo" {...register("type")}>
+                <option value="">Todos</option>
+                <option value="jet">Jet Ejecutivo</option>
+                <option value="turboprop">Turbohélice</option>
+                <option value="light">Jet Ligero</option>
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Capacidad</label>
-                <Select {...register("capacity")}>
-                    <option value="">Todas</option>
-                    <option value="small">1-8 pasajeros</option>
-                    <option value="medium">9-16 pasajeros</option>
-                    <option value="large">17+ pasajeros</option>
-                </Select>
-            </div>
+            <SelectGroup label="Capacidad" {...register("capacity")}>
+                <option value="">Todas</option>
+                <option value="small">1–8 pasajeros</option>
+                <option value="medium">9–16 pasajeros</option>
+                <option value="large">17+ pasajeros</option>
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Estado</label>
-                <Select {...register("status")}>
-                    <option value="">Todos</option>
-                    <option value="active">Activo</option>
-                    <option value="maintenance">Mantenimiento</option>
-                    <option value="inactive">Inactivo</option>
-                </Select>
-            </div>
+            <SelectGroup label="Estado" {...register("status")}>
+                <option value="">Todos</option>
+                <option value="active">Activo</option>
+                <option value="maintenance">Mantenimiento</option>
+                <option value="inactive">Inactivo</option>
+            </SelectGroup>
 
-            <Button type="button" onClick={handleClear} variant="outline" className="h-10 px-3">
+            <Button type="button" onClick={handleClear} variant="ghost" className="h-10 px-3 shrink-0">
                 Limpiar filtros
             </Button>
         </div>

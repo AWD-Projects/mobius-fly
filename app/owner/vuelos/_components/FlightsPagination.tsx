@@ -2,7 +2,6 @@
 
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/atoms/Button";
 
 export interface FlightsPaginationProps {
   currentPage: number;
@@ -25,65 +24,57 @@ export const FlightsPagination: React.FC<FlightsPaginationProps> = ({
   const getPageNumbers = () => {
     const pages: number[] = [];
     const maxVisible = 3;
-
     if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else if (currentPage <= 2) {
+      pages.push(1, 2, 3);
+    } else if (currentPage >= totalPages - 1) {
+      pages.push(totalPages - 2, totalPages - 1, totalPages);
     } else {
-      if (currentPage <= 2) {
-        pages.push(1, 2, 3);
-      } else if (currentPage >= totalPages - 1) {
-        pages.push(totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(currentPage - 1, currentPage, currentPage + 1);
-      }
+      pages.push(currentPage - 1, currentPage, currentPage + 1);
     }
-
     return pages;
   };
 
+  const btnBase = "w-7 h-7 rounded-md flex items-center justify-center text-[12px] transition-colors";
+
   return (
-    <div className="w-full flex items-center justify-between px-0 py-5">
-      {/* Pagination Controls */}
-      <div className="flex items-center gap-3">
-        {/* Previous Button */}
-        <Button
+    <div className="w-full flex items-center justify-between py-5">
+      <div className="flex items-center gap-1">
+        <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          variant="outline"
-          className="w-9 h-9 rounded-md p-0"
+          className={`${btnBase} text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed`}
         >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
 
-        {/* Page Numbers */}
         {getPageNumbers().map((page) => (
-          <Button
+          <button
             key={page}
             onClick={() => onPageChange(page)}
-            variant={currentPage === page ? "primary" : "outline"}
-            className="w-9 h-9 rounded-md p-0"
+            className={`${btnBase} ${
+              currentPage === page
+                ? "bg-[#EBEBEB] text-text font-medium"
+                : "text-muted hover:text-text hover:bg-[#F5F5F5]"
+            }`}
           >
             {page}
-          </Button>
+          </button>
         ))}
 
-        {/* Next Button */}
-        <Button
+        <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          variant="outline"
-          className="w-9 h-9 rounded-md p-0"
+          className={`${btnBase} text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed`}
         >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      {/* Results Info */}
-      <div className="text-caption text-muted">
-        Mostrando {startItem}-{endItem} de {totalItems} vuelos
-      </div>
+      <span className="text-[11px] text-muted">
+        {startItem}–{endItem} de {totalItems} vuelos
+      </span>
     </div>
   );
 };

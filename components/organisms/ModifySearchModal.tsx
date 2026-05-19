@@ -6,6 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/atoms/Button";
+import { IconButton } from "@/components/atoms/IconButton";
 import { SelectGroup } from "@/components/molecules/SelectGroup";
 import { InputGroup } from "@/components/molecules/InputGroup";
 import { NumericCounter } from "@/components/molecules/NumericCounter";
@@ -127,13 +128,14 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <h2 className="text-body font-semibold text-text">Modificar búsqueda</h2>
-                    <button
+                    <IconButton
+                        variant="ghost"
+                        size="sm"
+                        icon={<X size={20} />}
                         onClick={onClose}
-                        className="text-muted hover:text-text transition-colors"
                         aria-label="Cerrar"
-                    >
-                        <X size={20} />
-                    </button>
+                        className="text-muted hover:text-text"
+                    />
                 </div>
 
                 {/* Form */}

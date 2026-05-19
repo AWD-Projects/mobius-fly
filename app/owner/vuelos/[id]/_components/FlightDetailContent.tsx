@@ -7,6 +7,7 @@ import { FlightInfoCard } from "./FlightInfoCard";
 import { AircraftInfoCard } from "./AircraftInfoCard";
 import { CrewInfoCard } from "./CrewInfoCard";
 import { AdminControlCard } from "./AdminControlCard";
+import { AlertBox } from "@/components/molecules/AlertBox";
 import type { OwnerFlightDetail } from "@/app/actions/flights";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -24,17 +25,19 @@ const ROLE_LABEL: Record<string, string> = {
     FLIGHT_ATTENDANT: "TCP / Sobrecargo",
 };
 
+const MX_TZ = "America/Mexico_City";
+
 function formatDatetime(iso: string): string {
     if (!iso) return "—";
     return new Date(iso).toLocaleDateString("es-MX", {
-        day: "numeric", month: "short", year: "numeric",
+        timeZone: MX_TZ, day: "numeric", month: "short", year: "numeric",
         hour: "2-digit", minute: "2-digit",
     });
 }
 
 function formatTime(iso: string): string {
     if (!iso) return "—";
-    return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleTimeString("es-MX", { timeZone: MX_TZ, hour: "2-digit", minute: "2-digit" });
 }
 
 function diffMinutes(from: string, to: string): string {
@@ -82,21 +85,17 @@ export function FlightDetailContent({ data, ownerId }: Props) {
 
             {statusCode === "PENDING_REVIEW" && (
                 <div className="px-12 pt-6">
-                    <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl bg-[#FFF8E1] border border-[#F9A825]/30">
-                        <span className="mt-1 w-2 h-2 rounded-full bg-[#F9A825] shrink-0" />
-                        <div className="flex flex-col gap-1">
-                            <p className="text-sm font-semibold text-[#7A5800]">Tu vuelo está siendo validado</p>
-                            <p className="text-xs text-[#7A5800]/80">
-                                Nuestro equipo está revisando los datos de tu vuelo. Estará listo y visible para compradores en no más de 48 horas.
-                            </p>
-                        </div>
-                    </div>
+                    <AlertBox
+                        variant="pending"
+                        title="Tu vuelo está siendo validado"
+                        description="Nuestro equipo está revisando los datos de tu vuelo. Estará listo y visible para compradores en no más de 48 horas."
+                    />
                 </div>
             )}
 
             <div className="px-12 py-10 flex gap-10">
                 {/* Left Column */}
-                <div className="flex-1 flex flex-col gap-8" style={{ maxWidth: "856px" }}>
+                <div className="flex-1 flex flex-col gap-8">
                     <FlightInfoCard
                         flightType={data.flight_type === "ROUND_TRIP" ? "Redondo" : "Sencillo"}
                         origin={{
@@ -151,6 +150,7 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                         availableSeats={data.available_seats}
                         pricePerSeat={priceFormatted}
                         passengers={data.passengers}
+                        isVisible={data.is_visible}
                         onStatusChange={setStatusCode}
                     />
                 </div>

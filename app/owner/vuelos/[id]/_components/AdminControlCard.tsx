@@ -3,10 +3,11 @@
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/Button";
-import { Download } from "lucide-react";
+import { Switch } from "@/components/atoms/Switch";
+import { Download, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/components/atoms/Toast";
 import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
-import { updateFlightStatus, deleteFlight } from "@/app/actions/flights";
+import { updateFlightStatus, deleteFlight, toggleFlightVisibility } from "@/app/actions/flights";
 import type { OwnerFlightPassenger } from "@/app/actions/flights";
 
 export interface AdminControlCardProps {
@@ -18,14 +19,27 @@ export interface AdminControlCardProps {
     availableSeats: number;
     pricePerSeat:   string;
     passengers:     OwnerFlightPassenger[];
+    isVisible:      boolean;
     onStatusChange: (code: string) => void;
 }
 
-const TRANSITIONS: Record<string, { label: string; next: string }[]> = {
-    SCHEDULED: [{ label: "Marcar como En vuelo", next: "IN_FLIGHT" }, { label: "Cancelar vuelo", next: "CANCELLED" }],
-    DELAYED:   [{ label: "Marcar como En vuelo", next: "IN_FLIGHT" }, { label: "Cancelar vuelo", next: "CANCELLED" }],
-    ON_TIME:   [{ label: "Marcar como En vuelo", next: "IN_FLIGHT" }],
-    IN_FLIGHT: [{ label: "Marcar como Completado", next: "COMPLETED" }],
+const TRANSITIONS: Record<string, { label: string; next: string; destructive?: boolean }[]> = {
+    PENDING_REVIEW: [],
+    SCHEDULED: [
+        { label: "Marcar como A tiempo",   next: "ON_TIME" },
+        { label: "Marcar como Retrasado",  next: "DELAYED" },
+    ],
+    ON_TIME: [
+        { label: "Marcar como Retrasado",  next: "DELAYED" },
+        { label: "Marcar como En vuelo",   next: "IN_FLIGHT" },
+    ],
+    DELAYED: [
+        { label: "Marcar como A tiempo",   next: "ON_TIME" },
+        { label: "Marcar como En vuelo",   next: "IN_FLIGHT" },
+    ],
+    IN_FLIGHT: [
+        { label: "Marcar como Completado", next: "COMPLETED" },
+    ],
 };
 
 export const AdminControlCard: React.FC<AdminControlCardProps> = ({
@@ -37,6 +51,7 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
     availableSeats,
     pricePerSeat,
     passengers,
+    isVisible,
     onStatusChange,
 }) => {
     const router = useRouter();
@@ -44,6 +59,8 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [pendingStatusNext, setPendingStatusNext] = useState<string | null>(null);
+    const [visible, setVisible] = useState(isVisible);
+    const [isTogglingVisibility, startVisibilityTransition] = useTransition();
 
     const transitions = TRANSITIONS[statusCode] ?? [];
     const hasPassengers = passengers.length > 0;
@@ -58,6 +75,22 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
             } else {
                 onStatusChange(next);
                 toast.success("Estado actualizado", label);
+            }
+        });
+    };
+
+    const handleToggleVisibility = (next: boolean) => {
+        setVisible(next);
+        startVisibilityTransition(async () => {
+            const { error } = await toggleFlightVisibility(flightId, ownerId, next);
+            if (error) {
+                setVisible(!next);
+                toast.error("Error", "No se pudo actualizar la visibilidad.");
+            } else {
+                toast.success(
+                    next ? "Vuelo visible" : "Vuelo oculto",
+                    next ? "El vuelo ya está visible para compradores." : "El vuelo está oculto para compradores.",
+                );
             }
         });
     };
@@ -143,7 +176,7 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                 <Button
                     onClick={() => {}}
                     variant="ghost"
-                    className="flex items-center justify-center gap-1.5 w-full pt-3 h-auto"
+                    className="flex items-center justify-center gap-1.5 w-full"
                 >
                     <Download className="w-3.5 h-3.5" />
                     <span>Descargar manifiesto PDF</span>
@@ -152,14 +185,14 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
 
             {/* Actions */}
             <div className="px-6 py-6">
-                <h3 className="text-[13px] font-semibold text-text mb-4">Acciones</h3>
-                <div className="flex flex-col gap-3">
-                    {transitions.map(({ label, next }) => (
+                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Acciones</h3>
+                <div className="flex flex-col gap-2">
+                    {transitions.map(({ label, next, destructive }) => (
                         <Button
                             key={next}
                             onClick={() => handleStatusChange(next, label)}
-                            variant={next === "CANCELLED" ? "outline" : "primary"}
-                            className="w-full h-12"
+                            variant={destructive ? "ghost-destructive" : "outline"}
+                            className="w-full h-10 justify-start"
                             isLoading={isPending && pendingStatusNext === next}
                             disabled={isPending || isDeleting}
                         >
@@ -168,38 +201,57 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                     ))}
                     <Button
                         onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
-                        variant="outline"
-                        className="w-full h-12"
+                        variant="ghost"
+                        className="w-full h-10 justify-start gap-2.5"
                         disabled={isPending || isDeleting}
+                        icon={<Pencil className="w-4 h-4 text-muted" />}
                     >
                         Editar vuelo
                     </Button>
+
+                    <div className="flex items-center justify-between py-1">
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[13px] font-medium text-text">Visible para compradores</span>
+                            <span className="text-[11px] text-muted">
+                                {visible ? "El vuelo aparece en la plataforma" : "El vuelo está oculto"}
+                            </span>
+                        </div>
+                        <Switch
+                            checked={visible}
+                            disabled={isTogglingVisibility}
+                            onChange={(e) => handleToggleVisibility(e.target.checked)}
+                        />
+                    </div>
+
+                    <div className="w-full h-px bg-border mt-1" />
+
                     <Button
                         onClick={() => setShowDeleteDialog(true)}
-                        variant="outline"
-                        className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50"
+                        variant="ghost-destructive"
+                        className="w-full h-10 justify-start gap-2.5 text-[12px]"
                         disabled={isPending || isDeleting}
+                        icon={<Trash2 className="w-4 h-4" />}
                     >
-                        Eliminar vuelo
+                        Cancelar vuelo
                     </Button>
                 </div>
             </div>
 
             <ConfirmDialog
                 open={showDeleteDialog}
-                title="Eliminar vuelo"
+                title="Cancelar vuelo"
                 description={
                     hasPassengers
-                        ? "Este vuelo tiene pasajeros con reservaciones activas. Al eliminar el vuelo, se les notificará por correo electrónico."
-                        : "¿Estás seguro de que deseas eliminar este vuelo? Esta acción no se puede deshacer."
+                        ? "Este vuelo tiene pasajeros con reservaciones activas. Al cancelar el vuelo, se les notificará por correo electrónico."
+                        : "¿Estás seguro de que deseas cancelar este vuelo? Esta acción no se puede deshacer."
                 }
                 warning={
                     hasPassengers
                         ? `Se enviará un correo de cancelación a ${passengers.length} ${passengers.length === 1 ? "pasajero" : "pasajeros"}. El equipo de Mobius Fly se pondrá en contacto con ellos para procesar su reembolso o compensación.`
                         : undefined
                 }
-                confirmLabel="Eliminar vuelo"
-                cancelLabel="Cancelar"
+                confirmLabel="Cancelar vuelo"
+                cancelLabel="Volver"
                 isLoading={isDeleting}
                 destructive
                 onConfirm={handleDelete}

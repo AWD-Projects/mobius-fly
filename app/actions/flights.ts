@@ -32,7 +32,7 @@ export interface SearchFlightsResult {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const RESERVABLE_CODES = ["APPROVED", "ON_TIME", "DELAYED"] as const;
+const RESERVABLE_CODES = ["SCHEDULED", "ON_TIME", "DELAYED"] as const;
 
 // Columns for flight list (no crew/aircraft detail)
 const LIST_SELECT = `
@@ -143,8 +143,8 @@ export async function searchFlights(
     const ascending = sortBy === "price_asc";
     const rangeFrom = (page - 1) * pageSize;
     const rangeTo = rangeFrom + pageSize - 1;
-    const dateStart = `${date}T00:00:00+00:00`;
-    const dateEnd = `${date}T23:59:59+00:00`;
+    const dateStart = `${date}T00:00:00-06:00`;
+    const dateEnd   = `${date}T23:59:59-06:00`;
 
     // ── ONE_WAY ───────────────────────────────────────────────────────────────
     if (type === "one_way") {
@@ -192,8 +192,8 @@ export async function searchFlights(
 
     if (returnDate) {
         roundQuery = roundQuery
-            .gte("return_departure_datetime", `${returnDate}T00:00:00+00:00`)
-            .lte("return_departure_datetime", `${returnDate}T23:59:59+00:00`);
+            .gte("return_departure_datetime", `${returnDate}T00:00:00-06:00`)
+            .lte("return_departure_datetime", `${returnDate}T23:59:59-06:00`);
     }
 
     const { data: roundRows, count: roundCount, error: roundError } =
@@ -651,12 +651,23 @@ export async function createFlight(
         return { error: "La aeronave ya tiene un vuelo asignado en ese horario", id: null };
     }
 
+    const { data: airports } = await supabase
+        .from("airports")
+        .select("id, iata_code")
+        .in("id", [input.departureAirportId, input.arrivalAirportId]);
+
+    const depIata = airports?.find((a) => a.id === input.departureAirportId)?.iata_code ?? "XXX";
+    const arrIata = airports?.find((a) => a.id === input.arrivalAirportId)?.iata_code  ?? "XXX";
+    const suffix  = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const flightCode = `MF-${depIata}${arrIata}-${suffix}`;
+
     const { data: flight, error: flightError } = await supabase
         .from("flights")
         .insert({
             owner_id:                  ownerId,
             aircraft_id:               input.aircraftId,
             flight_type:               input.flightType,
+            flight_code:               flightCode,
             departure_airport_id:      input.departureAirportId,
             arrival_airport_id:        input.arrivalAirportId,
             departure_fbo_name:        input.departureFboName.trim() || null,
@@ -682,15 +693,27 @@ export async function createFlight(
     }
 
     if (input.crewMemberIds.length > 0) {
-        const { error: crewError } = await supabase
-            .from("flight_crew")
-            .insert(input.crewMemberIds.map((crew_member_id) => ({
-                flight_id: flight.id,
-                crew_member_id,
-            })));
+        // Validate all crew are active and approved before assigning
+        const { data: validCrew } = await supabase
+            .from("crew_members")
+            .select("id")
+            .in("id", input.crewMemberIds)
+            .eq("status", "ACTIVE")
+            .eq("is_approved", true);
 
-        if (crewError) {
-            console.error("[createFlight] crew error:", crewError.message);
+        const validIds = (validCrew ?? []).map((c: any) => c.id);
+
+        if (validIds.length > 0) {
+            const { error: crewError } = await supabase
+                .from("flight_crew")
+                .insert(validIds.map((crew_member_id: string) => ({
+                    flight_id: flight.id,
+                    crew_member_id,
+                })));
+
+            if (crewError) {
+                console.error("[createFlight] crew error:", crewError.message);
+            }
         }
     }
 
@@ -762,16 +785,27 @@ export async function updateFlight(
     }
 
     if (input.crewMemberIds.length > 0) {
-        const { error: insertError } = await supabase
-            .from("flight_crew")
-            .insert(input.crewMemberIds.map((crew_member_id) => ({
-                flight_id: flightId,
-                crew_member_id,
-            })));
+        const { data: validCrew } = await supabase
+            .from("crew_members")
+            .select("id")
+            .in("id", input.crewMemberIds)
+            .eq("status", "ACTIVE")
+            .eq("is_approved", true);
 
-        if (insertError) {
-            console.error("[updateFlight] crew insert error:", insertError.message);
-            return { error: insertError.message };
+        const validIds = (validCrew ?? []).map((c: any) => c.id);
+
+        if (validIds.length > 0) {
+            const { error: insertError } = await supabase
+                .from("flight_crew")
+                .insert(validIds.map((crew_member_id: string) => ({
+                    flight_id: flightId,
+                    crew_member_id,
+                })));
+
+            if (insertError) {
+                console.error("[updateFlight] crew insert error:", insertError.message);
+                return { error: insertError.message };
+            }
         }
     }
 
@@ -888,6 +922,29 @@ export async function deleteFlight(
     }
 
     return { error: null, notifiedPassengers: passengers.length };
+}
+
+// ─── toggleFlightVisibility ───────────────────────────────────────────────────
+
+export async function toggleFlightVisibility(
+    flightId: string,
+    ownerId:  string,
+    visible:  boolean,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from("flights")
+        .update({ is_visible: visible })
+        .eq("id", flightId)
+        .eq("owner_id", ownerId);
+
+    if (error) {
+        console.error("[toggleFlightVisibility] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
 }
 
 // ─── getAirports ──────────────────────────────────────────────────────────────

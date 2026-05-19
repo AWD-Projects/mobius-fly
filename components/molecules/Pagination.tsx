@@ -3,6 +3,8 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/atoms/Button";
+import { IconButton } from "@/components/atoms/IconButton";
 
 export interface PaginationProps {
   currentPage: number;
@@ -52,20 +54,15 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
         role="navigation"
         aria-label="Paginacion"
       >
-        <button
-          type="button"
-          className={cn(
-            "h-8 w-8 rounded-md text-muted transition-colors",
-            "hover:text-text",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            !canGoPrevious && "cursor-not-allowed opacity-40"
-          )}
+        <IconButton
+          variant="ghost"
+          size="sm"
+          icon={<ChevronLeft size={16} />}
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!canGoPrevious}
           aria-label="Pagina anterior"
-        >
-          <ChevronLeft size={16} />
-        </button>
+          className="rounded-md text-muted hover:text-text"
+        />
 
         {getPageNumbers().map((page, index) => {
           if (page === "...") {
@@ -79,38 +76,32 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
           const isCurrent = page === currentPage;
 
           return (
-            <button
+            <Button
               key={page}
               type="button"
-              className={cn(
-                "h-8 min-w-[32px] rounded-md px-2 text-small transition-colors",
-                "text-secondary hover:text-text",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                isCurrent && "text-primary font-semibold underline underline-offset-4"
-              )}
+              variant="ghost"
               onClick={() => onPageChange(page as number)}
               aria-label={`Ir a la pagina ${page}`}
               aria-current={isCurrent ? "page" : undefined}
+              className={cn(
+                "h-8 min-w-[32px] rounded-md px-2 text-small text-secondary hover:text-text",
+                isCurrent && "text-primary font-semibold underline underline-offset-4"
+              )}
             >
               {page}
-            </button>
+            </Button>
           );
         })}
 
-        <button
-          type="button"
-          className={cn(
-            "h-8 w-8 rounded-md text-muted transition-colors",
-            "hover:text-text",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            !canGoNext && "cursor-not-allowed opacity-40"
-          )}
+        <IconButton
+          variant="ghost"
+          size="sm"
+          icon={<ChevronRight size={16} />}
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!canGoNext}
           aria-label="Pagina siguiente"
-        >
-          <ChevronRight size={16} />
-        </button>
+          className="rounded-md text-muted hover:text-text"
+        />
       </div>
     );
   }

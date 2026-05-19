@@ -11,7 +11,7 @@ import {
 } from "@/components/molecules/Table";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { IconButton } from "@/components/atoms/IconButton";
-import { Pencil, Eye, Trash2 } from "lucide-react";
+import { Pencil, Eye, Trash2, PlaneTakeoff } from "lucide-react";
 
 export interface Aircraft {
   id: string;
@@ -19,7 +19,7 @@ export interface Aircraft {
   base: string;
   capacity: string;
   type: string;
-  status: "active" | "maintenance" | "inactive";
+  status: "active" | "maintenance" | "inactive" | "doc_missing" | "doc_pending" | "doc_rejected";
   registration: string;
 }
 
@@ -31,9 +31,12 @@ export interface AircraftTableProps {
 }
 
 const statusConfig = {
-  active: { label: "Activo", status: "success" as const },
-  maintenance: { label: "Mantenimiento", status: "pending" as const },
-  inactive: { label: "Inactivo", status: "inactive" as const },
+  active:       { label: "Activo",               status: "success"  as const },
+  maintenance:  { label: "Mantenimiento",         status: "pending"  as const },
+  inactive:     { label: "Inactivo",              status: "inactive" as const },
+  doc_missing:  { label: "Doc. faltante",         status: "inactive" as const },
+  doc_pending:  { label: "Pendiente de revisión", status: "pending"  as const },
+  doc_rejected: { label: "Doc. rechazada",        status: "pending"  as const },
 };
 
 const typeConfig: Record<string, { label: string; color: string }> = {
@@ -67,6 +70,12 @@ export const AircraftTable: React.FC<AircraftTableProps> = ({ aircraft, onView, 
         <TableHead style={{ flex: 1 }}>Acción</TableHead>
       </TableHeader>
       <TableBody>
+        {aircraft.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <PlaneTakeoff className="w-8 h-8 text-border" strokeWidth={1.5} />
+            <p className="text-small text-muted">No hay aeronaves registradas</p>
+          </div>
+        )}
         {aircraft.map((item, index) => (
           <TableRow key={item.id} isLast={index === aircraft.length - 1}>
             <TableCell style={{ flex: 1 }} variant="emphasis">

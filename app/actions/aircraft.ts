@@ -13,6 +13,8 @@ export interface AircraftListItem {
     year: number | null;
     status: string;
     photos: string[];
+    aircraft_type: AircraftType | null;
+    doc_status?: "missing" | "pending" | "rejected" | "approved";
 }
 
 export interface AircraftDocumentRow {
@@ -37,14 +39,71 @@ export interface AircraftDetailData {
     upcoming_flights: number;
 }
 
+export type AircraftType = "vlj" | "light" | "midsize" | "super_midsize" | "heavy" | "ultra_long" | "turboprop" | "piston" | "helicopter";
+
 export interface AddAircraftInput {
     model: string;
     manufacturer: string;
     tailNumber: string;
     year: string;
     seats: string;
+    aircraftType: AircraftType | "";
     photos: string[];
     documents: { type: string; url: string }[];
+}
+
+// ─── getAllAircraftForManagement ──────────────────────────────────────────────
+// For the management page: all aircraft (all statuses) with computed doc_status.
+
+export async function getAllAircraftForManagement(userId: string): Promise<AircraftListItem[]> {
+    const supabase = await createClient();
+
+    const { data: owner } = await supabase
+        .from("owners")
+        .select("id")
+        .eq("user_id", userId)
+        .single();
+
+    if (!owner) return [];
+
+    const { data, error } = await supabase
+        .from("aircrafts")
+        .select(`
+            id, model, manufacturer, tail_number, seats, year, status, photos, aircraft_type,
+            aircraft_documents!aircraft_documents_aircraft_id_fkey(
+                document_status:document_status!aircraft_documents_document_status_id_fkey(code)
+            )
+        `)
+        .eq("owner_id", owner.id)
+        .order("model", { ascending: true });
+
+    if (error) {
+        console.error("[getAllAircraftForManagement] error:", error.message);
+        return [];
+    }
+
+    return ((data ?? []) as any[]).map((row) => {
+        const docs = (row.aircraft_documents ?? []) as { document_status: { code: string } | null }[];
+        let doc_status: AircraftListItem["doc_status"] = "missing";
+        if (docs.length > 0) {
+            const codes = docs.map((d) => d.document_status?.code ?? "");
+            if (codes.some((c) => c === "REJECTED"))       doc_status = "rejected";
+            else if (codes.some((c) => c === "PENDING_REVIEW")) doc_status = "pending";
+            else                                            doc_status = "approved";
+        }
+        return {
+            id:            row.id,
+            model:         row.model,
+            manufacturer:  row.manufacturer,
+            tail_number:   row.tail_number,
+            seats:         row.seats,
+            year:          row.year,
+            status:        row.status,
+            photos:        row.photos,
+            aircraft_type: row.aircraft_type ?? null,
+            doc_status,
+        } satisfies AircraftListItem;
+    });
 }
 
 // ─── getAircraftList ──────────────────────────────────────────────────────────
@@ -81,7 +140,7 @@ export async function getAircraftList(userId: string): Promise<AircraftListItem[
 
     let query = supabase
         .from("aircrafts")
-        .select("id, model, manufacturer, tail_number, seats, year, status, photos")
+        .select("id, model, manufacturer, tail_number, seats, year, status, photos, aircraft_type")
         .eq("owner_id", owner.id)
         .eq("status", "ACTIVE")
         .order("model", { ascending: true });
@@ -139,7 +198,7 @@ export async function getAvailableAircraftForTimeSlot(
 
     let query = supabase
         .from("aircrafts")
-        .select("id, model, manufacturer, tail_number, seats, year, status, photos")
+        .select("id, model, manufacturer, tail_number, seats, year, status, photos, aircraft_type")
         .eq("owner_id", ownerId)
         .eq("status", "ACTIVE")
         .order("model", { ascending: true });
@@ -219,14 +278,15 @@ export async function addAircraft(
     const { data: aircraft, error: aircraftError } = await supabase
         .from("aircrafts")
         .insert({
-            owner_id:     ownerId,
-            model:        input.model.trim(),
-            manufacturer: input.manufacturer.trim() || null,
-            tail_number:  input.tailNumber.trim(),
-            year:         input.year ? parseInt(input.year) : null,
-            seats:        parseInt(input.seats),
-            photos:       input.photos,
-            status:       "ACTIVE",
+            owner_id:      ownerId,
+            model:         input.model.trim(),
+            manufacturer:  input.manufacturer.trim() || null,
+            tail_number:   input.tailNumber.trim(),
+            year:          input.year ? parseInt(input.year) : null,
+            seats:         parseInt(input.seats),
+            aircraft_type: input.aircraftType || null,
+            photos:        input.photos,
+            status:        "ACTIVE",
         })
         .select("id")
         .single();

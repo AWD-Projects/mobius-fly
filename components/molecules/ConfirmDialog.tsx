@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 
@@ -29,21 +30,32 @@ export function ConfirmDialog({
     onConfirm,
     onCancel,
 }: ConfirmDialogProps) {
-    if (!open) return null;
+    const [mounted, setMounted] = React.useState(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    React.useEffect(() => setMounted(true), []);
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
+    if (!open || !mounted) return null;
+
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[200] flex items-center justify-center"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-dialog-title"
+        >
+            {/* Overlay */}
             <div
-                className="absolute inset-0 bg-black/50"
+                className="absolute inset-0"
+                style={{ backgroundColor: "rgba(0, 0, 0, 0.55)" }}
                 onClick={() => !isLoading && onCancel()}
+                aria-hidden="true"
             />
 
             {/* Dialog */}
             <div className="relative z-10 w-full max-w-sm mx-4 bg-white rounded-2xl shadow-xl overflow-hidden">
                 <div className="p-6 flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <h2 className="text-[15px] font-semibold text-text">{title}</h2>
+                        <h2 id="confirm-dialog-title" className="text-[15px] font-semibold text-text">{title}</h2>
                         <p className="text-[13px] text-muted leading-relaxed">{description}</p>
                     </div>
 
@@ -67,7 +79,8 @@ export function ConfirmDialog({
                         <Button
                             type="button"
                             variant={destructive ? "outline" : "primary"}
-                            className={`flex-1 h-10 text-sm ${destructive ? "text-red-600 border-red-300 hover:bg-red-50" : ""}`}
+                            className="flex-1 h-10 text-sm"
+                            style={destructive ? { color: "var(--color-error)", borderColor: "var(--color-error)" } : undefined}
                             onClick={onConfirm}
                             isLoading={isLoading}
                             disabled={isLoading}
@@ -77,6 +90,7 @@ export function ConfirmDialog({
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

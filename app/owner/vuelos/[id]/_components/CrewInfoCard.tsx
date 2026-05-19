@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
 
 export interface CrewMember {
   id: string;
@@ -30,13 +31,14 @@ export const CrewInfoCard: React.FC<CrewInfoCardProps> = ({ crew, onViewCrew }) 
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-[11px] font-semibold text-text">Tripulación asignada</h2>
         {onViewCrew && (
-          <button
+          <Button
+            variant="ghost"
             onClick={onViewCrew}
             className="flex items-center gap-1 text-xs font-medium text-[#666666] hover:text-text transition-colors"
           >
             <span>Ver tripulación</span>
             <ArrowRight className="w-3 h-3" />
-          </button>
+          </Button>
         )}
       </div>
 

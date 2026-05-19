@@ -2,6 +2,8 @@ import * as React from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Pills } from "@/components/atoms/Pills";
+import { Button } from "@/components/atoms/Button";
+import { IconButton } from "@/components/atoms/IconButton";
 import { NumericCounter } from "@/components/molecules/NumericCounter";
 
 export interface Airport {
@@ -194,26 +196,29 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                 }}
               >
                 {airports.filter((a) => a.code !== destinationCode).map((airport) => (
-                  <button
+                  <Button
                     key={airport.code}
+                    variant="ghost"
                     onClick={() => {
                       onOriginChange?.(airport.code);
                       setShowOriginSelect(false);
                     }}
-                    className="block w-full px-4 py-3 text-left hover:bg-primary/10 transition-colors border-b border-border"
+                    className="w-full h-auto px-4 py-3 justify-start text-left rounded-none border-none border-b border-border"
                   >
-                    <div
-                      className="text-body font-semibold"
-                      style={{
-                        color: originCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
-                      }}
-                    >
-                      {airport.code}
+                    <div className="flex flex-col gap-0 text-left">
+                      <span
+                        className="text-body font-semibold"
+                        style={{
+                          color: originCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
+                        }}
+                      >
+                        {airport.code}
+                      </span>
+                      <span className="text-caption font-normal text-muted">
+                        {airport.city} - {airport.name}
+                      </span>
                     </div>
-                    <div className="text-caption font-normal text-muted">
-                      {airport.city} - {airport.name}
-                    </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </>
@@ -221,13 +226,14 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
         </div>
 
         {/* Arrow */}
-        <button
+        <IconButton
+          variant="ghost"
+          size="sm"
+          icon={<ArrowRight size={22} className="text-primary" />}
           onClick={handleSwap}
-          className="absolute hover:opacity-80 transition-opacity"
+          className="absolute hover:opacity-80"
           style={{ left: "246px", top: "132px" }}
-        >
-          <ArrowRight size={22} className="text-primary" />
-        </button>
+        />
 
         {/* Destino Label */}
         <div className="absolute" style={{ left: "356px", top: "93px" }}>
@@ -265,26 +271,29 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
                 }}
               >
                 {airports.filter((a) => a.code !== originCode).map((airport) => (
-                  <button
+                  <Button
                     key={airport.code}
+                    variant="ghost"
                     onClick={() => {
                       onDestinationChange?.(airport.code);
                       setShowDestinationSelect(false);
                     }}
-                    className="block w-full px-4 py-3 text-left hover:bg-primary/10 transition-colors border-b border-border"
+                    className="w-full h-auto px-4 py-3 justify-start text-left rounded-none border-none border-b border-border"
                   >
-                    <div
-                      className="text-body font-semibold"
-                      style={{
-                        color: destinationCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
-                      }}
-                    >
-                      {airport.code}
+                    <div className="flex flex-col gap-0 text-left">
+                      <span
+                        className="text-body font-semibold"
+                        style={{
+                          color: destinationCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
+                        }}
+                      >
+                        {airport.code}
+                      </span>
+                      <span className="text-caption font-normal text-muted">
+                        {airport.city} - {airport.name}
+                      </span>
                     </div>
-                    <div className="text-caption font-normal text-muted">
-                      {airport.city} - {airport.name}
-                    </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </>
@@ -360,19 +369,15 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
         </div>
         {/* Search Button */}
         {onSearch && (
-          <button
+          <Button
+            variant="primary"
             onClick={handleSearch}
             disabled={!originCode || !destinationCode || !departureDate}
-            className="absolute hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed rounded-sm px-5 py-2 text-small font-semibold"
-            style={{
-              right: "24px",
-              bottom: "24px",
-              backgroundColor: "var(--color-primary)",
-              color: "#ffffff",
-            }}
+            className="absolute rounded-sm px-5 text-small font-semibold h-auto py-2"
+            style={{ right: "24px", bottom: "24px" }}
           >
             Buscar vuelos
-          </button>
+          </Button>
         )}
       </div>
     );

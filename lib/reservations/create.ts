@@ -28,9 +28,14 @@ export interface CreateReservationResult {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const BOOKING_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // Crockford base32 — no 0/O/1/I/L
+
 function generateBookingReference(): string {
-    const digits = Math.floor(100000 + Math.random() * 900000).toString();
-    return `MOB-${digits}`;
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes)
+        .map((b) => BOOKING_ALPHABET[b % BOOKING_ALPHABET.length])
+        .join("");
+    return `MF-${code}`;
 }
 
 // Atomically cancels a BLOCKED reservation and restores its seats.
@@ -75,7 +80,7 @@ export async function createReservation(
     const breakdown = calculatePaymentBreakdown(basePrice);
 
     // ── 1. Atomic seat lock + reservation creation (with booking ref retry) ───
-    // MOB-XXXXXX has 1M combinations; retry up to 3 times on unique constraint
+    // MF-XXXXXXXX has ~1B combinations (Crockford base32); retry up to 3 times on unique constraint
     // collision (PostgreSQL error code 23505) before giving up.
     const MAX_REF_ATTEMPTS = 3;
     let resId!: string;

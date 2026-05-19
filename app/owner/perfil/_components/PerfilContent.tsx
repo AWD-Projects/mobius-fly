@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useTransition, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import React, { useTransition, useRef, useState, useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Check } from "lucide-react";
 import { Input } from "@/components/atoms/Input";
 import { Button } from "@/components/atoms/Button";
+import { IconButton } from "@/components/atoms/IconButton";
 import { toast } from "@/components/atoms/Toast";
 import { createClient } from "@/lib/supabase/client";
-import { updateFleetName, replaceOwnerDocument } from "@/app/actions/owner";
+import { updateFleetName, replaceOwnerDocument, getDocumentSignedUrl } from "@/app/actions/owner";
 import type { OwnerRow, OwnerDocumentRow, UserProfileSnapshot } from "@/app/actions/owner";
 import type { DocumentStatusCode } from "@/types/app.types";
 
@@ -36,9 +38,9 @@ const DOCUMENT_LABELS: Record<string, string> = {
 };
 
 const DOC_STATUS_CONFIG: Record<DocumentStatusCode, { label: string; bg: string; dot: string; text: string }> = {
-    APPROVED: { label: "Aprobado",    bg: "bg-[#E8F5E9]", dot: "bg-[#2E7D32]", text: "text-[#2E7D32]" },
-    PENDING:  { label: "En revisión", bg: "bg-[#FFF8E1]", dot: "bg-[#F9A825]", text: "text-[#F9A825]" },
-    REJECTED: { label: "Rechazado",   bg: "bg-[#FFEBEE]", dot: "bg-[#C62828]", text: "text-[#C62828]" },
+    APPROVED:       { label: "Aprobado",    bg: "bg-[#E8F5E9]", dot: "bg-[#2E7D32]", text: "text-[#2E7D32]" },
+    PENDING_REVIEW: { label: "En revisión", bg: "bg-[#FFF8E1]", dot: "bg-[#F9A825]", text: "text-[#F9A825]" },
+    REJECTED:       { label: "Rechazado",   bg: "bg-[#FFEBEE]", dot: "bg-[#C62828]", text: "text-[#C62828]" },
 };
 
 const OWNER_STATUS_CONFIG: Record<string, { label: string; bg: string; dot: string; text: string }> = {
@@ -56,10 +58,22 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pendingDocIdRef = useRef<string | null>(null);
 
-    const { register, handleSubmit } = useForm<FormData>({
+    const { register, handleSubmit, control } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: { fleetName: owner.fleet_name ?? "" },
     });
+
+    const currentFleetName = useWatch({ control, name: "fleetName" });
+    const isDirty = (currentFleetName ?? "") !== (owner.fleet_name ?? "");
+
+    // Signed URL for approved document preview (generated server-side via admin client)
+    const [signedUrl, setSignedUrl] = useState<string | null>(null);
+    useEffect(() => {
+        const approvedDoc = docs.find((d) => d.document_status?.code === "APPROVED");
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!approvedDoc) { setSignedUrl(null); return; }
+        getDocumentSignedUrl(approvedDoc.id).then(({ url }) => setSignedUrl(url));
+    }, [docs]);
 
     const ownerStatusCfg = OWNER_STATUS_CONFIG[owner.status] ?? OWNER_STATUS_CONFIG.PENDING_ONBOARDING;
 
@@ -103,8 +117,7 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
             if (!user) { toast.error("Error", "No se pudo verificar tu sesión."); return; }
 
             const ext = file.name.split(".").pop() ?? "bin";
-            const { randomUUID } = await import("crypto");
-            const storagePath = `${user.id}/${randomUUID()}.${ext}`;
+            const storagePath = `${user.id}/${crypto.randomUUID()}.${ext}`;
 
             const { error: uploadError } = await supabase.storage
                 .from("identity-documents")
@@ -125,7 +138,7 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
             setDocs((prev) =>
                 prev.map((d) =>
                     d.id === docId
-                        ? { ...d, document_url: storagePath, rejected_reason: null, document_status: { code: "PENDING" } }
+                        ? { ...d, document_url: storagePath, rejected_reason: null, document_status: { code: "PENDING_REVIEW" as const } }
                         : d,
                 ),
             );
@@ -153,19 +166,96 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="px-12 pb-8 flex flex-col gap-6">
-                {/* Fleet Name */}
-                <form onSubmit={onSubmit} className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
-                    <h2 className="text-sm font-semibold text-text">Nombre de la flota</h2>
-                    <p className="text-xs text-[#999999]">Nombre identificador de tu flota</p>
-                    <Input type="text" className="h-10" {...register("fleetName")} />
-                    <Button type="submit" variant="primary" className="w-40 h-10" disabled={isPending}>
-                        {isPending ? "Guardando..." : "Guardar cambios"}
-                    </Button>
-                </form>
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,image/jpeg,image/png"
+                className="hidden"
+                onChange={handleFileSelected}
+            />
 
-                {/* Personal Data */}
+            <div className="px-12 pb-8 flex flex-col gap-6">
+
+                {/* Fila 1 — Nombre de flota + Documento (2 columnas iguales, misma altura) */}
+                <div className="flex gap-6 items-stretch">
+                    {/* Fleet Name */}
+                    <form onSubmit={onSubmit} className="flex-1 bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-sm font-semibold text-text">Nombre de la flota</h2>
+                            <IconButton
+                                type="submit"
+                                variant="ghost"
+                                size="sm"
+                                icon={<Check className="w-4 h-4 text-muted" />}
+                                tooltip="Guardar cambios"
+                                disabled={!isDirty || isPending}
+                                className="transition-opacity disabled:opacity-0 disabled:pointer-events-none"
+                            />
+                        </div>
+                        <Input type="text" className="h-10" {...register("fleetName")} />
+                    </form>
+
+                    {/* Identity document */}
+                    <div className="flex-1 bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
+                        <h2 className="text-sm font-semibold text-text">Documento de identidad</h2>
+
+                        {docs.length === 0 ? (
+                            <p className="text-xs text-[#999999]">No hay documentos cargados.</p>
+                        ) : (
+                            docs.map((doc) => {
+                                const statusCode = (doc.document_status?.code ?? "PENDING_REVIEW") as DocumentStatusCode;
+                                const cfg = DOC_STATUS_CONFIG[statusCode] ?? DOC_STATUS_CONFIG.PENDING_REVIEW;
+                                const isReplacing = replacingId === doc.id;
+                                const isApproved = statusCode === "APPROVED";
+
+                                return (
+                                    <div key={doc.id} className="flex flex-col gap-3">
+                                        {/* Tipo + badge */}
+                                        <div className="flex items-center justify-end">
+                                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md ${cfg.bg}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                <span className={`text-[11px] font-medium ${cfg.text}`}>{cfg.label}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Razón de rechazo */}
+                                        {doc.rejected_reason && (
+                                            <p className="text-[11px] text-[#C62828] bg-[#FFEBEE] rounded-lg px-3 py-2">
+                                                {doc.rejected_reason}
+                                            </p>
+                                        )}
+
+                                        {isApproved ? (
+                                            <a
+                                                href={signedUrl ?? "#"}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`w-full h-9 text-xs inline-flex items-center justify-center rounded-sm border border-border bg-transparent hover:bg-neutral/10 transition-colors font-medium text-text ${!signedUrl ? "pointer-events-none opacity-50" : ""}`}
+                                            >
+                                                Ver documento
+                                            </a>
+                                        ) : (
+                                            /* Reemplazar solo si PENDING_REVIEW o REJECTED */
+                                            <Button
+                                                type="button"
+                                                onClick={() => handleReplaceDocument(doc.id)}
+                                                variant="outline"
+                                                className="w-full h-9 text-xs"
+                                                isLoading={isReplacing}
+                                                disabled={replacingId !== null}
+                                            >
+                                                {isReplacing ? "Subiendo..." : "Reemplazar documento"}
+                                            </Button>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+
+                {/* Fila 2 — Datos personales (ancho completo) */}
                 <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
                     <h2 className="text-sm font-semibold text-text">Datos personales</h2>
                     <div className="flex flex-col">
@@ -196,76 +286,6 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
                             <span className="text-[13px] font-semibold text-text">{userProfile.nationality || "—"}</span>
                         </div>
                     </div>
-                </div>
-
-                {/* Documents */}
-                <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
-                    <h2 className="text-sm font-semibold text-text">Documentos del propietario</h2>
-
-                    {/* Hidden file input shared across all document rows */}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,image/jpeg,image/png"
-                        className="hidden"
-                        onChange={handleFileSelected}
-                    />
-
-                    {docs.length === 0 ? (
-                        <p className="text-xs text-[#999999]">No hay documentos cargados.</p>
-                    ) : (
-                        <div className="w-full">
-                            <div className="bg-[#FAFAFA] rounded-t-lg px-6 py-3.5 border-b border-border flex items-center">
-                                <div style={{ width: 220 }}>
-                                    <span className="text-xs font-medium text-[#666666]">Documento</span>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <span className="text-xs font-medium text-[#666666]">Estado</span>
-                                </div>
-                                <div style={{ width: 150 }}>
-                                    <span className="text-xs font-medium text-[#666666]">Acción</span>
-                                </div>
-                            </div>
-                            {docs.map((doc, index) => {
-                                const statusCode = (doc.document_status?.code ?? "PENDING") as DocumentStatusCode;
-                                const cfg = DOC_STATUS_CONFIG[statusCode] ?? DOC_STATUS_CONFIG.PENDING;
-                                const isReplacing = replacingId === doc.id;
-                                return (
-                                    <div
-                                        key={doc.id}
-                                        className={`flex items-center px-6 py-[18px] ${index < docs.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
-                                    >
-                                        <div style={{ width: 220 }}>
-                                            <span className="text-[13px] font-medium text-text">
-                                                {DOCUMENT_LABELS[doc.document_type] ?? doc.document_type}
-                                            </span>
-                                        </div>
-                                        <div style={{ flex: 1 }} className="flex flex-col gap-1">
-                                            <div className={`inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-md ${cfg.bg}`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                                <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
-                                            </div>
-                                            {doc.rejected_reason && (
-                                                <span className="text-[11px] text-[#C62828]">{doc.rejected_reason}</span>
-                                            )}
-                                        </div>
-                                        <div style={{ width: 150 }}>
-                                            <Button
-                                                type="button"
-                                                onClick={() => handleReplaceDocument(doc.id)}
-                                                variant="link"
-                                                className="h-auto p-0 text-xs text-info"
-                                                isLoading={isReplacing}
-                                                disabled={replacingId !== null}
-                                            >
-                                                {isReplacing ? "Subiendo..." : "Reemplazar"}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

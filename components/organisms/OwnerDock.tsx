@@ -165,7 +165,7 @@ export const OwnerDock = React.memo<OwnerDockProps>(({
                             key={item.id}
                             label={item.label}
                             icon={item.icon}
-                            isActive={activeHref === item.href}
+                            isActive={!!activeHref?.startsWith(item.href)}
                             onClick={() => handleNavigate(item.href)}
                             layoutGroup="dock-desktop"
                             tooltipPosition="right"
@@ -209,7 +209,7 @@ export const OwnerDock = React.memo<OwnerDockProps>(({
                         key={item.id}
                         label={item.label}
                         icon={item.icon}
-                        isActive={activeHref === item.href}
+                        isActive={!!activeHref?.startsWith(item.href)}
                         onClick={() => handleNavigate(item.href)}
                         layoutGroup="dock-mobile"
                         tooltipPosition="top"

@@ -31,7 +31,7 @@ export type ReservationStatusCode =
     | "CONFIRMED"
     | "CANCELLED";
 
-export type DocumentStatusCode = "PENDING" | "APPROVED" | "REJECTED";
+export type DocumentStatusCode = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 
 export interface UserDocument {
     id: string;
