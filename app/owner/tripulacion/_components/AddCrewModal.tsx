@@ -38,9 +38,9 @@ type FormData = z.infer<typeof schema>;
 // ─── Role labels ──────────────────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<string, string> = {
-    CAPTAIN:          "Capitán / Piloto",
-    FIRST_OFFICER:    "Copiloto / Piloto",
-    FLIGHT_ATTENDANT: "TCP / Sobrecargo",
+    CAPTAIN:          "Capitán",
+    FIRST_OFFICER:    "Copiloto",
+    FLIGHT_ATTENDANT: "TCP",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ export function AddCrewModal({ open, ownerId, crewRoles, onClose, onSuccess }: P
                         <option value="" disabled>Selecciona un rol</option>
                         {crewRoles.map((role) => (
                             <option key={role.id} value={role.id}>
-                                {role.name ?? ROLE_LABEL[role.code] ?? role.code}
+                                {ROLE_LABEL[role.code] ?? role.name ?? role.code}
                             </option>
                         ))}
                     </SelectGroup>

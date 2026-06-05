@@ -10,6 +10,7 @@ export interface CrewListItem {
     last_name: string;
     status: string;
     is_approved: boolean;
+    rejected_reason: string | null;
     license_number: string | null;
     email: string | null;
     phone: string | null;
@@ -68,7 +69,7 @@ export async function addCrewMember(
             status:         "ACTIVE",
             is_approved:    false,
         })
-        .select("id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)")
+        .select("id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)")
         .single();
 
     if (error) {
@@ -101,6 +102,7 @@ export interface CrewDetailData {
     first_name: string;
     last_name: string;
     status: string;
+    rejected_reason: string | null;
     license_number: string | null;
     email: string | null;
     phone: string | null;
@@ -129,7 +131,7 @@ export async function getCrewMemberDetail(
         supabase
             .from("crew_members")
             .select(
-                "id, first_name, last_name, status, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(id, code, name)",
+                "id, first_name, last_name, status, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(id, code, name)",
             )
             .eq("id", crewId)
             .eq("owner_id", owner.id)
@@ -333,7 +335,7 @@ export async function getAvailableCrewForTimeSlot(
     let query = supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", ownerId)
         .eq("status", "ACTIVE")
@@ -369,7 +371,7 @@ export async function getAvailableCrewList(userId: string): Promise<CrewListItem
     const { data, error } = await supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", owner.id)
         .eq("status", "ACTIVE")
@@ -400,7 +402,7 @@ export async function getCrewList(userId: string): Promise<CrewListItem[]> {
     const { data, error } = await supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", owner.id)
         .order("first_name", { ascending: true });

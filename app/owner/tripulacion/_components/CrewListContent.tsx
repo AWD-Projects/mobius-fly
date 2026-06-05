@@ -24,9 +24,9 @@ interface Props {
 // ─── Maps ─────────────────────────────────────────────────────────────────────
 
 const ROLE_DISPLAY: Record<string, string> = {
-    CAPTAIN:           "Capitán / Piloto",
-    FIRST_OFFICER:     "Copiloto / Piloto",
-    FLIGHT_ATTENDANT:  "TCP / Sobrecargo",
+    CAPTAIN:           "Capitán",
+    FIRST_OFFICER:     "Copiloto",
+    FLIGHT_ATTENDANT:  "TCP",
 };
 
 const ROLE_FILTER_CODE: Record<string, string> = {
@@ -37,18 +37,21 @@ const ROLE_FILTER_CODE: Record<string, string> = {
 
 function toCrewMember(item: CrewListItem): CrewMember {
     let status: CrewMember["status"];
-    if (item.status === "ACTIVE") {
+    if (item.status === "REJECTED") {
+        status = "rejected";
+    } else if (item.status === "ACTIVE") {
         status = item.is_approved ? "active" : "pending";
     } else {
         status = "inactive";
     }
     return {
-        id:       item.id,
-        name:     `${item.first_name} ${item.last_name}`.trim(),
-        role:     ROLE_DISPLAY[item.crew_role?.code ?? ""] ?? (item.crew_role?.code ?? "—"),
-        base:     "—",
-        licenses: item.license_number ? [item.license_number] : [],
+        id:             item.id,
+        name:           `${item.first_name} ${item.last_name}`.trim(),
+        role:           ROLE_DISPLAY[item.crew_role?.code ?? ""] ?? (item.crew_role?.code ?? "—"),
+        base:           "—",
+        licenses:       item.license_number ? [item.license_number] : [],
         status,
+        rejectedReason: item.rejected_reason,
     };
 }
 

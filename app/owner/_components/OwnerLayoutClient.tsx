@@ -41,6 +41,28 @@ function NoDocumentScreen() {
     );
 }
 
+// ─── Pantalla: cuenta suspendida ─────────────────────────────────────────────
+
+function SuspendedScreen() {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center gap-6">
+            <div className="w-20 h-20 rounded-full bg-[#FFEBEE] flex items-center justify-center">
+                <AlertTriangle className="w-9 h-9 text-[#C62828]" />
+            </div>
+            <div className="flex flex-col gap-2 max-w-sm">
+                <h1 className="text-[22px] font-semibold text-text">Cuenta suspendida</h1>
+                <p className="text-[13px] text-muted leading-relaxed">
+                    Tu cuenta ha sido suspendida. Para más información o para apelar esta decisión, contáctanos en{" "}
+                    <a href="mailto:soporte@mobiusfly.com" className="font-medium text-text underline underline-offset-2">
+                        soporte@mobiusfly.com
+                    </a>
+                    .
+                </p>
+            </div>
+        </div>
+    );
+}
+
 // ─── Pantalla: documento en revisión ─────────────────────────────────────────
 
 function PendingReviewScreen() {
@@ -156,8 +178,10 @@ export function OwnerLayoutClient({ children, ownerStatus, onboardingCompleted, 
     // ── Determinar qué pantalla mostrar ──────────────────────────────────────
     let gate: React.ReactNode = null;
 
-    // La validación solo aplica una vez que el owner completó el onboarding (fleet_name guardado)
-    if (onboardingCompleted && ownerStatus !== "ACTIVE") {
+    if (ownerStatus === "SUSPENDED") {
+        gate = <SuspendedScreen />;
+    } else if (onboardingCompleted && ownerStatus !== "ACTIVE") {
+        // La validación solo aplica una vez que el owner completó el onboarding (fleet_name guardado)
         if (!documentStatus) {
             gate = <NoDocumentScreen />;
         } else if (documentStatus === "REJECTED") {

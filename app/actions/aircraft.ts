@@ -293,7 +293,10 @@ export async function addAircraft(
 
     if (aircraftError) {
         console.error("[addAircraft] error:", aircraftError.message);
-        return { error: aircraftError.message, id: null };
+        if (aircraftError.message.includes("tail_number") && aircraftError.message.includes("unique")) {
+            return { error: "Esta matrícula ya está registrada. Usa una matrícula diferente.", id: null };
+        }
+        return { error: "No se pudo registrar la aeronave. Inténtalo de nuevo.", id: null };
     }
 
     if (input.documents.length > 0 && pendingStatusId) {
@@ -339,7 +342,10 @@ export async function updateAircraft(
 
     if (error) {
         console.error("[updateAircraft] error:", error.message);
-        return { error: error.message };
+        if (error.message.includes("tail_number") && error.message.includes("unique")) {
+            return { error: "Esta matrícula ya está registrada. Usa una matrícula diferente." };
+        }
+        return { error: "No se pudo actualizar la aeronave. Inténtalo de nuevo." };
     }
 
     return { error: null };

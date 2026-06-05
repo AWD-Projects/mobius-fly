@@ -33,7 +33,7 @@ export const CrewFilterBar: React.FC<CrewFilterBarProps> = ({ filters, onFilters
         <div className="w-full px-12 py-6 grid items-end gap-3" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr)) auto" }}>
             <SelectGroup label="Rol" {...register("role")}>
                 <option value="">Todos</option>
-                <option value="pilot">Piloto</option>
+                <option value="pilot">Capitán</option>
                 <option value="copilot">Copiloto</option>
                 <option value="cabin-crew">TCP</option>
             </SelectGroup>
@@ -41,8 +41,9 @@ export const CrewFilterBar: React.FC<CrewFilterBarProps> = ({ filters, onFilters
             <SelectGroup label="Estado" {...register("status")}>
                 <option value="">Todos</option>
                 <option value="active">Activo</option>
+                <option value="pending">Pendiente de aprobación</option>
+                <option value="rejected">Rechazado</option>
                 <option value="inactive">Inactivo</option>
-                <option value="pending">Pendiente</option>
             </SelectGroup>
 
             <Button type="button" onClick={handleClear} variant="ghost" className="h-10 px-3 shrink-0">

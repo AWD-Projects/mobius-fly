@@ -25,7 +25,11 @@ interface Props {
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-    fleetName: z.string().optional(),
+    fleetName: z
+        .string()
+        .min(1, "El nombre de la flota no puede estar vacío")
+        .max(60, "Máximo 60 caracteres")
+        .regex(/^[a-zA-ZÀ-ÿ0-9\s\-]+$/, "Solo se permiten letras, números, espacios y guiones"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -58,7 +62,7 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pendingDocIdRef = useRef<string | null>(null);
 
-    const { register, handleSubmit, control } = useForm<FormData>({
+    const { register, handleSubmit, control, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: { fleetName: owner.fleet_name ?? "" },
     });
@@ -193,7 +197,10 @@ export function PerfilContent({ owner, documents: initialDocuments, userProfile 
                                 className="transition-opacity disabled:opacity-0 disabled:pointer-events-none"
                             />
                         </div>
-                        <Input type="text" className="h-10" {...register("fleetName")} />
+                        <Input type="text" className="h-10" error={!!errors.fleetName} {...register("fleetName")} />
+                        {errors.fleetName && (
+                            <p className="text-[11px] text-[#C62828]">{errors.fleetName.message}</p>
+                        )}
                     </form>
 
                     {/* Identity document */}

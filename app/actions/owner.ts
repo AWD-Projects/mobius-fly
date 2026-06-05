@@ -76,11 +76,15 @@ export async function updateFleetName(
     ownerId: string,
     fleetName: string,
 ): Promise<{ error: string | null }> {
+    const trimmed = fleetName.trim();
+    if (!trimmed) return { error: "El nombre de la flota no puede estar vacío." };
+    if (!/^[a-zA-ZÀ-ÿ0-9\s\-]+$/.test(trimmed)) return { error: "Solo se permiten letras, números, espacios y guiones." };
+
     const supabase = await createClient();
 
     const { error } = await supabase
         .from("owners")
-        .update({ fleet_name: fleetName.trim() })
+        .update({ fleet_name: trimmed })
         .eq("id", ownerId);
 
     if (error) {

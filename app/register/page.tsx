@@ -96,6 +96,11 @@ export default function RegisterPage() {
     }, []);
 
     const handleDocumentUpload = useCallback((file: File) => {
+        if (file.size > 10 * 1024 * 1024) {
+            setApiError("El archivo excede el tamaño máximo permitido de 10 MB.");
+            return;
+        }
+        setApiError(null);
         setIdFile(file);
         setIdDocument({
             name: file.name,

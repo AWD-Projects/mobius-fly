@@ -20,9 +20,12 @@ interface Props {
 // ─── Config maps ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; status: "success" | "pending" | "inactive" }> = {
-    ACTIVE:      { label: "Activo",          status: "success"  },
-    MAINTENANCE: { label: "Mantenimiento",   status: "pending"  },
-    INACTIVE:    { label: "Inactivo",        status: "inactive" },
+    ACTIVE:      { label: "Activo",               status: "success"  },
+    DOC_PENDING: { label: "Pendiente de revisión", status: "pending"  },
+    DOC_REJECTED:{ label: "Doc. rechazada",        status: "pending"  },
+    DOC_MISSING: { label: "Doc. faltante",         status: "inactive" },
+    MAINTENANCE: { label: "Mantenimiento",         status: "pending"  },
+    INACTIVE:    { label: "Inactivo",              status: "inactive" },
 };
 
 const DOC_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -45,7 +48,16 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
     const [currentStatus, setCurrentStatus] = useState(data.status.toUpperCase());
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-    const statusCfg  = STATUS_CONFIG[currentStatus] ?? { label: currentStatus, status: "inactive" as const };
+    const effectiveStatus = React.useMemo(() => {
+        if (currentStatus !== "ACTIVE") return currentStatus;
+        const codes = data.documents.map((d) => d.document_status?.code ?? "");
+        if (codes.length === 0)                              return "DOC_MISSING";
+        if (codes.some((c) => c === "REJECTED"))             return "DOC_REJECTED";
+        if (codes.some((c) => c === "PENDING_REVIEW"))       return "DOC_PENDING";
+        return "ACTIVE";
+    }, [currentStatus, data.documents]);
+
+    const statusCfg  = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, status: "inactive" as const };
     const isActive   = currentStatus === "ACTIVE";
     const isMaint    = currentStatus === "MAINTENANCE";
     const name       = data.manufacturer ? `${data.manufacturer} ${data.model}` : data.model;

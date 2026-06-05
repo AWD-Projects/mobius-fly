@@ -20,9 +20,9 @@ interface Props {
 // ─── Config maps ──────────────────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<string, string> = {
-    CAPTAIN:          "Capitán / Piloto",
-    FIRST_OFFICER:    "Copiloto / Piloto",
-    FLIGHT_ATTENDANT: "TCP / Sobrecargo",
+    CAPTAIN:          "Capitán",
+    FIRST_OFFICER:    "Copiloto",
+    FLIGHT_ATTENDANT: "TCP",
 };
 
 const FLIGHT_STATUS_CONFIG: Record<string, { label: string; status: "success" | "pending" | "info" | "inactive" }> = {
@@ -55,9 +55,10 @@ export function CrewDetailContent({ data, ownerId }: Props) {
     const [currentStatus, setCurrentStatus] = useState(data.status);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-    const roleCode  = data.crew_role?.code ?? "";
-    const roleLabel = data.crew_role?.name ?? ROLE_LABEL[roleCode] ?? roleCode;
-    const isActive  = currentStatus.toUpperCase() === "ACTIVE";
+    const roleCode   = data.crew_role?.code ?? "";
+    const roleLabel  = data.crew_role?.name ?? ROLE_LABEL[roleCode] ?? roleCode;
+    const isActive   = currentStatus.toUpperCase() === "ACTIVE";
+    const isRejected = currentStatus.toUpperCase() === "REJECTED";
 
     const activeFlights = data.assigned_flights.filter(
         (f) => !["COMPLETED", "CANCELLED"].includes(f.status_code),
@@ -121,8 +122,8 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-[#666666]">{roleLabel}</span>
-                            <StatusBadge status={isActive ? "success" : "inactive"}>
-                                {isActive ? "Activo" : "Inactivo"}
+                            <StatusBadge status={isActive ? "success" : isRejected ? "inactive" : "inactive"}>
+                                {isActive ? "Activo" : isRejected ? "Rechazado" : "Inactivo"}
                             </StatusBadge>
                         </div>
                     </div>
@@ -168,6 +169,14 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                             </div>
                         )}
                     </div>
+
+                    {/* Motivo de rechazo */}
+                    {isRejected && data.rejected_reason && (
+                        <div className="bg-white rounded-2xl border border-[#EF9A9A]/40 p-6 flex flex-col gap-2">
+                            <h2 className="text-[13px] font-semibold text-[#C62828]">Motivo de rechazo</h2>
+                            <p className="text-[13px] text-[#C62828]/80 leading-relaxed">{data.rejected_reason}</p>
+                        </div>
+                    )}
 
                     {/* Assigned Flights */}
                     <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-4">
@@ -243,28 +252,32 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                     <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-2">
                         <h2 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">Acciones</h2>
 
-                        <Button
-                            onClick={handleToggleStatus}
-                            variant="outline"
-                            className="w-full h-10 justify-start gap-2.5"
-                            isLoading={isPending}
-                            icon={isActive
-                                ? <AlertCircle className="w-4 h-4 text-muted" />
-                                : <CheckCircle className="w-4 h-4 text-muted" />
-                            }
-                        >
-                            {isActive ? "Marcar como no disponible" : "Marcar como activo"}
-                        </Button>
+                        {!isRejected && (
+                            <Button
+                                onClick={handleToggleStatus}
+                                variant="outline"
+                                className="w-full h-10 justify-start gap-2.5"
+                                isLoading={isPending}
+                                icon={isActive
+                                    ? <AlertCircle className="w-4 h-4 text-muted" />
+                                    : <CheckCircle className="w-4 h-4 text-muted" />
+                                }
+                            >
+                                {isActive ? "Marcar como no disponible" : "Marcar como activo"}
+                            </Button>
+                        )}
 
-                        <Button
-                            onClick={() => router.push(`/owner/tripulacion/${data.id}/edit`)}
-                            variant="ghost"
-                            className="w-full h-10 justify-start gap-2.5"
-                            disabled={isPending}
-                            icon={<Pencil className="w-4 h-4 text-muted" />}
-                        >
-                            Editar tripulante
-                        </Button>
+                        {!isRejected && (
+                            <Button
+                                onClick={() => router.push(`/owner/tripulacion/${data.id}/edit`)}
+                                variant="ghost"
+                                className="w-full h-10 justify-start gap-2.5"
+                                disabled={isPending}
+                                icon={<Pencil className="w-4 h-4 text-muted" />}
+                            >
+                                Editar tripulante
+                            </Button>
+                        )}
 
                         <div className="w-full h-px bg-border mt-1" />
 

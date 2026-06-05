@@ -41,9 +41,9 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const ROLE_LABEL: Record<string, string> = {
-    CAPTAIN:          "Capitán / Piloto",
-    FIRST_OFFICER:    "Copiloto / Piloto",
-    FLIGHT_ATTENDANT: "TCP / Sobrecargo",
+    CAPTAIN:          "Capitán",
+    FIRST_OFFICER:    "Copiloto",
+    FLIGHT_ATTENDANT: "TCP",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
