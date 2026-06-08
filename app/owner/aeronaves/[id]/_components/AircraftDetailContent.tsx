@@ -58,7 +58,7 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
     }, [currentStatus, data.documents]);
 
     const statusCfg  = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, status: "inactive" as const };
-    const isActive   = currentStatus === "ACTIVE";
+    const isActive   = effectiveStatus === "ACTIVE";
     const isMaint    = currentStatus === "MAINTENANCE";
     const name       = data.manufacturer ? `${data.manufacturer} ${data.model}` : data.model;
 
@@ -270,7 +270,7 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
                             </Button>
                         )}
 
-                        {!isActive && !isMaint && (
+                        {currentStatus !== "ACTIVE" && !isMaint && (
                             <Button
                                 onClick={() => handleSetStatus("ACTIVE")}
                                 variant="outline"

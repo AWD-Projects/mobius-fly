@@ -19,7 +19,7 @@ export interface Flight {
     date:      string;
     aircraft:  string;
     type:      "charter" | "personal";
-    status:    "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review";
+    status:    "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review" | "rejected";
     capacity:  string;
     soldSeats: number;
 }
@@ -51,6 +51,7 @@ const statusConfig: Record<Flight["status"], { label: string; status: "pending" 
     completed:      { label: "Completado",   status: "inactive"  },
     cancelled:      { label: "Cancelado",    status: "error"     },
     pending_review: { label: "En revisión",  status: "pending"   },
+    rejected:       { label: "Rechazado",    status: "error"     },
 };
 
 const typeConfig = {

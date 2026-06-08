@@ -9,8 +9,27 @@ interface FleetNameStepProps {
   isLoading?: boolean;
 }
 
+function validate(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "El nombre de la flota no puede estar vacío";
+  if (trimmed.length > 60) return "Máximo 60 caracteres";
+  if (!/^[a-zA-ZÀ-ÿ0-9\s\-]+$/.test(trimmed)) return "Solo se permiten letras, números, espacios y guiones";
+  return null;
+}
+
 export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue, isLoading }) => {
   const [fleetName, setFleetName] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleContinue = () => {
+    const err = validate(fleetName);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+    onContinue(fleetName.trim());
+  };
 
   return (
     <m.div
@@ -35,15 +54,22 @@ export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue, isLoa
           label="Nombre de la flota"
           type="text"
           value={fleetName}
-          onChange={(e) => setFleetName(e.target.value)}
+          onChange={(e) => {
+            setFleetName(e.target.value);
+            if (error) setError(validate(e.target.value));
+          }}
           placeholder="Ej. Aerolineas del Norte"
+          error={!!error}
         />
+        {error && (
+          <p className="text-[11px] text-[#C62828] mt-1">{error}</p>
+        )}
       </div>
 
       <Button
         variant="outline"
         size="lg"
-        onClick={() => onContinue(fleetName)}
+        onClick={handleContinue}
         isLoading={isLoading}
         className="mx-auto"
         icon={<ArrowRight size={18} />}

@@ -53,6 +53,7 @@ function diffMinutes(from: string, to: string): string {
 export function FlightDetailContent({ data, ownerId }: Props) {
     const router = useRouter();
     const [statusCode, setStatusCode] = useState(data.status_code);
+    const [rejectedReason] = useState(data.rejected_reason);
 
     const depAirport = data.departure_airport;
     const arrAirport = data.arrival_airport;
@@ -90,6 +91,22 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                         title="Tu vuelo está siendo validado"
                         description="Nuestro equipo está revisando los datos de tu vuelo. Estará listo y visible para compradores en no más de 48 horas."
                     />
+                </div>
+            )}
+
+            {statusCode === "REJECTED" && (
+                <div className="px-12 pt-6">
+                    <AlertBox
+                        variant="warning"
+                        title="Tu vuelo fue rechazado"
+                        description="Tu vuelo no pudo ser aprobado. Revisa el motivo y edita el vuelo para volver a enviarlo a revisión."
+                    >
+                        {rejectedReason && (
+                            <p className="text-xs text-[#E65100]/80 mt-1">
+                                <span className="font-semibold">Motivo:</span> {rejectedReason}
+                            </p>
+                        )}
+                    </AlertBox>
                 </div>
             )}
 

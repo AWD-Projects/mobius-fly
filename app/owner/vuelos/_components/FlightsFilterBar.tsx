@@ -93,6 +93,7 @@ export const FlightsFilterBar: React.FC<FlightsFilterBarProps> = ({
             <SelectGroup label="Estado" {...register("status")}>
                 <option value="">Todos</option>
                 <option value="pending_review">En revisión</option>
+                <option value="rejected">Rechazado</option>
                 <option value="scheduled">Programado</option>
                 <option value="delayed">Retrasado</option>
                 <option value="in-flight">En vuelo</option>

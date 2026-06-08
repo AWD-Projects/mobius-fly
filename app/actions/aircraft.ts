@@ -376,6 +376,42 @@ export async function updateAircraftStatus(
 
 // ─── deleteAircraft ───────────────────────────────────────────────────────────
 
+// ─── replaceAircraftDocument ──────────────────────────────────────────────────
+
+export async function replaceAircraftDocument(
+    docId:      string,
+    ownerId:    string,
+    storageUrl: string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    const { data: pendingStatus } = await supabase
+        .from("document_status")
+        .select("id")
+        .eq("code", "PENDING_REVIEW")
+        .single();
+
+    if (!pendingStatus) return { error: "Estado de documento no encontrado." };
+
+    const { error } = await supabase
+        .from("aircraft_documents")
+        .update({
+            document_url:       storageUrl,
+            document_status_id: pendingStatus.id,
+            rejected_reason:    null,
+        })
+        .eq("id", docId);
+
+    if (error) {
+        console.error("[replaceAircraftDocument] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
+}
+
+// ─── deleteAircraft ───────────────────────────────────────────────────────────
+
 export async function deleteAircraft(
     aircraftId: string,
     ownerId:    string,

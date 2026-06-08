@@ -350,6 +350,7 @@ export interface OwnerFlightDetail {
     price_per_seat:            number;
     price_full_aircraft:       number;
     status_code:               string;
+    rejected_reason:           string | null;
     is_visible:                boolean;
     flight_plan_url:           string | null;
     aircraft:                  OwnerFlightAircraft | null;
@@ -375,7 +376,7 @@ export async function getOwnerFlightDetail(
         supabase
             .from("flights")
             .select(`
-                id, flight_code, flight_type, is_visible, flight_plan_url,
+                id, flight_code, flight_type, is_visible, flight_plan_url, rejected_reason,
                 departure_fbo_name, arrival_fbo_name,
                 departure_datetime, arrival_datetime, return_departure_datetime,
                 total_seats, available_seats, price_per_seat, price_full_aircraft,
@@ -450,6 +451,7 @@ export async function getOwnerFlightDetail(
         price_per_seat:            Number(row.price_per_seat),
         price_full_aircraft:       Number(row.price_full_aircraft),
         status_code:               row.flight_status?.code ?? "SCHEDULED",
+        rejected_reason:           row.rejected_reason ?? null,
         is_visible:                row.is_visible ?? false,
         flight_plan_url:           row.flight_plan_url ?? null,
         aircraft:                  ac ? {

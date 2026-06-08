@@ -102,6 +102,7 @@ export interface CrewDetailData {
     first_name: string;
     last_name: string;
     status: string;
+    is_approved: boolean;
     rejected_reason: string | null;
     license_number: string | null;
     email: string | null;
@@ -131,7 +132,7 @@ export async function getCrewMemberDetail(
         supabase
             .from("crew_members")
             .select(
-                "id, first_name, last_name, status, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(id, code, name)",
+                "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(id, code, name)",
             )
             .eq("id", crewId)
             .eq("owner_id", owner.id)

@@ -57,7 +57,8 @@ export function CrewDetailContent({ data, ownerId }: Props) {
 
     const roleCode   = data.crew_role?.code ?? "";
     const roleLabel  = data.crew_role?.name ?? ROLE_LABEL[roleCode] ?? roleCode;
-    const isActive   = currentStatus.toUpperCase() === "ACTIVE";
+    const isPendingApproval = currentStatus.toUpperCase() === "ACTIVE" && !data.is_approved;
+    const isActive   = currentStatus.toUpperCase() === "ACTIVE" && data.is_approved;
     const isRejected = currentStatus.toUpperCase() === "REJECTED";
 
     const activeFlights = data.assigned_flights.filter(
@@ -122,8 +123,8 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-[#666666]">{roleLabel}</span>
-                            <StatusBadge status={isActive ? "success" : isRejected ? "inactive" : "inactive"}>
-                                {isActive ? "Activo" : isRejected ? "Rechazado" : "Inactivo"}
+                            <StatusBadge status={isActive ? "success" : isRejected ? "inactive" : isPendingApproval ? "pending" : "inactive"}>
+                                {isActive ? "Activo" : isRejected ? "Rechazado" : isPendingApproval ? "Pendiente de aprobación" : "Inactivo"}
                             </StatusBadge>
                         </div>
                     </div>

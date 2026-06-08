@@ -34,6 +34,7 @@ const STATUS_MAP: Record<string, Flight["status"]> = {
     COMPLETED:      "completed",
     CANCELLED:      "cancelled",
     PENDING_REVIEW: "pending_review",
+    REJECTED:       "rejected",
 };
 
 function formatDate(iso: string): string {

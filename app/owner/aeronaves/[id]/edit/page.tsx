@@ -38,6 +38,7 @@ export default async function EditAircraftPage({
                 year:         data.year?.toString() ?? "",
                 seats:        data.seats.toString(),
             }}
+            documents={data.documents}
         />
     );
 }

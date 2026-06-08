@@ -11,6 +11,7 @@ import { InputGroup } from "@/components/molecules/InputGroup";
 import { SelectGroup } from "@/components/molecules/SelectGroup";
 import { NumericCounter } from "@/components/molecules/NumericCounter";
 import { DocumentUpload, formatFileSize } from "@/components/molecules/DocumentUpload";
+import { AlertBox } from "@/components/molecules/AlertBox";
 import { toast } from "@/components/atoms/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { updateFlight } from "@/app/actions/flights";
@@ -107,6 +108,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     const [flightPlan, setFlightPlan] = useState<File | null>(null);
     const [existingPlanUrl, setExistingPlanUrl] = useState<string | null>(initial.flight_plan_url);
     const [flightPlanError, setFlightPlanError] = useState(false);
+    const showFlightPlan = ["PENDING_REVIEW", "REJECTED"].includes(initial.status_code);
     const [filteredAircraft, setFilteredAircraft] = useState<AircraftListItem[]>(aircraft);
     const [filteredCrew, setFilteredCrew] = useState<CrewListItem[]>(crew);
     const [loadingAircraft, setLoadingAircraft] = useState(false);
@@ -121,12 +123,17 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         .filter((c) => c.role_code !== "CAPTAIN")
         .map((c) => ({ id: c.id }));
 
+    const soldSeats     = initial.total_seats - initial.available_seats;
+    const hasPassengers = soldSeats > 0;
+    const requiredSeats = initial.aircraft?.seats ?? null;
+
     const {
         register,
         handleSubmit,
         control,
         watch,
         setValue,
+        getValues,
         setError,
         clearErrors,
         formState: { errors },
@@ -215,6 +222,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     }, [departureDate, departureTime, arrivalDate, arrivalTime, canCheck]);
 
     useEffect(() => {
+        if (hasPassengers) return;
         if (!(departureDate && departureTime && arrivalDate && arrivalTime)) return;
         const dep = `${departureDate}T${departureTime}`;
         const arr = `${arrivalDate}T${arrivalTime}`;
@@ -227,6 +235,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     }, [departureDate, departureTime, arrivalDate, arrivalTime]);
 
     useEffect(() => {
+        if (hasPassengers) return;
         if (!(departureDate && departureTime)) return;
         const dep    = new Date(`${departureDate}T${departureTime}`);
         const minDep = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -238,10 +247,9 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [departureDate, departureTime]);
 
-    const requiredSeats = initial.aircraft?.seats ?? null;
-
     // ── Auto-calculate full aircraft price ────────────────────────────────────
     useEffect(() => {
+        if (hasPassengers) return;
         const num   = parseFloat((pricePerSeat || "0").replace(/,/g, ""));
         const seats = seatsForSale || 0;
         const full  = num > 0 && seats > 0 ? String(num * seats) : "";
@@ -249,7 +257,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pricePerSeat, seatsForSale]);
 
-    const selectedAircraft  = aircraft.find((a) => a.id === aircraftId);
+    const selectedAircraft     = aircraft.find((a) => a.id === aircraftId);
     const seatFilteredAircraft = requiredSeats != null
         ? availableAircraft.filter((a) => a.seats >= requiredSeats)
         : availableAircraft;
@@ -270,48 +278,99 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         return data?.signedUrl ?? existingPlanUrl;
     };
 
-    const onSubmit = (isVisible: boolean) => handleSubmit(async (data) => {
-        if (!flightPlan && !existingPlanUrl) { setFlightPlanError(true); return; }
-        setFlightPlanError(false);
-        startTransition(async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase!.auth.getUser();
-            const uid = user?.id ?? ownerId;
+    const onSubmit = (isVisible: boolean) => {
+        if (hasPassengers) {
+            const currentAircraftId     = getValues("aircraftId");
+            const currentCaptainId      = getValues("captainId");
+            const currentAdditionalCrew = getValues("additionalCrew");
+            const currentSeatsForSale   = getValues("seatsForSale");
 
-            const flightPlanUrl = await uploadFlightPlan(uid);
-            const allCrew = [data.captainId, ...(data.additionalCrew ?? []).map((c) => c.id).filter(Boolean)];
-
-            const { error } = await updateFlight(flightId, ownerId, {
-                flightType:              flightType === "redondo" ? "ROUND_TRIP" : "ONE_WAY",
-                departureAirportId:      data.originId,
-                arrivalAirportId:        data.destinationId,
-                departureFboName:        data.fboOrigin ?? "",
-                arrivalFboName:          data.fboDestination ?? "",
-                departureDatetime:       toISO(data.departureDate, data.departureTime),
-                arrivalDatetime:         toISO(data.arrivalDate, data.arrivalTime),
-                returnDepartureDatetime: flightType === "redondo" && data.returnDate && data.returnTime
-                    ? toISO(data.returnDate, data.returnTime)
-                    : null,
-                aircraftId:              data.aircraftId,
-                totalSeats:              data.seatsForSale,
-                pricePerSeat:            parseFloat(data.pricePerSeat.replace(/,/g, "")),
-                priceFullAircraft:       parseFloat(data.priceFullAircraft.replace(/,/g, "")),
-                flightPlanUrl,
-                isVisible,
-                crewMemberIds:           allCrew,
-            });
-
-            if (error) {
-                toast.error("Error al actualizar el vuelo", error);
-            } else {
-                toast.success(
-                    isVisible ? "Vuelo actualizado" : "Borrador guardado",
-                    isVisible ? "Los cambios ya son visibles" : "Puedes publicarlo desde el detalle del vuelo",
-                );
-                router.push(`/owner/vuelos/${flightId}`);
+            if (!currentAircraftId) {
+                setError("aircraftId", { message: "Selecciona una aeronave" });
+                return;
             }
-        });
-    })();
+            if (!currentCaptainId) {
+                setError("captainId", { message: "Selecciona un capitán" });
+                return;
+            }
+
+            startTransition(async () => {
+                const allCrew = [currentCaptainId, ...(currentAdditionalCrew ?? []).map((c) => c.id).filter(Boolean)];
+
+                const { error } = await updateFlight(flightId, ownerId, {
+                    flightType:              initial.flight_type as "ONE_WAY" | "ROUND_TRIP",
+                    departureAirportId:      depAirport?.id ?? "",
+                    arrivalAirportId:        arrAirport?.id ?? "",
+                    departureFboName:        initial.departure_fbo_name ?? "",
+                    arrivalFboName:          initial.arrival_fbo_name   ?? "",
+                    departureDatetime:       initial.departure_datetime,
+                    arrivalDatetime:         initial.arrival_datetime,
+                    returnDepartureDatetime: initial.return_departure_datetime ?? null,
+                    aircraftId:              currentAircraftId,
+                    totalSeats:              currentSeatsForSale,
+                    pricePerSeat:            initial.price_per_seat,
+                    priceFullAircraft:       initial.price_full_aircraft,
+                    flightPlanUrl:           existingPlanUrl,
+                    isVisible,
+                    crewMemberIds:           allCrew,
+                });
+
+                if (error) {
+                    toast.error("Error al actualizar el vuelo", error);
+                } else {
+                    toast.success(
+                        isVisible ? "Vuelo actualizado" : "Borrador guardado",
+                        isVisible ? "Los cambios ya son visibles" : "Puedes publicarlo desde el detalle del vuelo",
+                    );
+                    router.push(`/owner/vuelos/${flightId}`);
+                }
+            });
+            return;
+        }
+
+        handleSubmit(async (data) => {
+            if (showFlightPlan && !flightPlan && !existingPlanUrl) { setFlightPlanError(true); return; }
+            setFlightPlanError(false);
+            startTransition(async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase!.auth.getUser();
+                const uid = user?.id ?? ownerId;
+
+                const flightPlanUrl = await uploadFlightPlan(uid);
+                const allCrew = [data.captainId, ...(data.additionalCrew ?? []).map((c) => c.id).filter(Boolean)];
+
+                const { error } = await updateFlight(flightId, ownerId, {
+                    flightType:              flightType === "redondo" ? "ROUND_TRIP" : "ONE_WAY",
+                    departureAirportId:      data.originId,
+                    arrivalAirportId:        data.destinationId,
+                    departureFboName:        data.fboOrigin ?? "",
+                    arrivalFboName:          data.fboDestination ?? "",
+                    departureDatetime:       toISO(data.departureDate, data.departureTime),
+                    arrivalDatetime:         toISO(data.arrivalDate, data.arrivalTime),
+                    returnDepartureDatetime: flightType === "redondo" && data.returnDate && data.returnTime
+                        ? toISO(data.returnDate, data.returnTime)
+                        : null,
+                    aircraftId:              data.aircraftId,
+                    totalSeats:              data.seatsForSale,
+                    pricePerSeat:            parseFloat(data.pricePerSeat.replace(/,/g, "")),
+                    priceFullAircraft:       parseFloat(data.priceFullAircraft.replace(/,/g, "")),
+                    flightPlanUrl,
+                    isVisible,
+                    crewMemberIds:           allCrew,
+                });
+
+                if (error) {
+                    toast.error("Error al actualizar el vuelo", error);
+                } else {
+                    toast.success(
+                        isVisible ? "Vuelo actualizado" : "Borrador guardado",
+                        isVisible ? "Los cambios ya son visibles" : "Puedes publicarlo desde el detalle del vuelo",
+                    );
+                    router.push(`/owner/vuelos/${flightId}`);
+                }
+            });
+        })();
+    };
 
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
@@ -331,6 +390,16 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                 </div>
             </div>
 
+            {hasPassengers && (
+                <div className="px-12 pb-4">
+                    <AlertBox
+                        variant="warning"
+                        title="Edición limitada"
+                        description={`Este vuelo ya tiene ${soldSeats} asiento${soldSeats !== 1 ? "s" : ""} vendido${soldSeats !== 1 ? "s" : ""}. Solo puedes cambiar la aeronave (igual o mayor capacidad), los asientos para venta y la tripulación.`}
+                    />
+                </div>
+            )}
+
             <div className="px-12 pb-8 flex flex-col gap-7">
                 {/* Type Toggle */}
                 <div className="flex">
@@ -339,6 +408,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                             key={t}
                             type="button"
                             variant="ghost"
+                            disabled={hasPassengers}
                             onClick={() => setFlightType(t)}
                             className={`flex-1 h-11 border border-border transition-colors ${
                                 i === 0 ? "rounded-l-xl" : "rounded-r-xl border-l-0"
@@ -358,13 +428,13 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <SelectGroup label="Origen" error={errors.originId?.message} {...register("originId")}>
+                            <SelectGroup label="Origen" error={errors.originId?.message} disabled={hasPassengers} {...register("originId")}>
                                 <option value="">Seleccionar aeropuerto</option>
                                 {airports.map((a) => <option key={a.id} value={a.id}>{airportLabel(a)}</option>)}
                             </SelectGroup>
                         </div>
                         <div className="flex-1">
-                            <SelectGroup label="Destino" error={errors.destinationId?.message} {...register("destinationId")}>
+                            <SelectGroup label="Destino" error={errors.destinationId?.message} disabled={hasPassengers} {...register("destinationId")}>
                                 <option value="">Seleccionar aeropuerto</option>
                                 {airports.map((a) => <option key={a.id} value={a.id}>{airportLabel(a)}</option>)}
                             </SelectGroup>
@@ -375,10 +445,10 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" error={errors.fboOrigin?.message} {...register("fboOrigin")} />
+                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" error={errors.fboOrigin?.message} disabled={hasPassengers} {...register("fboOrigin")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="FBO de destino (opcional)" type="text" placeholder="Dirección del FBO" {...register("fboDestination")} />
+                            <InputGroup label="FBO de destino (opcional)" type="text" placeholder="Dirección del FBO" disabled={hasPassengers} {...register("fboDestination")} />
                         </div>
                     </div>
 
@@ -386,19 +456,19 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} {...register("departureDate")} />
+                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} disabled={hasPassengers} {...register("departureDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} {...register("departureTime")} />
+                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} disabled={hasPassengers} {...register("departureTime")} />
                         </div>
                     </div>
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} {...register("arrivalDate")} />
+                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} disabled={hasPassengers} {...register("arrivalDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} {...register("arrivalTime")} />
+                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} disabled={hasPassengers} {...register("arrivalTime")} />
                         </div>
                     </div>
 
@@ -414,10 +484,10 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                             )}
                             <div className="flex gap-8">
                                 <div className="flex-1">
-                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} {...register("returnDate")} />
+                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} disabled={hasPassengers} {...register("returnDate")} />
                                 </div>
                                 <div className="flex-1">
-                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} {...register("returnTime")} />
+                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} disabled={hasPassengers} {...register("returnTime")} />
                                 </div>
                             </div>
                         </>
@@ -507,7 +577,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                             label="Asientos para venta"
                                             value={field.value}
                                             onChange={field.onChange}
-                                            min={1}
+                                            min={hasPassengers ? soldSeats : 1}
                                             max={selectedAircraft?.seats ?? 20}
                                         />
                                     )}
@@ -526,6 +596,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                             inputMode="decimal"
                                             placeholder="0"
                                             error={errors.pricePerSeat?.message}
+                                            disabled={hasPassengers}
                                             value={field.value
                                                 ? Number(field.value.replace(/,/g, "")).toLocaleString("es-MX")
                                                 : ""}
@@ -553,7 +624,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                         inputMode="decimal"
                                         placeholder="0"
                                         error={errors.priceFullAircraft?.message}
-                                        helperText={selectedAircraft
+                                        disabled={hasPassengers}
+                                        helperText={selectedAircraft && !hasPassengers
                                             ? `Auto-calculado · puedes editarlo para ofrecer un descuento`
                                             : undefined}
                                         value={field.value
@@ -571,7 +643,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
+                    {showFlightPlan && <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                         <h2 className="text-[11px] font-semibold text-text">Plan de vuelo</h2>
                         <p className="text-[11px] text-muted">Carga el PDF con el plan de vuelo detallado</p>
                         {existingPlanUrl && !flightPlan && (
@@ -598,7 +670,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                 error={flightPlanError}
                             />
                         )}
-                    </div>
+                    </div>}
                 </div>
 
                 {/* Actions */}

@@ -140,7 +140,7 @@ function CheckoutForm({ expired, bookingRef, totalAmount, onTimerExpired }: Chec
                 variant="secondary"
                 size="lg"
                 className="w-full"
-                disabled={!stripe || !elements || expired}
+                disabled={!stripe || !elements || expired || isSubmitting}
                 isLoading={isSubmitting}
                 onClick={handleFinalize}
             >
