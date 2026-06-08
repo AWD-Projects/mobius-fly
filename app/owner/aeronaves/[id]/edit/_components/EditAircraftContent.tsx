@@ -118,6 +118,7 @@ export function EditAircraftContent({ aircraftId, ownerId, initial, documents: i
         setReplacingId(docId);
         try {
             const supabase = createClient();
+            if (!supabase) { toast.error("Error", "No se pudo inicializar el cliente."); return; }
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { toast.error("Error", "No se pudo verificar tu sesión."); return; }
 

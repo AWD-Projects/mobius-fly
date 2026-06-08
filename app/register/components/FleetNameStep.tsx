@@ -59,7 +59,7 @@ export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue, isLoa
             if (error) setError(validate(e.target.value));
           }}
           placeholder="Ej. Aerolineas del Norte"
-          error={!!error}
+          error={error || undefined}
         />
         {error && (
           <p className="text-[11px] text-[#C62828] mt-1">{error}</p>
