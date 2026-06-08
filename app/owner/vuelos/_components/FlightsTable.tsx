@@ -14,13 +14,14 @@ import { IconButton } from "@/components/atoms/IconButton";
 import { Pencil, Eye, Trash2, CalendarX } from "lucide-react";
 
 export interface Flight {
-    id:       string;
-    route:    string;
-    date:     string;
-    aircraft: string;
-    type:     "charter" | "personal";
-    status:   "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review";
-    capacity: string;
+    id:        string;
+    route:     string;
+    date:      string;
+    aircraft:  string;
+    type:      "charter" | "personal";
+    status:    "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review";
+    capacity:  string;
+    soldSeats: number;
 }
 
 export interface FlightsTableProps {
@@ -114,7 +115,7 @@ export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onE
                                         size="sm"
                                         aria-label="Editar"
                                     />
-                                    {onDelete && <DeleteCell id={flight.id} onDelete={onDelete} />}
+                                    {onDelete && flight.soldSeats === 0 && <DeleteCell id={flight.id} onDelete={onDelete} />}
                                 </div>
                             </TableCell>
                         </TableRow>

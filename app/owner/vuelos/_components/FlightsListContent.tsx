@@ -51,7 +51,8 @@ function toDisplayFlight(item: OwnerFlightListItem): Flight {
         aircraft: item.aircraft_model,
         type:     item.flight_type === "ROUND_TRIP" ? "personal" : "charter",
         status:   STATUS_MAP[item.status_code] ?? "scheduled",
-        capacity: `${item.total_seats - item.available_seats}/${item.total_seats}`,
+        capacity:  `${item.total_seats - item.available_seats}/${item.total_seats}`,
+        soldSeats: item.total_seats - item.available_seats,
     };
 }
 
@@ -71,21 +72,14 @@ export function FlightsListContent({ flights: initialFlights, ownerId, hasAircra
     const handleDeleteConfirm = async () => {
         if (!confirmDeleteId) return;
         setIsDeleting(true);
-        const { error, notifiedPassengers } = await deleteFlight(confirmDeleteId, ownerId);
+        const { error } = await deleteFlight(confirmDeleteId, ownerId);
         setIsDeleting(false);
         setConfirmDeleteId(null);
         if (error) {
             toast.error("No se pudo eliminar", error);
         } else {
             setFlightList((prev) => prev.filter((f) => f.id !== confirmDeleteId));
-            if (notifiedPassengers > 0) {
-                toast.success(
-                    "Vuelo cancelado",
-                    `Se notificó a ${notifiedPassengers} ${notifiedPassengers === 1 ? "pasajero" : "pasajeros"} por correo.`,
-                );
-            } else {
-                toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
-            }
+            toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
         }
     };
 

@@ -7,7 +7,7 @@ import { Switch } from "@/components/atoms/Switch";
 import { Download, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/components/atoms/Toast";
 import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
-import { updateFlightStatus, deleteFlight, toggleFlightVisibility } from "@/app/actions/flights";
+import { updateFlightStatus, deleteFlight, cancelFlight, toggleFlightVisibility } from "@/app/actions/flights";
 import type { OwnerFlightPassenger } from "@/app/actions/flights";
 
 export interface AdminControlCardProps {
@@ -57,13 +57,18 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [pendingStatusNext, setPendingStatusNext] = useState<string | null>(null);
     const [visible, setVisible] = useState(isVisible);
     const [isTogglingVisibility, startVisibilityTransition] = useTransition();
 
     const transitions = TRANSITIONS[statusCode] ?? [];
     const hasPassengers = passengers.length > 0;
+    const isTerminal = statusCode === "CANCELLED" || statusCode === "COMPLETED";
+    const canDelete = !hasPassengers && !isTerminal;
+    const canCancel = !isTerminal && statusCode !== "PENDING_REVIEW";
 
     const handleStatusChange = (next: string, label: string) => {
         setPendingStatusNext(next);
@@ -97,21 +102,34 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
 
     const handleDelete = async () => {
         setIsDeleting(true);
-        const { error, notifiedPassengers } = await deleteFlight(flightId, ownerId);
+        const { error } = await deleteFlight(flightId, ownerId);
         setIsDeleting(false);
         setShowDeleteDialog(false);
         if (error) {
             toast.error("No se pudo eliminar", error);
         } else {
+            toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
+            router.push("/owner/vuelos");
+        }
+    };
+
+    const handleCancel = async () => {
+        setIsCancelling(true);
+        const { error, notifiedPassengers } = await cancelFlight(flightId, ownerId);
+        setIsCancelling(false);
+        setShowCancelDialog(false);
+        if (error) {
+            toast.error("No se pudo cancelar", error);
+        } else {
+            onStatusChange("CANCELLED");
             if (notifiedPassengers > 0) {
                 toast.success(
                     "Vuelo cancelado",
                     `Se notificó a ${notifiedPassengers} ${notifiedPassengers === 1 ? "pasajero" : "pasajeros"} por correo.`,
                 );
             } else {
-                toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
+                toast.success("Vuelo cancelado", "El vuelo fue cancelado correctamente.");
             }
-            router.push("/owner/vuelos");
         }
     };
 
@@ -199,50 +217,68 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                             {label}
                         </Button>
                     ))}
-                    <Button
-                        onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
-                        variant="ghost"
-                        className="w-full h-10 justify-start gap-2.5"
-                        disabled={isPending || isDeleting}
-                        icon={<Pencil className="w-4 h-4 text-muted" />}
-                    >
-                        Editar vuelo
-                    </Button>
+                    {!isTerminal && (
+                        <Button
+                            onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
+                            variant="ghost"
+                            className="w-full h-10 justify-start gap-2.5"
+                            disabled={isPending || isDeleting}
+                            icon={<Pencil className="w-4 h-4 text-muted" />}
+                        >
+                            Editar vuelo
+                        </Button>
+                    )}
 
-                    <div className="flex items-center justify-between py-1">
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-[13px] font-medium text-text">Visible para compradores</span>
-                            <span className="text-[11px] text-muted">
-                                {visible ? "El vuelo aparece en la plataforma" : "El vuelo está oculto"}
-                            </span>
+                    {!isTerminal && (
+                        <div className="flex items-center justify-between py-1">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-[13px] font-medium text-text">Visible para compradores</span>
+                                <span className="text-[11px] text-muted">
+                                    {visible ? "El vuelo aparece en la plataforma" : "El vuelo está oculto"}
+                                </span>
+                            </div>
+                            <Switch
+                                checked={visible}
+                                disabled={isTogglingVisibility}
+                                onChange={(e) => handleToggleVisibility(e.target.checked)}
+                            />
                         </div>
-                        <Switch
-                            checked={visible}
-                            disabled={isTogglingVisibility}
-                            onChange={(e) => handleToggleVisibility(e.target.checked)}
-                        />
-                    </div>
+                    )}
 
-                    <div className="w-full h-px bg-border mt-1" />
+                    {(!isTerminal && (canCancel || canDelete)) && <div className="w-full h-px bg-border mt-1" />}
 
-                    <Button
-                        onClick={() => setShowDeleteDialog(true)}
-                        variant="ghost-destructive"
-                        className="w-full h-10 justify-start gap-2.5 text-[12px]"
-                        disabled={isPending || isDeleting}
-                        icon={<Trash2 className="w-4 h-4" />}
-                    >
-                        Cancelar vuelo
-                    </Button>
+                    {canCancel && (
+                        <Button
+                            onClick={() => setShowCancelDialog(true)}
+                            variant="ghost-destructive"
+                            className="w-full h-10 justify-start gap-2.5 text-[12px]"
+                            disabled={isPending || isDeleting || isCancelling}
+                            icon={<Trash2 className="w-4 h-4" />}
+                        >
+                            Cancelar vuelo
+                        </Button>
+                    )}
+
+                    {canDelete && (
+                        <Button
+                            onClick={() => setShowDeleteDialog(true)}
+                            variant="ghost-destructive"
+                            className="w-full h-10 justify-start gap-2.5 text-[12px]"
+                            disabled={isPending || isDeleting || isCancelling}
+                            icon={<Trash2 className="w-4 h-4" />}
+                        >
+                            Eliminar vuelo
+                        </Button>
+                    )}
                 </div>
             </div>
 
             <ConfirmDialog
-                open={showDeleteDialog}
+                open={showCancelDialog}
                 title="Cancelar vuelo"
                 description={
                     hasPassengers
-                        ? "Este vuelo tiene pasajeros con reservaciones activas. Al cancelar el vuelo, se les notificará por correo electrónico."
+                        ? "Este vuelo tiene pasajeros con reservaciones confirmadas. Al cancelar, se les notificará por correo electrónico."
                         : "¿Estás seguro de que deseas cancelar este vuelo? Esta acción no se puede deshacer."
                 }
                 warning={
@@ -251,6 +287,18 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                         : undefined
                 }
                 confirmLabel="Cancelar vuelo"
+                cancelLabel="Volver"
+                isLoading={isCancelling}
+                destructive
+                onConfirm={handleCancel}
+                onCancel={() => setShowCancelDialog(false)}
+            />
+
+            <ConfirmDialog
+                open={showDeleteDialog}
+                title="Eliminar vuelo"
+                description="¿Estás seguro de que deseas eliminar este vuelo? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
                 cancelLabel="Volver"
                 isLoading={isDeleting}
                 destructive

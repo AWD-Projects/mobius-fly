@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
 import type {
     FlightListItem,
     FlightDetail,
@@ -747,6 +748,22 @@ export async function updateFlight(
 ): Promise<{ error: string | null }> {
     const supabase = await createClient();
 
+    const { data: currentFlight } = await supabase
+        .from("flights")
+        .select("total_seats, available_seats")
+        .eq("id", flightId)
+        .eq("owner_id", ownerId)
+        .single();
+
+    if (!currentFlight) return { error: "Vuelo no encontrado." };
+
+    const soldSeats = (currentFlight as any).total_seats - (currentFlight as any).available_seats;
+    const newAvailableSeats = input.totalSeats - soldSeats;
+
+    if (newAvailableSeats < 0) {
+        return { error: `No puedes reducir los asientos por debajo de los ${soldSeats} ya vendidos.` };
+    }
+
     const { error: flightError } = await supabase
         .from("flights")
         .update({
@@ -760,6 +777,7 @@ export async function updateFlight(
             arrival_datetime:          input.arrivalDatetime,
             return_departure_datetime: input.returnDepartureDatetime,
             total_seats:               input.totalSeats,
+            available_seats:           newAvailableSeats,
             price_per_seat:            input.pricePerSeat,
             price_full_aircraft:       input.priceFullAircraft,
             is_visible:                input.isVisible,
@@ -813,58 +831,132 @@ export async function updateFlight(
 }
 
 // ─── deleteFlight ─────────────────────────────────────────────────────────────
+// Allowed only if: flight is PENDING_REVIEW, or flight has no confirmed passengers.
 
 export async function deleteFlight(
+    flightId: string,
+    ownerId:  string,
+): Promise<{ error: string | null }> {
+    const supabase = await createClient();
+
+    const { data: flight } = await supabase
+        .from("flights")
+        .select("flight_status:flight_status!flights_status_id_fkey(code)")
+        .eq("id", flightId)
+        .eq("owner_id", ownerId)
+        .single();
+
+    if (!flight) return { error: "Vuelo no encontrado." };
+
+    const statusCode = (flight as any).flight_status?.code ?? "";
+
+    if (statusCode !== "PENDING_REVIEW") {
+        const { data: confirmedStatus } = await supabase
+            .from("reservation_status")
+            .select("id")
+            .eq("code", "CONFIRMED")
+            .single();
+
+        if (confirmedStatus) {
+            const { count } = await supabase
+                .from("reservations")
+                .select("id", { count: "exact", head: true })
+                .eq("flight_id", flightId)
+                .eq("status_id", confirmedStatus.id);
+
+            if ((count ?? 0) > 0) {
+                return { error: "No se puede eliminar: el vuelo tiene pasajeros con reservaciones confirmadas. Cancela el vuelo en su lugar." };
+            }
+        }
+    }
+
+    const { error } = await supabase
+        .from("flights")
+        .delete()
+        .eq("id", flightId)
+        .eq("owner_id", ownerId);
+
+    if (error) {
+        console.error("[deleteFlight] error:", error.message);
+        return { error: error.message };
+    }
+
+    return { error: null };
+}
+
+// ─── cancelFlight ─────────────────────────────────────────────────────────────
+// Allowed in any state except PENDING_REVIEW. Notifies confirmed passengers.
+
+export async function cancelFlight(
     flightId: string,
     ownerId:  string,
 ): Promise<{ error: string | null; notifiedPassengers: number }> {
     const supabase = await createClient();
 
-    // Resolve CANCELLED/REFUNDED status IDs to exclude from active count
-    const { data: cancelledStatuses } = await supabase
-        .from("reservation_status")
-        .select("id")
-        .in("code", ["CANCELLED", "REFUNDED"]);
+    const { data: flight } = await supabase
+        .from("flights")
+        .select("flight_status:flight_status!flights_status_id_fkey(code)")
+        .eq("id", flightId)
+        .eq("owner_id", ownerId)
+        .single();
 
-    const cancelledIds = (cancelledStatuses ?? []).map((s: { id: string }) => s.id);
+    if (!flight) return { error: "Vuelo no encontrado.", notifiedPassengers: 0 };
 
-    // Fetch active reservations with passenger contact info for notifications
-    let activeResQuery = supabase
-        .from("reservations")
-        .select(`
-            id,
-            reservation_passengers (
-                full_name,
-                email
-            )
-        `)
-        .eq("flight_id", flightId);
-
-    if (cancelledIds.length > 0) {
-        activeResQuery = activeResQuery.not("status_id", "in", `(${cancelledIds.join(",")})`);
+    const statusCode = (flight as any).flight_status?.code ?? "";
+    if (statusCode === "PENDING_REVIEW") {
+        return { error: "No se puede cancelar un vuelo que está en revisión.", notifiedPassengers: 0 };
     }
 
-    const { data: activeReservations } = await activeResQuery;
+    const { data: cancelledFlightStatus } = await supabase
+        .from("flight_status")
+        .select("id")
+        .eq("code", "CANCELLED")
+        .single();
 
-    // Collect unique passenger emails
+    if (!cancelledFlightStatus) return { error: "Estado de vuelo no encontrado.", notifiedPassengers: 0 };
+
+    // Collect confirmed passengers for notifications
+    const { data: confirmedResStatus } = await supabase
+        .from("reservation_status")
+        .select("id")
+        .eq("code", "CONFIRMED")
+        .single();
+
     const passengers: { name: string; email: string }[] = [];
-    for (const res of activeReservations ?? []) {
-        for (const p of (res.reservation_passengers as any[] ?? [])) {
-            if (p.email) passengers.push({ name: p.full_name ?? "", email: p.email });
+    if (confirmedResStatus) {
+        const { data: reservations } = await supabase
+            .from("reservations")
+            .select("id, contact_full_name, contact_email")
+            .eq("flight_id", flightId)
+            .eq("reservation_status_id", confirmedResStatus.id);
+
+        for (const res of reservations ?? []) {
+            const r = res as any;
+            if (r.contact_email) passengers.push({ name: r.contact_full_name ?? "", email: r.contact_email });
         }
     }
 
-    // Send cancellation emails if there are active passengers
-    if (passengers.length > 0) {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY ?? "");
+    const { error: updateError } = await supabase
+        .from("flights")
+        .update({ status_id: cancelledFlightStatus.id })
+        .eq("id", flightId)
+        .eq("owner_id", ownerId);
 
-        const emailPromises = passengers.map((p) =>
-            resend.emails.send({
-                from: process.env.RESEND_FROM_EMAIL ?? "noreply@amoxtli.tech",
-                to: p.email,
-                subject: "Tu vuelo ha sido cancelado — Mobius Fly",
-                html: `
+    if (updateError) {
+        console.error("[cancelFlight] error:", updateError.message);
+        return { error: updateError.message, notifiedPassengers: 0 };
+    }
+
+    const resendKey = process.env.RESEND_API_KEY ?? "";
+    const resend = new Resend(resendKey);
+    let notified = 0;
+
+    for (const p of passengers) {
+        const { error: emailError } = await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL ?? "noreply@amoxtli.tech",
+            to:   p.email,
+            subject: "Tu vuelo ha sido cancelado — Mobius Fly",
+            html: `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -888,7 +980,7 @@ export async function deleteFlight(
               El equipo de Mobius Fly se pondrá en contacto contigo a la brevedad para procesar tu reembolso o compensación correspondiente.
             </p>
             <p style="margin:0;color:#39424E;font-size:14px;">
-              Si tienes dudas, escríbenos a{" "}
+              Si tienes dudas, escríbenos a
               <a href="mailto:contacto@mobiusfly.com" style="color:#C4A77D;">contacto@mobiusfly.com</a>
             </p>
           </td>
@@ -903,25 +995,15 @@ export async function deleteFlight(
   </table>
 </body>
 </html>`,
-            }).catch(() => null),
-        );
-
-        await Promise.all(emailPromises);
+        });
+        if (emailError) {
+            console.error("[cancelFlight] email error:", emailError);
+        } else {
+            notified++;
+        }
     }
 
-    // Delete flight (flight_crew, flight_manifests, flight_reviews cascade)
-    const { error } = await supabase
-        .from("flights")
-        .delete()
-        .eq("id", flightId)
-        .eq("owner_id", ownerId);
-
-    if (error) {
-        console.error("[deleteFlight] error:", error.message);
-        return { error: error.message, notifiedPassengers: 0 };
-    }
-
-    return { error: null, notifiedPassengers: passengers.length };
+    return { error: null, notifiedPassengers: notified };
 }
 
 // ─── toggleFlightVisibility ───────────────────────────────────────────────────

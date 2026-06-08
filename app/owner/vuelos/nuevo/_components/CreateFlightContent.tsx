@@ -476,7 +476,7 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                                         <SelectGroup label="" className="flex-1" {...register(`additionalCrew.${index}.id`)}>
                                             <option value="">Seleccionar tripulante</option>
                                             {otherCrew
-                                                .filter((c) => c.id !== captainId && (!usedCrewIds.has(c.id) || c.id === fields[index].id))
+                                                .filter((c) => c.id !== captainId && (!usedCrewIds.has(c.id) || c.id === (additionalCrew ?? [])[index]?.id))
                                                 .map((c) => (
                                                     <option key={c.id} value={c.id}>
                                                         {c.first_name} {c.last_name}
