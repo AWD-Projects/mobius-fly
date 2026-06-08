@@ -66,6 +66,10 @@ interface ThankYouContentProps {
     departureDatetime: string;
     arrivalDatetime: string;
     flightType: "ONE_WAY" | "ROUND_TRIP";
+    returnDepartureDatetime: string | null;
+    returnArrivalDatetime: string | null;
+    returnDepartureFboName: string | null;
+    returnArrivalFboName: string | null;
     departureAirport: { iataCode: string; city: string };
     arrivalAirport: { iataCode: string; city: string };
     aircraft: { manufacturer: string; model: string };
@@ -210,6 +214,41 @@ export function ThankYouContent({
                 </div>
               </div>
             </div>
+
+            {flight.flightType === "ROUND_TRIP" && flight.returnDepartureDatetime && (
+              <div className="bg-surface rounded-md border border-border p-5 sm:p-6 flex flex-col gap-4">
+                <h3 className="text-body font-semibold text-text">Vuelo de regreso</h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-h2 font-bold text-text">{flight.arrivalAirport.iataCode}</span>
+                  <span className="text-muted">→</span>
+                  <span className="text-h2 font-bold text-text">{flight.departureAirport.iataCode}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-small">
+                  <div>
+                    <p className="text-muted mb-0.5">Fecha de salida</p>
+                    <p className="text-text font-medium">{fmtDate(flight.returnDepartureDatetime)}</p>
+                  </div>
+                  {flight.returnArrivalDatetime && (
+                    <div>
+                      <p className="text-muted mb-0.5">Fecha de llegada</p>
+                      <p className="text-text font-medium">{fmtDate(flight.returnArrivalDatetime)}</p>
+                    </div>
+                  )}
+                  {flight.returnDepartureFboName && (
+                    <div>
+                      <p className="text-muted mb-0.5">FBO origen</p>
+                      <p className="text-text font-medium">{flight.returnDepartureFboName}</p>
+                    </div>
+                  )}
+                  {flight.returnArrivalFboName && (
+                    <div>
+                      <p className="text-muted mb-0.5">FBO destino</p>
+                      <p className="text-text font-medium">{flight.returnArrivalFboName}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Price breakdown */}
             <div className="bg-surface rounded-md border border-border p-5 flex flex-col gap-3">

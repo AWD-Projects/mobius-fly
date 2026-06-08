@@ -134,6 +134,29 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                         flightPlanUrl={data.flight_plan_url}
                     />
 
+                    {data.flight_type === "ROUND_TRIP" && data.return_departure_datetime && (
+                        <FlightInfoCard
+                            flightType="Regreso"
+                            origin={{
+                                city:    `${arrAirport.city}`,
+                                airport: `${arrAirport.name} (${arrAirport.iata_code})`,
+                            }}
+                            destination={{
+                                city:    `${depAirport.city}`,
+                                airport: `${depAirport.name} (${depAirport.iata_code})`,
+                            }}
+                            fbo={{
+                                name:     data.return_departure_fbo_name ?? "—",
+                                location: data.return_arrival_fbo_name   ?? "—",
+                            }}
+                            schedule={{
+                                time:     `${formatTime(data.return_departure_datetime)} → ${formatTime(data.return_arrival_datetime ?? "")}`,
+                                duration: data.return_arrival_datetime ? diffMinutes(data.return_departure_datetime, data.return_arrival_datetime) : "",
+                            }}
+                            flightPlanUrl={null}
+                        />
+                    )}
+
                     {data.aircraft && (
                         <AircraftInfoCard
                             model={data.aircraft.manufacturer

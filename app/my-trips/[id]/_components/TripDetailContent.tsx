@@ -175,6 +175,49 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                                 }}
                             />
                         </m.div>
+
+                        {flight.flight_type === "ROUND_TRIP" && flight.return_departure_datetime && (
+                            <>
+                                <m.div {...fadeUp(0.17)} className="bg-surface rounded-md border border-border p-5 sm:p-8 flex flex-col gap-6 sm:gap-8">
+                                    <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">Vuelo de regreso</p>
+                                    <FlightRoute
+                                        origin={{
+                                            code:    flight.arrival_airport.iata_code,
+                                            city:    flight.arrival_airport.city,
+                                            airport: flight.arrival_airport.name,
+                                        }}
+                                        destination={{
+                                            code:    flight.departure_airport.iata_code,
+                                            city:    flight.departure_airport.city,
+                                            airport: flight.departure_airport.name,
+                                        }}
+                                    />
+                                    <FlightDetailsGrid
+                                        items={[
+                                            { label: "Fecha de salida",  value: formatDatetime(flight.return_departure_datetime) },
+                                            ...(flight.return_arrival_datetime
+                                                ? [{ label: "Fecha de llegada", value: formatDatetime(flight.return_arrival_datetime) }]
+                                                : []),
+                                        ]}
+                                    />
+                                </m.div>
+
+                                <m.div {...fadeUp(0.19)}>
+                                    <AirportFBOCard
+                                        departure={{
+                                            airport: `${flight.arrival_airport.name} (${flight.arrival_airport.iata_code})`,
+                                            address:  `${flight.arrival_airport.city}, ${flight.arrival_airport.country}`,
+                                            fbo:      flight.return_departure_fbo_name ?? "—",
+                                        }}
+                                        arrival={{
+                                            airport: `${flight.departure_airport.name} (${flight.departure_airport.iata_code})`,
+                                            address:  `${flight.departure_airport.city}, ${flight.departure_airport.country}`,
+                                            fbo:      flight.return_arrival_fbo_name ?? "—",
+                                        }}
+                                    />
+                                </m.div>
+                            </>
+                        )}
                     </div>
 
                     {/* Right Column */}
