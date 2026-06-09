@@ -516,6 +516,38 @@ export function PaymentContent({ flightId, flightDetail: flight, reservationId, 
                                     </p>
                                 </div>
                             </div>
+                            {flight.flight_type === "ROUND_TRIP" && flight.return_departure_datetime && (
+                                <>
+                                    <div className="w-full h-px bg-border" />
+                                    <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">Vuelo de regreso</p>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-h2 font-bold text-text">{flight.arrival_airport.iata_code}</span>
+                                        <span className="text-muted">→</span>
+                                        <span className="text-h2 font-bold text-text">{flight.departure_airport.iata_code}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-small">
+                                        <div>
+                                            <p className="text-muted mb-0.5">Origen</p>
+                                            <p className="text-text font-medium">{flight.arrival_airport.city}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted mb-0.5">Destino</p>
+                                            <p className="text-text font-medium">{flight.departure_airport.city}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted mb-0.5">Fecha de salida</p>
+                                            <p className="text-text font-medium">{fmtDate(flight.return_departure_datetime)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted mb-0.5">Horario</p>
+                                            <p className="text-text font-medium">
+                                                {fmtTime(flight.return_departure_datetime)}
+                                                {flight.return_arrival_datetime ? ` — ${fmtTime(flight.return_arrival_datetime)}` : ""}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Booking reference */}
