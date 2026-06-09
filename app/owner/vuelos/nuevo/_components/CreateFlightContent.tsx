@@ -600,8 +600,8 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                     <Button type="button" onClick={() => onSubmit(true)} variant="primary" className="w-60 h-10" isLoading={isPending}>
                         Publicar vuelo
                     </Button>
-                    <Button type="button" onClick={() => onSubmit(false)} variant="outline" className="w-60 h-10" disabled={isPending}>
-                        Guardar borrador
+                    <Button type="button" onClick={() => router.push("/owner/vuelos")} variant="outline" className="w-60 h-10" disabled={isPending}>
+                        Cancelar
                     </Button>
                 </div>
             </div>

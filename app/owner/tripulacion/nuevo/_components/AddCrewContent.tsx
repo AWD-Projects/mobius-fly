@@ -134,7 +134,7 @@ export function AddCrewContent({ ownerId, crewRoles }: Props) {
                             <option value="" disabled>Selecciona un rol</option>
                             {crewRoles.map((role) => (
                                 <option key={role.id} value={role.id}>
-                                    {role.name ?? ROLE_LABEL[role.code] ?? role.code}
+                                    {ROLE_LABEL[role.code] ?? role.name ?? role.code}
                                 </option>
                             ))}
                         </SelectGroup>

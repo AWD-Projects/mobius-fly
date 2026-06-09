@@ -56,6 +56,7 @@ export const AircraftFilterBar: React.FC<AircraftFilterBarProps> = ({ filters, o
                 <option value="">Todos</option>
                 <option value="active">Activo</option>
                 <option value="doc_pending">Pendiente de revisión</option>
+                <option value="doc_rejected">Doc. rechazada</option>
                 <option value="maintenance">Mantenimiento</option>
                 <option value="inactive">Inactivo</option>
             </SelectGroup>
