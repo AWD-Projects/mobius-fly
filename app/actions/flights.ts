@@ -752,12 +752,20 @@ export async function updateFlight(
 
     const { data: currentFlight } = await supabase
         .from("flights")
-        .select("total_seats, available_seats")
+        .select("total_seats, available_seats, flight_status:flight_status!flights_status_id_fkey(code)")
         .eq("id", flightId)
         .eq("owner_id", ownerId)
         .single();
 
     if (!currentFlight) return { error: "Vuelo no encontrado." };
+
+    const flightStatusCode = (currentFlight as any).flight_status?.code;
+    if (flightStatusCode === "IN_FLIGHT") {
+        return { error: "No se puede editar un vuelo que está en curso." };
+    }
+    if (flightStatusCode === "COMPLETED") {
+        return { error: "No se puede editar un vuelo que ya fue completado." };
+    }
 
     const soldSeats = (currentFlight as any).total_seats - (currentFlight as any).available_seats;
     const newAvailableSeats = input.totalSeats - soldSeats;

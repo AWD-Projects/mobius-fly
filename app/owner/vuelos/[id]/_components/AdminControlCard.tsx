@@ -217,7 +217,7 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                             {label}
                         </Button>
                     ))}
-                    {!isTerminal && (
+                    {!isTerminal && statusCode !== "IN_FLIGHT" && (
                         <Button
                             onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
                             variant="ghost"

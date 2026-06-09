@@ -282,15 +282,17 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
                             </Button>
                         )}
 
-                        <Button
-                            onClick={() => router.push(`/owner/aeronaves/${data.id}/edit`)}
-                            variant="ghost"
-                            className="w-full h-10 justify-start gap-2.5"
-                            disabled={isPending}
-                            icon={<Pencil className="w-4 h-4 text-muted" />}
-                        >
-                            Editar aeronave
-                        </Button>
+                        {(effectiveStatus === "DOC_PENDING" || effectiveStatus === "DOC_REJECTED") && (
+                            <Button
+                                onClick={() => router.push(`/owner/aeronaves/${data.id}/edit`)}
+                                variant="ghost"
+                                className="w-full h-10 justify-start gap-2.5"
+                                disabled={isPending}
+                                icon={<Pencil className="w-4 h-4 text-muted" />}
+                            >
+                                Editar aeronave
+                            </Button>
+                        )}
 
                         <div className="w-full h-px bg-border mt-1" />
 

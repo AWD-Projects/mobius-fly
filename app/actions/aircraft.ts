@@ -328,6 +328,22 @@ export async function updateAircraft(
 ): Promise<{ error: string | null }> {
     const supabase = await createClient();
 
+    // Only allow editing when docs are in review (PENDING_REVIEW) or rejected (REJECTED)
+    const { data: docs } = await supabase
+        .from("aircraft_documents")
+        .select("document_status:document_status_id(code)")
+        .eq("aircraft_id", aircraftId);
+
+    const codes = ((docs ?? []) as any[]).map((d) => d.document_status?.code ?? "");
+    const canEdit =
+        codes.length > 0 &&
+        codes.some((c) => c === "PENDING_REVIEW" || c === "REJECTED") &&
+        !codes.every((c) => c === "APPROVED");
+
+    if (!canEdit) {
+        return { error: "Solo se puede editar una aeronave cuando sus documentos están en proceso de revisión o han sido rechazados." };
+    }
+
     const { error } = await supabase
         .from("aircrafts")
         .update({

@@ -190,6 +190,17 @@ export async function updateCrewMember(
 ): Promise<{ error: string | null }> {
     const supabase = await createClient();
 
+    // Only allow editing while the crew member is pending review (ACTIVE + not approved)
+    const { data: current } = await supabase
+        .from("crew_members")
+        .select("status, is_approved")
+        .eq("id", crewId)
+        .single();
+
+    if (!current || !(current.status === "ACTIVE" && current.is_approved === false)) {
+        return { error: "Solo se puede editar un tripulante cuando está en proceso de revisión." };
+    }
+
     const { error } = await supabase
         .from("crew_members")
         .update({
@@ -239,48 +250,17 @@ export async function deleteCrewMember(
 ): Promise<{ error: string | null }> {
     const supabase = await createClient();
 
-    // 1. Get flight IDs this crew member is assigned to
-    const { data: assignments } = await supabase
+    // 1. Block deletion if the crew member is assigned to any flight, regardless of status
+    const { count: flightCount } = await supabase
         .from("flight_crew")
-        .select("flight_id")
+        .select("id", { count: "exact", head: true })
         .eq("crew_member_id", crewId);
 
-    const flightIds = ((assignments ?? []) as any[]).map((a) => a.flight_id);
-
-    // 2. Check if any of those flights are still active
-    if (flightIds.length > 0) {
-        const { data: activeStatuses } = await supabase
-            .from("flight_status")
-            .select("id")
-            .in("code", ["SCHEDULED", "DELAYED", "IN_FLIGHT", "ON_TIME"]);
-
-        const activeStatusIds = ((activeStatuses ?? []) as any[]).map((s) => s.id);
-
-        const { count } = await supabase
-            .from("flights")
-            .select("id", { count: "exact", head: true })
-            .in("id", flightIds)
-            .in("status_id", activeStatusIds);
-
-        if ((count ?? 0) > 0) {
-            return { error: "No se puede eliminar: el tripulante tiene vuelos activos asignados." };
-        }
+    if ((flightCount ?? 0) > 0) {
+        return { error: "No se puede eliminar: el tripulante está asignado a uno o más vuelos." };
     }
 
-    // 3. Remove flight_crew entries (NO ACTION FK — must clean up manually)
-    if (flightIds.length > 0) {
-        const { error: fcError } = await supabase
-            .from("flight_crew")
-            .delete()
-            .eq("crew_member_id", crewId);
-
-        if (fcError) {
-            console.error("[deleteCrewMember] flight_crew:", fcError.message);
-            return { error: fcError.message };
-        }
-    }
-
-    // 4. Delete crew member (crew_documents cascade automatically)
+    // 2. Delete crew member (crew_documents cascade automatically)
     const { error } = await supabase
         .from("crew_members")
         .delete()

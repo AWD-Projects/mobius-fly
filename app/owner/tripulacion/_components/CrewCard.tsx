@@ -89,7 +89,7 @@ export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit, onDe
           size="sm"
           aria-label="Ver detalles"
         />
-        {member.status !== "rejected" && (
+        {member.status === "pending" && (
           <IconButton
             onClick={() => onEdit(member.id)}
             icon={<Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}

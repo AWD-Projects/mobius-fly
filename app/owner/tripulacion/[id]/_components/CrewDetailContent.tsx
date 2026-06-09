@@ -268,7 +268,7 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                             </Button>
                         )}
 
-                        {!isRejected && (
+                        {isPendingApproval && (
                             <Button
                                 onClick={() => router.push(`/owner/tripulacion/${data.id}/edit`)}
                                 variant="ghost"

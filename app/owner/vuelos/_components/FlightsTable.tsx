@@ -109,13 +109,15 @@ export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onE
                                             aria-label="Ver detalles"
                                         />
                                     )}
-                                    <IconButton
-                                        onClick={() => onEdit(flight.id)}
-                                        icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
-                                        variant="default"
-                                        size="sm"
-                                        aria-label="Editar"
-                                    />
+                                    {flight.status !== "in-flight" && flight.status !== "completed" && (
+                                        <IconButton
+                                            onClick={() => onEdit(flight.id)}
+                                            icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+                                            variant="default"
+                                            size="sm"
+                                            aria-label="Editar"
+                                        />
+                                    )}
                                     {onDelete && flight.soldSeats === 0 && <DeleteCell id={flight.id} onDelete={onDelete} />}
                                 </div>
                             </TableCell>

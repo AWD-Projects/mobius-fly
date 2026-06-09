@@ -111,13 +111,15 @@ export const AircraftTable: React.FC<AircraftTableProps> = ({ aircraft, onView, 
                   size="sm"
                   aria-label="Ver detalles"
                 />
-                <IconButton
-                  onClick={() => onEdit(item.id)}
-                  icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
-                  variant="default"
-                  size="sm"
-                  aria-label="Editar"
-                />
+                {(item.status === "doc_pending" || item.status === "doc_rejected") && (
+                  <IconButton
+                    onClick={() => onEdit(item.id)}
+                    icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+                    variant="default"
+                    size="sm"
+                    aria-label="Editar"
+                  />
+                )}
                 {onDelete && <DeleteCell id={item.id} onDelete={onDelete} />}
               </div>
             </TableCell>
