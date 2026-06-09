@@ -148,6 +148,9 @@ export interface FlightDetail extends FlightListItem {
     crew: CrewMemberPublic[];
     flight_plan_url: string | null;
     return_departure_datetime: string | null;
+    return_arrival_datetime: string | null;
+    return_departure_fbo_name: string | null;
+    return_arrival_fbo_name: string | null;
 }
 
 export interface ReservationPassenger {

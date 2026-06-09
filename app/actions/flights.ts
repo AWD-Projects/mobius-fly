@@ -345,6 +345,9 @@ export interface OwnerFlightDetail {
     departure_datetime:        string;
     arrival_datetime:          string;
     return_departure_datetime: string | null;
+    return_arrival_datetime:   string | null;
+    return_departure_fbo_name: string | null;
+    return_arrival_fbo_name:   string | null;
     total_seats:               number;
     available_seats:           number;
     price_per_seat:            number;
