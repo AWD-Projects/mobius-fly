@@ -272,6 +272,9 @@ export const MOCK_RESERVATION_DETAIL: ReservationDetail = {
         ],
         flight_plan_url: null,
         return_departure_datetime: null,
+        return_arrival_datetime:   null,
+        return_departure_fbo_name: null,
+        return_arrival_fbo_name:   null,
     },
     passengers: [
         {
