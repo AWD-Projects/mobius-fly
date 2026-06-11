@@ -229,8 +229,10 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                         </Button>
                     )}
 
+                    {!isTerminal && <div className="-mx-6 h-px bg-border mt-4" />}
+
                     {!isTerminal && (
-                        <div className="flex items-center justify-between py-1">
+                        <div className="flex items-center justify-between pt-3 pb-1">
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-[13px] font-medium text-text">Visible para compradores</span>
                                 <span className="text-[11px] text-muted">
@@ -245,7 +247,6 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                         </div>
                     )}
 
-                    {(!isTerminal && (canCancel || canDelete)) && <div className="w-full h-px bg-border mt-1" />}
 
                     {canCancel && (
                         <Button
