@@ -68,7 +68,7 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
     const hasPassengers = passengers.length > 0;
     const isTerminal = statusCode === "CANCELLED" || statusCode === "COMPLETED" || statusCode === "REJECTED";
     const canDelete = !hasPassengers && !isTerminal;
-    const canCancel = !isTerminal && statusCode !== "PENDING_REVIEW";
+    const canCancel = !isTerminal && statusCode !== "PENDING_REVIEW" && statusCode !== "IN_FLIGHT";
 
     const handleStatusChange = (next: string, label: string) => {
         setPendingStatusNext(next);

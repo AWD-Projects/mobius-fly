@@ -136,6 +136,17 @@ export default function RegisterPage() {
         }
     }, []);
 
+    const handleCheckEmailExists = useCallback(async (email: string): Promise<boolean> => {
+        try {
+            const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+            if (!res.ok) return false;
+            const data = await res.json() as { exists: boolean };
+            return data.exists;
+        } catch {
+            return false;
+        }
+    }, []);
+
     const handleResendCode = useCallback(async () => {
         if (!canResend) return;
         setResendTimer(60);
@@ -227,8 +238,12 @@ export default function RegisterPage() {
 
     const handlePrev = useCallback(() => {
         setApiError(null);
-        if (step > 1) setStep((step - 1) as Step);
-    }, [step]);
+        if (step > 1) {
+            const prevStep = (step - 1) as Step;
+            if (prevStep === 2) accountForm.clearErrors();
+            setStep(prevStep);
+        }
+    }, [step, accountForm]);
 
     const handleSubmit = useCallback(async () => {
         setApiError(null);
@@ -324,7 +339,7 @@ export default function RegisterPage() {
                                 )}
 
                                 {step === 2 && (
-                                    <AccountStep form={accountForm} />
+                                    <AccountStep form={accountForm} onCheckEmailExists={handleCheckEmailExists} />
                                 )}
 
                                 {step === 3 && (

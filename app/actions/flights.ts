@@ -579,6 +579,9 @@ export interface CreateFlightInput {
     departureDatetime:       string;
     arrivalDatetime:         string;
     returnDepartureDatetime: string | null;
+    returnArrivalDatetime:   string | null;
+    returnDepartureFboName:  string | null;
+    returnArrivalFboName:    string | null;
     aircraftId:              string;
     totalSeats:              number;
     pricePerSeat:            number;
@@ -687,6 +690,9 @@ export async function createFlight(
             departure_datetime:        input.departureDatetime,
             arrival_datetime:          input.arrivalDatetime,
             return_departure_datetime: input.returnDepartureDatetime,
+            return_arrival_datetime:   input.returnArrivalDatetime,
+            return_departure_fbo_name: input.returnDepartureFboName,
+            return_arrival_fbo_name:   input.returnArrivalFboName,
             total_seats:               input.totalSeats,
             available_seats:           input.totalSeats,
             price_per_seat:            input.pricePerSeat,
@@ -743,6 +749,9 @@ export interface UpdateFlightInput {
     departureDatetime:       string;
     arrivalDatetime:         string;
     returnDepartureDatetime: string | null;
+    returnArrivalDatetime:   string | null;
+    returnDepartureFboName:  string | null;
+    returnArrivalFboName:    string | null;
     aircraftId:              string;
     totalSeats:              number;
     pricePerSeat:            number;
@@ -795,6 +804,9 @@ export async function updateFlight(
             departure_datetime:        input.departureDatetime,
             arrival_datetime:          input.arrivalDatetime,
             return_departure_datetime: input.returnDepartureDatetime,
+            return_arrival_datetime:   input.returnArrivalDatetime,
+            return_departure_fbo_name: input.returnDepartureFboName,
+            return_arrival_fbo_name:   input.returnArrivalFboName,
             total_seats:               input.totalSeats,
             available_seats:           newAvailableSeats,
             price_per_seat:            input.pricePerSeat,

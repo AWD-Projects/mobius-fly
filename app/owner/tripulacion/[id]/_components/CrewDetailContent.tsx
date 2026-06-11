@@ -253,7 +253,7 @@ export function CrewDetailContent({ data, ownerId }: Props) {
                     <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-2">
                         <h2 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">Acciones</h2>
 
-                        {!isRejected && (
+                        {!isRejected && !isPendingApproval && (
                             <Button
                                 onClick={handleToggleStatus}
                                 variant="outline"

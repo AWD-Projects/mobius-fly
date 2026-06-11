@@ -42,8 +42,12 @@ const schema = z.object({
     departureTime:  z.string().min(1, "Hora requerida"),
     arrivalDate:    z.string().min(1, "Fecha requerida"),
     arrivalTime:    z.string().min(1, "Hora requerida"),
-    returnDate:     z.string().optional(),
-    returnTime:     z.string().optional(),
+    returnDate:            z.string().optional(),
+    returnTime:            z.string().optional(),
+    returnArrivalDate:     z.string().optional(),
+    returnArrivalTime:     z.string().optional(),
+    returnFboOrigin:       z.string().optional(),
+    returnFboDestination:  z.string().optional(),
     aircraftId:     z.string().min(1, "Selecciona una aeronave"),
     captainId:      z.string().min(1, "Selecciona un capitán"),
     additionalCrew: z.array(z.object({ id: z.string() })).optional(),
@@ -67,6 +71,18 @@ const schema = z.object({
         return dep >= minDep;
     },
     { message: "La salida debe programarse con al menos 24 hrs de anticipación", path: ["departureDate"] },
+).refine(
+    (d) => {
+        if (!d.returnDate || !d.returnTime || !d.arrivalDate || !d.arrivalTime) return true;
+        return `${d.returnDate}T${d.returnTime}` > `${d.arrivalDate}T${d.arrivalTime}`;
+    },
+    { message: "La salida de regreso debe ser posterior a la llegada del vuelo de ida", path: ["returnDate"] },
+).refine(
+    (d) => {
+        if (!d.returnDate || !d.returnTime || !d.returnArrivalDate || !d.returnArrivalTime) return true;
+        return `${d.returnArrivalDate}T${d.returnArrivalTime}` > `${d.returnDate}T${d.returnTime}`;
+    },
+    { message: "La llegada de regreso debe ser posterior a la salida de regreso", path: ["returnArrivalDate"] },
 );
 
 type FormData = z.infer<typeof schema>;
@@ -110,6 +126,7 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
         setValue,
         setError,
         clearErrors,
+        trigger,
         formState: { errors },
     } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -129,11 +146,34 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
         departureDate, departureTime, arrivalDate, arrivalTime,
         aircraftId, captainId, additionalCrew, seatsForSale, pricePerSeat,
         originId, destinationId,
+        returnDate, returnTime, returnArrivalDate, returnArrivalTime,
     ] = watch([
         "departureDate", "departureTime", "arrivalDate", "arrivalTime",
         "aircraftId", "captainId", "additionalCrew", "seatsForSale", "pricePerSeat",
         "originId", "destinationId",
+        "returnDate", "returnTime", "returnArrivalDate", "returnArrivalTime",
     ]);
+
+    // Real-time cross-field validation for return flight dates
+    useEffect(() => {
+        if (flightType !== "redondo" || !returnDate || !returnTime) return;
+        if (!arrivalDate || !arrivalTime) return;
+        if (`${returnDate}T${returnTime}` <= `${arrivalDate}T${arrivalTime}`) {
+            setError("returnDate", { message: "La salida de regreso debe ser posterior a la llegada del vuelo de ida" });
+        } else {
+            clearErrors("returnDate");
+        }
+    }, [arrivalDate, arrivalTime, returnDate, returnTime, flightType]);
+
+    useEffect(() => {
+        if (flightType !== "redondo" || !returnArrivalDate || !returnArrivalTime) return;
+        if (!returnDate || !returnTime) return;
+        if (`${returnArrivalDate}T${returnArrivalTime}` <= `${returnDate}T${returnTime}`) {
+            setError("returnArrivalDate", { message: "La llegada de regreso debe ser posterior a la salida de regreso" });
+        } else {
+            clearErrors("returnArrivalDate");
+        }
+    }, [returnDate, returnTime, returnArrivalDate, returnArrivalTime, flightType]);
 
     // Filter available aircraft and crew when all 4 date/time fields are set
     const canCheck = !!(departureDate && departureTime && arrivalDate && arrivalTime);
@@ -269,8 +309,11 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
     const onSubmit = (isVisible: boolean) => handleSubmit(async (data) => {
         let hasExtraError = false;
         if (flightType === "redondo") {
-            if (!data.returnDate) { setError("returnDate", { message: "Fecha requerida" }); hasExtraError = true; }
-            if (!data.returnTime) { setError("returnTime", { message: "Hora requerida" }); hasExtraError = true; }
+            if (!data.returnDate)         { setError("returnDate",        { message: "Fecha requerida" }); hasExtraError = true; }
+            if (!data.returnTime)         { setError("returnTime",        { message: "Hora requerida"  }); hasExtraError = true; }
+            if (!data.returnArrivalDate)  { setError("returnArrivalDate", { message: "Fecha requerida" }); hasExtraError = true; }
+            if (!data.returnArrivalTime)  { setError("returnArrivalTime", { message: "Hora requerida"  }); hasExtraError = true; }
+            if (!data.returnFboOrigin)    { setError("returnFboOrigin",   { message: "FBO requerido"   }); hasExtraError = true; }
         }
         if (!flightPlan) { setFlightPlanError(true); hasExtraError = true; }
         if (hasExtraError) return;
@@ -295,6 +338,11 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                 returnDepartureDatetime: flightType === "redondo" && data.returnDate && data.returnTime
                     ? toISO(data.returnDate, data.returnTime)
                     : null,
+                returnArrivalDatetime:   flightType === "redondo" && data.returnArrivalDate && data.returnArrivalTime
+                    ? toISO(data.returnArrivalDate, data.returnArrivalTime)
+                    : null,
+                returnDepartureFboName:  flightType === "redondo" ? (data.returnFboOrigin ?? null) : null,
+                returnArrivalFboName:    flightType === "redondo" ? (data.returnFboDestination ?? null) : null,
                 aircraftId:              data.aircraftId,
                 totalSeats:              data.seatsForSale,
                 pricePerSeat:            parseFloat(data.pricePerSeat.replace(/,/g, "")),
@@ -312,8 +360,8 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
             const id = await toast.promise(run, {
                 loading: { title: isVisible ? "Publicando vuelo" : "Guardando borrador", description: "Procesando información del vuelo..." },
                 success: () => ({
-                    title: isVisible ? "Vuelo publicado" : "Borrador guardado",
-                    description: isVisible ? "El vuelo ya es visible para compradores" : "Puedes publicarlo desde el detalle del vuelo",
+                    title: isVisible ? "Vuelo creado" : "Borrador guardado",
+                    description: isVisible ? "Tu vuelo ha sido enviado a revisión y pronto estará disponible para compradores" : "Puedes publicarlo desde el detalle del vuelo",
                 }),
                 error: (err: unknown) => ({
                     title: "Error al crear el vuelo",
@@ -427,10 +475,26 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                             )}
                             <div className="flex gap-8">
                                 <div className="flex-1">
+                                    <InputGroup label="FBO de origen" placeholder="Dirección del FBO" error={errors.returnFboOrigin?.message} {...register("returnFboOrigin")} />
+                                </div>
+                                <div className="flex-1">
+                                    <InputGroup label="FBO de destino (opcional)" placeholder="Dirección del FBO" {...register("returnFboDestination")} />
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
+                                <div className="flex-1">
                                     <InputGroup label="Fecha de salida" type="date" min={minRetDate} error={errors.returnDate?.message} {...register("returnDate")} />
                                 </div>
                                 <div className="flex-1">
                                     <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} {...register("returnTime")} />
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
+                                <div className="flex-1">
+                                    <InputGroup label="Fecha de llegada" type="date" min={minRetDate} error={errors.returnArrivalDate?.message} {...register("returnArrivalDate")} />
+                                </div>
+                                <div className="flex-1">
+                                    <InputGroup label="Hora de llegada" type="time" error={errors.returnArrivalTime?.message} {...register("returnArrivalTime")} />
                                 </div>
                             </div>
                         </>
@@ -586,7 +650,14 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                         <DocumentUpload
                             accept=".pdf"
                             document={flightPlan ? { name: flightPlan.name, size: formatFileSize(flightPlan.size) } : undefined}
-                            onUpload={(file) => { setFlightPlan(file); setFlightPlanError(false); }}
+                            onUpload={(file) => {
+                                if (file.size > 10 * 1024 * 1024) {
+                                    toast.error("Archivo demasiado grande", "El plan de vuelo no puede superar los 10 MB.");
+                                    return;
+                                }
+                                setFlightPlan(file);
+                                setFlightPlanError(false);
+                            }}
                             onRemove={() => setFlightPlan(null)}
                             pendingTitle="Plan de vuelo"
                             pendingDescription="Máximo 10 MB"

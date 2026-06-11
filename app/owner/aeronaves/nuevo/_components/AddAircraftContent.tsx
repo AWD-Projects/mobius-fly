@@ -290,7 +290,10 @@ export function AddAircraftContent({ ownerId }: Props) {
                                     <DocumentUpload
                                         accept=".pdf"
                                         document={proofOfOwnership ? { name: proofOfOwnership.name, size: formatFileSize(proofOfOwnership.size) } : undefined}
-                                        onUpload={(f) => { setProofOfOwnership(f); setDocErrors((e) => ({ ...e, proof: false })); }}
+                                        onUpload={(f) => {
+                                            if (f.size > 10 * 1024 * 1024) { toast.error("Archivo demasiado grande", "El documento no puede superar los 10 MB."); return; }
+                                            setProofOfOwnership(f); setDocErrors((e) => ({ ...e, proof: false }));
+                                        }}
                                         onRemove={() => setProofOfOwnership(null)}
                                         pendingDescription="Máximo 10 MB"
                                         error={docErrors.proof}
@@ -301,7 +304,10 @@ export function AddAircraftContent({ ownerId }: Props) {
                                     <DocumentUpload
                                         accept=".pdf"
                                         document={permits ? { name: permits.name, size: formatFileSize(permits.size) } : undefined}
-                                        onUpload={(f) => { setPermits(f); setDocErrors((e) => ({ ...e, permits: false })); }}
+                                        onUpload={(f) => {
+                                            if (f.size > 10 * 1024 * 1024) { toast.error("Archivo demasiado grande", "El documento no puede superar los 10 MB."); return; }
+                                            setPermits(f); setDocErrors((e) => ({ ...e, permits: false }));
+                                        }}
                                         onRemove={() => setPermits(null)}
                                         pendingDescription="Máximo 10 MB"
                                         error={docErrors.permits}
@@ -312,7 +318,10 @@ export function AddAircraftContent({ ownerId }: Props) {
                                     <DocumentUpload
                                         accept=".pdf"
                                         document={powerOfAttorney ? { name: powerOfAttorney.name, size: formatFileSize(powerOfAttorney.size) } : undefined}
-                                        onUpload={(f) => { setPowerOfAttorney(f); setDocErrors((e) => ({ ...e, attorney: false })); }}
+                                        onUpload={(f) => {
+                                            if (f.size > 10 * 1024 * 1024) { toast.error("Archivo demasiado grande", "El documento no puede superar los 10 MB."); return; }
+                                            setPowerOfAttorney(f); setDocErrors((e) => ({ ...e, attorney: false }));
+                                        }}
                                         onRemove={() => setPowerOfAttorney(null)}
                                         pendingDescription="Máximo 10 MB"
                                         error={docErrors.attorney}

@@ -157,9 +157,10 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
     const maintenanceAircraftCount = aircraftList.filter((a) => a.status === "MAINTENANCE").length;
 
     const monthFlights    = (monthFlightsRes.data ?? []) as any[];
+    const MOBIUS_FEE = 0.15;
     const monthlyRevenue  = monthFlights.reduce((sum, f) => {
         const sold = (f.total_seats ?? 0) - (f.available_seats ?? 0);
-        return sum + sold * Number(f.price_per_seat ?? 0);
+        return sum + sold * Number(f.price_per_seat ?? 0) * (1 - MOBIUS_FEE);
     }, 0);
 
     const upcomingFlights: DashboardUpcomingFlight[] = ((upcomingRes.data ?? []) as any[]).map((row) => {
