@@ -1,5 +1,6 @@
 import React from 'react';
 import { TriangleAlert, LucideIcon, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/atoms/Button';
 
 export interface AttentionItem {
   icon: LucideIcon;
@@ -39,10 +40,11 @@ export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
           const iconColor = item.iconColor || 'var(--color-warning)';
 
           return (
-            <button
+            <Button
               key={index}
+              variant="ghost"
               onClick={() => onItemClick?.(index)}
-              className="w-full bg-background rounded-sm px-4 py-3.5 flex items-center gap-3 hover:bg-neutral/30 transition-colors"
+              className="w-full h-auto bg-background rounded-sm px-4 py-3.5 flex items-center gap-3 hover:bg-neutral/30 justify-start border-none"
             >
               <ItemIcon
                 className="w-[18px] h-[18px] flex-shrink-0"
@@ -58,7 +60,7 @@ export const AttentionSectionCard: React.FC<AttentionSectionCardProps> = ({
                 </span>
               </div>
               <ChevronRight className="w-4 h-4 text-neutral flex-shrink-0" strokeWidth={1} />
-            </button>
+            </Button>
           );
         })}
       </div>

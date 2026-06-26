@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Select } from "@/components/atoms/Select";
+import { SelectGroup } from "@/components/molecules/SelectGroup";
 import { Button } from "@/components/atoms/Button";
 
 export interface CrewFilters {
@@ -30,28 +30,23 @@ export const CrewFilterBar: React.FC<CrewFilterBarProps> = ({ filters, onFilters
     };
 
     return (
-        <div className="w-full px-12 py-6 flex items-end gap-4">
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Rol</label>
-                <Select {...register("role")}>
-                    <option value="">Todos</option>
-                    <option value="pilot">Piloto</option>
-                    <option value="copilot">Copiloto</option>
-                    <option value="cabin-crew">TCP</option>
-                </Select>
-            </div>
+        <div className="w-full px-12 py-6 grid items-end gap-3" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr)) auto" }}>
+            <SelectGroup label="Rol" {...register("role")}>
+                <option value="">Todos</option>
+                <option value="pilot">Capitán</option>
+                <option value="copilot">Copiloto</option>
+                <option value="cabin-crew">TCP</option>
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Estado</label>
-                <Select {...register("status")}>
-                    <option value="">Todos</option>
-                    <option value="active">Activo</option>
-                    <option value="inactive">Inactivo</option>
-                    <option value="pending">Pendiente</option>
-                </Select>
-            </div>
+            <SelectGroup label="Estado" {...register("status")}>
+                <option value="">Todos</option>
+                <option value="active">Activo</option>
+                <option value="pending">Pendiente de aprobación</option>
+                <option value="rejected">Rechazado</option>
+                <option value="inactive">Inactivo</option>
+            </SelectGroup>
 
-            <Button type="button" onClick={handleClear} variant="outline" className="h-10 px-3">
+            <Button type="button" onClick={handleClear} variant="ghost" className="h-10 px-3 shrink-0">
                 Limpiar filtros
             </Button>
         </div>

@@ -7,6 +7,7 @@ import { FlightInfoCard } from "./FlightInfoCard";
 import { AircraftInfoCard } from "./AircraftInfoCard";
 import { CrewInfoCard } from "./CrewInfoCard";
 import { AdminControlCard } from "./AdminControlCard";
+import { AlertBox } from "@/components/molecules/AlertBox";
 import type { OwnerFlightDetail } from "@/app/actions/flights";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -24,17 +25,19 @@ const ROLE_LABEL: Record<string, string> = {
     FLIGHT_ATTENDANT: "TCP / Sobrecargo",
 };
 
+const MX_TZ = "America/Mexico_City";
+
 function formatDatetime(iso: string): string {
     if (!iso) return "—";
     return new Date(iso).toLocaleDateString("es-MX", {
-        day: "numeric", month: "short", year: "numeric",
+        timeZone: MX_TZ, day: "numeric", month: "short", year: "numeric",
         hour: "2-digit", minute: "2-digit",
     });
 }
 
 function formatTime(iso: string): string {
     if (!iso) return "—";
-    return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleTimeString("es-MX", { timeZone: MX_TZ, hour: "2-digit", minute: "2-digit" });
 }
 
 function diffMinutes(from: string, to: string): string {
@@ -50,6 +53,7 @@ function diffMinutes(from: string, to: string): string {
 export function FlightDetailContent({ data, ownerId }: Props) {
     const router = useRouter();
     const [statusCode, setStatusCode] = useState(data.status_code);
+    const [rejectedReason] = useState(data.rejected_reason);
 
     const depAirport = data.departure_airport;
     const arrAirport = data.arrival_airport;
@@ -82,21 +86,33 @@ export function FlightDetailContent({ data, ownerId }: Props) {
 
             {statusCode === "PENDING_REVIEW" && (
                 <div className="px-12 pt-6">
-                    <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl bg-[#FFF8E1] border border-[#F9A825]/30">
-                        <span className="mt-1 w-2 h-2 rounded-full bg-[#F9A825] shrink-0" />
-                        <div className="flex flex-col gap-1">
-                            <p className="text-sm font-semibold text-[#7A5800]">Tu vuelo está siendo validado</p>
-                            <p className="text-xs text-[#7A5800]/80">
-                                Nuestro equipo está revisando los datos de tu vuelo. Estará listo y visible para compradores en no más de 48 horas.
+                    <AlertBox
+                        variant="pending"
+                        title="Tu vuelo está siendo validado"
+                        description="Nuestro equipo está revisando los datos de tu vuelo. Estará listo y visible para compradores en no más de 48 horas."
+                    />
+                </div>
+            )}
+
+            {statusCode === "REJECTED" && (
+                <div className="px-12 pt-6">
+                    <AlertBox
+                        variant="warning"
+                        title="Tu vuelo fue rechazado"
+                        description="Tu vuelo no pudo ser aprobado. Revisa el motivo y edita el vuelo para volver a enviarlo a revisión."
+                    >
+                        {rejectedReason && (
+                            <p className="text-xs text-[#E65100]/80 mt-1">
+                                <span className="font-semibold">Motivo:</span> {rejectedReason}
                             </p>
-                        </div>
-                    </div>
+                        )}
+                    </AlertBox>
                 </div>
             )}
 
             <div className="px-12 py-10 flex gap-10">
                 {/* Left Column */}
-                <div className="flex-1 flex flex-col gap-8" style={{ maxWidth: "856px" }}>
+                <div className="flex-1 flex flex-col gap-8">
                     <FlightInfoCard
                         flightType={data.flight_type === "ROUND_TRIP" ? "Redondo" : "Sencillo"}
                         origin={{
@@ -117,6 +133,29 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                         }}
                         flightPlanUrl={data.flight_plan_url}
                     />
+
+                    {data.flight_type === "ROUND_TRIP" && data.return_departure_datetime && (
+                        <FlightInfoCard
+                            flightType="Regreso"
+                            origin={{
+                                city:    `${arrAirport.city}`,
+                                airport: `${arrAirport.name} (${arrAirport.iata_code})`,
+                            }}
+                            destination={{
+                                city:    `${depAirport.city}`,
+                                airport: `${depAirport.name} (${depAirport.iata_code})`,
+                            }}
+                            fbo={{
+                                name:     data.return_departure_fbo_name ?? "—",
+                                location: data.return_arrival_fbo_name   ?? "—",
+                            }}
+                            schedule={{
+                                time:     `${formatTime(data.return_departure_datetime)} → ${formatTime(data.return_arrival_datetime ?? "")}`,
+                                duration: data.return_arrival_datetime ? diffMinutes(data.return_departure_datetime, data.return_arrival_datetime) : "",
+                            }}
+                            flightPlanUrl={null}
+                        />
+                    )}
 
                     {data.aircraft && (
                         <AircraftInfoCard
@@ -151,6 +190,7 @@ export function FlightDetailContent({ data, ownerId }: Props) {
                         availableSeats={data.available_seats}
                         pricePerSeat={priceFormatted}
                         passengers={data.passengers}
+                        isVisible={data.is_visible}
                         onStatusChange={setStatusCode}
                     />
                 </div>

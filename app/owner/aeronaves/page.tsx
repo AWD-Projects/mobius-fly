@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getAircraftList } from "@/app/actions/aircraft";
+import { getAllAircraftForManagement } from "@/app/actions/aircraft";
 import { AircraftListContent } from "./_components/AircraftListContent";
 
 export default async function AircraftListPage() {
@@ -17,7 +17,7 @@ export default async function AircraftListPage() {
 
     if (!owner) redirect("/owner/dashboard");
 
-    const aircraft = await getAircraftList(user.id);
+    const aircraft = await getAllAircraftForManagement(user.id);
 
     return <AircraftListContent aircraft={aircraft} ownerId={owner.id} />;
 }

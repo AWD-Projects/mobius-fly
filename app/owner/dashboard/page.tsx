@@ -9,11 +9,27 @@ export default async function OwnerDashboardPage() {
 
     if (!user) redirect("/login");
 
-    const data = await getOwnerDashboard(user.id);
+    const [dashboardData, docsResult] = await Promise.all([
+        getOwnerDashboard(user.id),
+        supabase
+            .from("user_documents")
+            .select("document_status_code:document_status!user_documents_document_status_id_fkey(code)")
+            .eq("user_id", user.id)
+            .limit(1),
+    ]);
 
-    if (!data) redirect("/login");
+    if (!dashboardData) redirect("/login");
 
     const firstName = (user.user_metadata?.first_name as string | undefined) ?? null;
 
-    return <DashboardContent data={data} firstName={firstName} />;
+    const docRow = docsResult.data?.[0] as { document_status_code: { code: string } | null } | undefined;
+    const documentStatus = docRow?.document_status_code?.code ?? null;
+
+    return (
+        <DashboardContent
+            data={dashboardData}
+            firstName={firstName}
+            documentStatus={documentStatus}
+        />
+    );
 }

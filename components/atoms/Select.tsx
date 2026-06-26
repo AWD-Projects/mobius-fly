@@ -10,10 +10,10 @@ export interface SelectProps
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, error, children, ...props }, ref) => {
     return (
-      <div className="relative">
+      <div className="relative w-full min-w-0">
         <select
           className={cn(
-            "flex h-10 w-full appearance-none rounded-sm border border-border bg-surface px-3 pr-10 py-2 text-small text-text transition-all",
+            "flex h-10 w-full min-w-0 appearance-none rounded-sm border border-border bg-surface px-3 pr-8 py-2 text-caption text-text transition-all",
             "focus-visible:outline-none focus-visible:border-text focus-visible:border-2",
             "disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-neutral/40",
             error && "border-error focus-visible:border-error",

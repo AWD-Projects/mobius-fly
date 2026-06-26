@@ -11,16 +11,17 @@ import {
 } from "@/components/molecules/Table";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { IconButton } from "@/components/atoms/IconButton";
-import { Pencil, Eye, Trash2 } from "lucide-react";
+import { Pencil, Eye, Trash2, CalendarX } from "lucide-react";
 
 export interface Flight {
-    id:       string;
-    route:    string;
-    date:     string;
-    aircraft: string;
-    type:     "charter" | "personal";
-    status:   "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review";
-    capacity: string;
+    id:        string;
+    route:     string;
+    date:      string;
+    aircraft:  string;
+    type:      "charter" | "personal";
+    status:    "scheduled" | "in-flight" | "confirmed" | "completed" | "cancelled" | "delayed" | "pending_review" | "rejected";
+    capacity:  string;
+    soldSeats: number;
 }
 
 export interface FlightsTableProps {
@@ -42,14 +43,15 @@ function DeleteCell({ id, onDelete }: { id: string; onDelete: (id: string) => vo
     );
 }
 
-const statusConfig: Record<Flight["status"], { label: string; status: "pending" | "info" | "success" | "inactive" }> = {
-    scheduled:      { label: "Programado",   status: "pending"  },
-    delayed:        { label: "Retrasado",    status: "pending"  },
-    "in-flight":    { label: "En vuelo",     status: "info"     },
-    confirmed:      { label: "A tiempo",     status: "success"  },
-    completed:      { label: "Completado",   status: "inactive" },
-    cancelled:      { label: "Cancelado",    status: "inactive" },
-    pending_review: { label: "En revisión",  status: "pending"  },
+const statusConfig: Record<Flight["status"], { label: string; status: "pending" | "scheduled" | "info" | "success" | "inactive" | "warning" | "error" }> = {
+    scheduled:      { label: "Programado",   status: "scheduled" },
+    delayed:        { label: "Retrasado",    status: "warning"   },
+    "in-flight":    { label: "En vuelo",     status: "info"      },
+    confirmed:      { label: "A tiempo",     status: "success"   },
+    completed:      { label: "Completado",   status: "inactive"  },
+    cancelled:      { label: "Cancelado",    status: "error"     },
+    pending_review: { label: "En revisión",  status: "pending"   },
+    rejected:       { label: "Rechazado",    status: "error"     },
 };
 
 const typeConfig = {
@@ -70,6 +72,12 @@ export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onE
                 <TableHead style={{ flex: 1 }}>Acciones</TableHead>
             </TableHeader>
             <TableBody>
+                {flights.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                        <CalendarX className="w-8 h-8 text-border" strokeWidth={1.5} />
+                        <p className="text-small text-muted">No hay vuelos registrados</p>
+                    </div>
+                )}
                 {flights.map((flight, index) => {
                     const sCfg = statusConfig[flight.status] ?? { label: flight.status, status: "pending" as const };
                     const tCfg = typeConfig[flight.type];
@@ -101,14 +109,16 @@ export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onE
                                             aria-label="Ver detalles"
                                         />
                                     )}
-                                    <IconButton
-                                        onClick={() => onEdit(flight.id)}
-                                        icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
-                                        variant="default"
-                                        size="sm"
-                                        aria-label="Editar"
-                                    />
-                                    {onDelete && <DeleteCell id={flight.id} onDelete={onDelete} />}
+                                    {flight.status !== "in-flight" && flight.status !== "completed" && (
+                                        <IconButton
+                                            onClick={() => onEdit(flight.id)}
+                                            icon={<Pencil className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+                                            variant="default"
+                                            size="sm"
+                                            aria-label="Editar"
+                                        />
+                                    )}
+                                    {onDelete && flight.soldSeats === 0 && <DeleteCell id={flight.id} onDelete={onDelete} />}
                                 </div>
                             </TableCell>
                         </TableRow>

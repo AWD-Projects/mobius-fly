@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { FlightsFilterBar, FlightsFilters } from "./FlightsFilterBar";
 import { FlightsTable, Flight } from "./FlightsTable";
 import { FlightsPagination } from "./FlightsPagination";
 import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
+import { AlertBox } from "@/components/molecules/AlertBox";
 import { toast } from "@/components/atoms/Toast";
 import { deleteFlight } from "@/app/actions/flights";
 import type { OwnerFlightListItem } from "@/app/actions/flights";
@@ -15,10 +16,12 @@ import type { OwnerFlightListItem } from "@/app/actions/flights";
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    flights:     OwnerFlightListItem[];
-    ownerId:     string;
-    hasAircraft: boolean;
-    hasCaptain:  boolean;
+    flights:         OwnerFlightListItem[];
+    ownerId:         string;
+    hasAircraft:     boolean;
+    hasCaptain:      boolean;
+    airports:        { iata_code: string; city: string }[];
+    aircraftOptions: { id: string; model: string }[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -31,6 +34,7 @@ const STATUS_MAP: Record<string, Flight["status"]> = {
     COMPLETED:      "completed",
     CANCELLED:      "cancelled",
     PENDING_REVIEW: "pending_review",
+    REJECTED:       "rejected",
 };
 
 function formatDate(iso: string): string {
@@ -48,13 +52,14 @@ function toDisplayFlight(item: OwnerFlightListItem): Flight {
         aircraft: item.aircraft_model,
         type:     item.flight_type === "ROUND_TRIP" ? "personal" : "charter",
         status:   STATUS_MAP[item.status_code] ?? "scheduled",
-        capacity: `${item.total_seats - item.available_seats}/${item.total_seats}`,
+        capacity:  `${item.total_seats - item.available_seats}/${item.total_seats}`,
+        soldSeats: item.total_seats - item.available_seats,
     };
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function FlightsListContent({ flights: initialFlights, ownerId, hasAircraft, hasCaptain }: Props) {
+export function FlightsListContent({ flights: initialFlights, ownerId, hasAircraft, hasCaptain, airports, aircraftOptions }: Props) {
     const router = useRouter();
     const [flightList, setFlightList] = useState<OwnerFlightListItem[]>(initialFlights);
     const [filters, setFilters] = useState<FlightsFilters>({});
@@ -68,21 +73,14 @@ export function FlightsListContent({ flights: initialFlights, ownerId, hasAircra
     const handleDeleteConfirm = async () => {
         if (!confirmDeleteId) return;
         setIsDeleting(true);
-        const { error, notifiedPassengers } = await deleteFlight(confirmDeleteId, ownerId);
+        const { error } = await deleteFlight(confirmDeleteId, ownerId);
         setIsDeleting(false);
         setConfirmDeleteId(null);
         if (error) {
             toast.error("No se pudo eliminar", error);
         } else {
             setFlightList((prev) => prev.filter((f) => f.id !== confirmDeleteId));
-            if (notifiedPassengers > 0) {
-                toast.success(
-                    "Vuelo cancelado",
-                    `Se notificó a ${notifiedPassengers} ${notifiedPassengers === 1 ? "pasajero" : "pasajeros"} por correo.`,
-                );
-            } else {
-                toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
-            }
+            toast.success("Vuelo eliminado", "El vuelo fue eliminado correctamente.");
         }
     };
 
@@ -119,45 +117,46 @@ export function FlightsListContent({ flights: initialFlights, ownerId, hasAircra
                 filters={filters}
                 onFiltersChange={(f) => { setFilters(f); setCurrentPage(1); }}
                 onClearFilters={() => { setFilters({}); setCurrentPage(1); }}
+                airports={airports}
+                aircraftOptions={aircraftOptions}
             />
 
             <div className="px-12 py-0 flex flex-col gap-[18px]">
                 {!canCreate && (
-                    <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl bg-[#FFF3E0] border border-[#FB8C00]/25">
-                        <AlertCircle className="w-4 h-4 text-[#E65100] shrink-0 mt-0.5" />
-                        <div className="flex flex-col gap-2">
-                            <p className="text-sm font-semibold text-[#E65100]">Completa tu perfil para crear vuelos</p>
-                            <p className="text-xs text-[#E65100]/80">
-                                Para publicar un vuelo necesitas tener al menos:
-                            </p>
-                            <ul className="flex flex-col gap-1">
-                                {!hasAircraft && (
-                                    <li className="flex items-center gap-2 text-xs text-[#E65100]/80">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]/60 shrink-0" />
-                                        Al menos una aeronave en estado <span className="font-semibold">Activo</span> —{" "}
-                                        <button
-                                            onClick={() => router.push("/owner/aeronaves")}
-                                            className="underline font-medium hover:opacity-80"
-                                        >
-                                            Ir a aeronaves
-                                        </button>
-                                    </li>
-                                )}
-                                {!hasCaptain && (
-                                    <li className="flex items-center gap-2 text-xs text-[#E65100]/80">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]/60 shrink-0" />
-                                        Al menos un Capitán / Piloto en estado <span className="font-semibold">Activo</span> —{" "}
-                                        <button
-                                            onClick={() => router.push("/owner/tripulacion")}
-                                            className="underline font-medium hover:opacity-80"
-                                        >
-                                            Ir a tripulación
-                                        </button>
-                                    </li>
-                                )}
-                            </ul>
-                        </div>
-                    </div>
+                    <AlertBox
+                        variant="warning"
+                        title="Completa tu perfil para crear vuelos"
+                        description="Para publicar un vuelo necesitas tener al menos:"
+                    >
+                        <ul className="flex flex-col gap-1">
+                            {!hasAircraft && (
+                                <li className="flex items-center gap-2 text-xs text-[#E65100]/80">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]/60 shrink-0" />
+                                    Al menos una aeronave en estado <span className="font-semibold">Activo</span> —{" "}
+                                    <Button
+                                        onClick={() => router.push("/owner/aeronaves")}
+                                        variant="link"
+                                        className="h-auto p-0 text-xs underline font-medium text-[#E65100]/80 hover:opacity-80"
+                                    >
+                                        Ir a aeronaves
+                                    </Button>
+                                </li>
+                            )}
+                            {!hasCaptain && (
+                                <li className="flex items-center gap-2 text-xs text-[#E65100]/80">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]/60 shrink-0" />
+                                    Al menos un Capitán / Piloto en estado <span className="font-semibold">Activo</span> y <span className="font-semibold">aprobado por Mobius</span> —{" "}
+                                    <Button
+                                        onClick={() => router.push("/owner/tripulacion")}
+                                        variant="link"
+                                        className="h-auto p-0 text-xs underline font-medium text-[#E65100]/80 hover:opacity-80"
+                                    >
+                                        Ir a tripulación
+                                    </Button>
+                                </li>
+                            )}
+                        </ul>
+                    </AlertBox>
                 )}
 
                 <div className="flex items-center justify-between">

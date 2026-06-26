@@ -82,6 +82,9 @@ function rowToFlightDetail(f: any): FlightDetail {
         aircraft_photo:           (ac.photos as string[] | null)?.[0] ?? null,
         flight_plan_url:          f.flight_plan_url ?? null,
         return_departure_datetime: f.return_departure_datetime ?? null,
+        return_arrival_datetime:   f.return_arrival_datetime   ?? null,
+        return_departure_fbo_name: f.return_departure_fbo_name ?? null,
+        return_arrival_fbo_name:   f.return_arrival_fbo_name   ?? null,
         aircraft: {
             id:           ac.id ?? "",
             manufacturer: ac.manufacturer ?? "",

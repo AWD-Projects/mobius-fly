@@ -22,6 +22,7 @@ export interface DocumentUploadProps {
   className?: string;
   variant?: "default" | "compact";
   isLoading?: boolean;
+  error?: boolean;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -43,6 +44,7 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
       className,
       variant = "default",
       isLoading = false,
+      error = false,
     },
     ref
   ) => {
@@ -119,7 +121,8 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
               "flex flex-col items-center justify-center gap-4 rounded-md cursor-pointer transition-all",
               "bg-neutral/20 border-2 border-dashed border-border",
               "hover:border-muted hover:bg-neutral/30",
-              isDragging && "border-primary bg-primary/5",
+              isDragging && "border-primary bg-[#C4A77D]/5",
+              error && !isDragging && "border-error bg-[#D25C5C]/5",
               variant === "default" ? "p-6" : "p-4"
             )}
           >

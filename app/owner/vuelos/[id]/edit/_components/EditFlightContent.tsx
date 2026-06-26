@@ -11,6 +11,7 @@ import { InputGroup } from "@/components/molecules/InputGroup";
 import { SelectGroup } from "@/components/molecules/SelectGroup";
 import { NumericCounter } from "@/components/molecules/NumericCounter";
 import { DocumentUpload, formatFileSize } from "@/components/molecules/DocumentUpload";
+import { AlertBox } from "@/components/molecules/AlertBox";
 import { toast } from "@/components/atoms/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { updateFlight } from "@/app/actions/flights";
@@ -39,19 +40,24 @@ type FlightType = "sencillo" | "redondo";
 const schema = z.object({
     originId:       z.string().min(1, "Selecciona el aeropuerto de origen"),
     destinationId:  z.string().min(1, "Selecciona el aeropuerto de destino"),
-    fboOrigin:      z.string().optional(),
+    fboOrigin:      z.string().min(1, "FBO de origen requerido"),
     fboDestination: z.string().optional(),
     departureDate:  z.string().min(1, "Fecha requerida"),
     departureTime:  z.string().min(1, "Hora requerida"),
     arrivalDate:    z.string().min(1, "Fecha requerida"),
     arrivalTime:    z.string().min(1, "Hora requerida"),
-    returnDate:     z.string().optional(),
-    returnTime:     z.string().optional(),
+    returnDate:           z.string().optional(),
+    returnTime:           z.string().optional(),
+    returnArrivalDate:    z.string().optional(),
+    returnArrivalTime:    z.string().optional(),
+    returnFboOrigin:      z.string().optional(),
+    returnFboDestination: z.string().optional(),
     aircraftId:     z.string().min(1, "Selecciona una aeronave"),
     captainId:      z.string().min(1, "Selecciona un capitán"),
     additionalCrew: z.array(z.object({ id: z.string() })).optional(),
-    seatsForSale:   z.number().min(1),
-    pricePerSeat:   z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, "Precio inválido"),
+    seatsForSale:        z.number().min(1),
+    pricePerSeat:        z.string().refine((v) => { const n = parseFloat(v.replace(/,/g, "")); return !isNaN(n) && n > 0; }, "Precio inválido"),
+    priceFullAircraft:   z.string().refine((v) => { const n = parseFloat(v.replace(/,/g, "")); return !isNaN(n) && n > 0; }, "Precio inválido"),
 }).refine(
     (d) => !d.originId || !d.destinationId || d.originId !== d.destinationId,
     { message: "El destino debe ser diferente al origen", path: ["destinationId"] },
@@ -69,6 +75,18 @@ const schema = z.object({
         return dep >= minDep;
     },
     { message: "La salida debe programarse con al menos 24 hrs de anticipación", path: ["departureDate"] },
+).refine(
+    (d) => {
+        if (!d.returnDate || !d.returnTime || !d.arrivalDate || !d.arrivalTime) return true;
+        return `${d.returnDate}T${d.returnTime}` > `${d.arrivalDate}T${d.arrivalTime}`;
+    },
+    { message: "La salida de regreso debe ser posterior a la llegada del vuelo de ida", path: ["returnDate"] },
+).refine(
+    (d) => {
+        if (!d.returnDate || !d.returnTime || !d.returnArrivalDate || !d.returnArrivalTime) return true;
+        return `${d.returnArrivalDate}T${d.returnArrivalTime}` > `${d.returnDate}T${d.returnTime}`;
+    },
+    { message: "La llegada de regreso debe ser posterior a la salida de regreso", path: ["returnArrivalDate"] },
 );
 
 type FormData = z.infer<typeof schema>;
@@ -76,15 +94,19 @@ type FormData = z.infer<typeof schema>;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toISO(date: string, time: string): string {
-    return `${date}T${time}:00`;
+    return new Date(`${date}T${time}:00`).toISOString();
 }
 
 function isoDate(iso: string): string {
-    return iso ? iso.slice(0, 10) : "";
+    if (!iso) return "";
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function isoTime(iso: string): string {
-    return iso ? iso.slice(11, 16) : "";
+    if (!iso) return "";
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 function airportLabel(a: Airport): string {
@@ -101,6 +123,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     );
     const [flightPlan, setFlightPlan] = useState<File | null>(null);
     const [existingPlanUrl, setExistingPlanUrl] = useState<string | null>(initial.flight_plan_url);
+    const [flightPlanError, setFlightPlanError] = useState(false);
+    const showFlightPlan = ["PENDING_REVIEW", "REJECTED"].includes(initial.status_code);
     const [filteredAircraft, setFilteredAircraft] = useState<AircraftListItem[]>(aircraft);
     const [filteredCrew, setFilteredCrew] = useState<CrewListItem[]>(crew);
     const [loadingAircraft, setLoadingAircraft] = useState(false);
@@ -115,14 +139,20 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         .filter((c) => c.role_code !== "CAPTAIN")
         .map((c) => ({ id: c.id }));
 
+    const soldSeats     = initial.total_seats - initial.available_seats;
+    const hasPassengers = soldSeats > 0;
+    const requiredSeats = initial.aircraft?.seats ?? null;
+
     const {
         register,
         handleSubmit,
         control,
         watch,
         setValue,
+        getValues,
         setError,
         clearErrors,
+        trigger,
         formState: { errors },
     } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -135,13 +165,18 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
             departureTime:  isoTime(initial.departure_datetime),
             arrivalDate:    isoDate(initial.arrival_datetime),
             arrivalTime:    isoTime(initial.arrival_datetime),
-            returnDate:     initial.return_departure_datetime ? isoDate(initial.return_departure_datetime) : "",
-            returnTime:     initial.return_departure_datetime ? isoTime(initial.return_departure_datetime) : "",
+            returnDate:           initial.return_departure_datetime ? isoDate(initial.return_departure_datetime) : "",
+            returnTime:           initial.return_departure_datetime ? isoTime(initial.return_departure_datetime) : "",
+            returnArrivalDate:    initial.return_arrival_datetime   ? isoDate(initial.return_arrival_datetime)   : "",
+            returnArrivalTime:    initial.return_arrival_datetime   ? isoTime(initial.return_arrival_datetime)   : "",
+            returnFboOrigin:      initial.return_departure_fbo_name ?? "",
+            returnFboDestination: initial.return_arrival_fbo_name   ?? "",
             aircraftId:     initial.aircraft?.id ?? "",
             captainId:      initialCaptain?.id ?? "",
             additionalCrew: initialAdditional,
             seatsForSale:   initial.total_seats,
-            pricePerSeat:   String(initial.price_per_seat),
+            pricePerSeat:        String(initial.price_per_seat),
+            priceFullAircraft:   String(initial.price_full_aircraft),
         },
     });
 
@@ -151,11 +186,34 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         departureDate, departureTime, arrivalDate, arrivalTime,
         aircraftId, captainId, additionalCrew, seatsForSale, pricePerSeat,
         originId, destinationId,
+        returnDate, returnTime, returnArrivalDate, returnArrivalTime,
     ] = watch([
         "departureDate", "departureTime", "arrivalDate", "arrivalTime",
         "aircraftId", "captainId", "additionalCrew", "seatsForSale", "pricePerSeat",
         "originId", "destinationId",
+        "returnDate", "returnTime", "returnArrivalDate", "returnArrivalTime",
     ]);
+
+    // Real-time cross-field validation for return flight dates
+    useEffect(() => {
+        if (flightType !== "redondo" || !returnDate || !returnTime) return;
+        if (!arrivalDate || !arrivalTime) return;
+        if (`${returnDate}T${returnTime}` <= `${arrivalDate}T${arrivalTime}`) {
+            setError("returnDate", { message: "La salida de regreso debe ser posterior a la llegada del vuelo de ida" });
+        } else {
+            clearErrors("returnDate");
+        }
+    }, [arrivalDate, arrivalTime, returnDate, returnTime, flightType]);
+
+    useEffect(() => {
+        if (flightType !== "redondo" || !returnArrivalDate || !returnArrivalTime) return;
+        if (!returnDate || !returnTime) return;
+        if (`${returnArrivalDate}T${returnArrivalTime}` <= `${returnDate}T${returnTime}`) {
+            setError("returnArrivalDate", { message: "La llegada de regreso debe ser posterior a la salida de regreso" });
+        } else {
+            clearErrors("returnArrivalDate");
+        }
+    }, [returnDate, returnTime, returnArrivalDate, returnArrivalTime, flightType]);
 
     const canCheck = !!(departureDate && departureTime && arrivalDate && arrivalTime);
     const availableAircraft = canCheck ? filteredAircraft : aircraft;
@@ -208,6 +266,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     }, [departureDate, departureTime, arrivalDate, arrivalTime, canCheck]);
 
     useEffect(() => {
+        if (hasPassengers) return;
         if (!(departureDate && departureTime && arrivalDate && arrivalTime)) return;
         const dep = `${departureDate}T${departureTime}`;
         const arr = `${arrivalDate}T${arrivalTime}`;
@@ -220,6 +279,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
     }, [departureDate, departureTime, arrivalDate, arrivalTime]);
 
     useEffect(() => {
+        if (hasPassengers) return;
         if (!(departureDate && departureTime)) return;
         const dep    = new Date(`${departureDate}T${departureTime}`);
         const minDep = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -231,15 +291,20 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [departureDate, departureTime]);
 
-    const requiredSeats = initial.aircraft?.seats ?? null;
+    // ── Auto-calculate full aircraft price ────────────────────────────────────
+    useEffect(() => {
+        if (hasPassengers) return;
+        const num   = parseFloat((pricePerSeat || "0").replace(/,/g, ""));
+        const seats = seatsForSale || 0;
+        const full  = num > 0 && seats > 0 ? String(num * seats) : "";
+        setValue("priceFullAircraft", full, { shouldValidate: !!full });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pricePerSeat, seatsForSale]);
 
-    const selectedAircraft  = aircraft.find((a) => a.id === aircraftId);
+    const selectedAircraft     = aircraft.find((a) => a.id === aircraftId);
     const seatFilteredAircraft = requiredSeats != null
         ? availableAircraft.filter((a) => a.seats >= requiredSeats)
         : availableAircraft;
-
-    const priceNum  = parseFloat(pricePerSeat) || 0;
-    const fullPrice = priceNum * (selectedAircraft?.seats ?? seatsForSale);
 
     const captains    = availableCrew.filter((c) => c.crew_role?.code === "CAPTAIN");
     const otherCrew   = availableCrew;
@@ -257,46 +322,107 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
         return data?.signedUrl ?? existingPlanUrl;
     };
 
-    const onSubmit = (isVisible: boolean) => handleSubmit(async (data) => {
-        startTransition(async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase!.auth.getUser();
-            const uid = user?.id ?? ownerId;
+    const onSubmit = (isVisible: boolean) => {
+        if (hasPassengers) {
+            const currentAircraftId     = getValues("aircraftId");
+            const currentCaptainId      = getValues("captainId");
+            const currentAdditionalCrew = getValues("additionalCrew");
+            const currentSeatsForSale   = getValues("seatsForSale");
 
-            const flightPlanUrl = await uploadFlightPlan(uid);
-            const allCrew = [data.captainId, ...(data.additionalCrew ?? []).map((c) => c.id).filter(Boolean)];
-
-            const { error } = await updateFlight(flightId, ownerId, {
-                flightType:              flightType === "redondo" ? "ROUND_TRIP" : "ONE_WAY",
-                departureAirportId:      data.originId,
-                arrivalAirportId:        data.destinationId,
-                departureFboName:        data.fboOrigin ?? "",
-                arrivalFboName:          data.fboDestination ?? "",
-                departureDatetime:       toISO(data.departureDate, data.departureTime),
-                arrivalDatetime:         toISO(data.arrivalDate, data.arrivalTime),
-                returnDepartureDatetime: flightType === "redondo" && data.returnDate && data.returnTime
-                    ? toISO(data.returnDate, data.returnTime)
-                    : null,
-                aircraftId:              data.aircraftId,
-                totalSeats:              data.seatsForSale,
-                pricePerSeat:            priceNum,
-                priceFullAircraft:       fullPrice,
-                flightPlanUrl,
-                isVisible,
-                crewMemberIds:           allCrew,
-            });
-
-            if (error) {
-                toast.error("Error al actualizar el vuelo", error);
-            } else {
-                toast.success(
-                    isVisible ? "Vuelo actualizado" : "Borrador guardado",
-                    isVisible ? "Los cambios ya son visibles" : "Puedes publicarlo desde el detalle del vuelo",
-                );
-                router.push(`/owner/vuelos/${flightId}`);
+            if (!currentAircraftId) {
+                setError("aircraftId", { message: "Selecciona una aeronave" });
+                return;
             }
-        });
-    })();
+            if (!currentCaptainId) {
+                setError("captainId", { message: "Selecciona un capitán" });
+                return;
+            }
+
+            startTransition(async () => {
+                const allCrew = [currentCaptainId, ...(currentAdditionalCrew ?? []).map((c) => c.id).filter(Boolean)];
+
+                const { error } = await updateFlight(flightId, ownerId, {
+                    flightType:              initial.flight_type as "ONE_WAY" | "ROUND_TRIP",
+                    departureAirportId:      depAirport?.id ?? "",
+                    arrivalAirportId:        arrAirport?.id ?? "",
+                    departureFboName:        initial.departure_fbo_name ?? "",
+                    arrivalFboName:          initial.arrival_fbo_name   ?? "",
+                    departureDatetime:       initial.departure_datetime,
+                    arrivalDatetime:         initial.arrival_datetime,
+                    returnDepartureDatetime: initial.return_departure_datetime ?? null,
+                    returnArrivalDatetime:   initial.return_arrival_datetime   ?? null,
+                    returnDepartureFboName:  initial.return_departure_fbo_name ?? null,
+                    returnArrivalFboName:    initial.return_arrival_fbo_name   ?? null,
+                    aircraftId:              currentAircraftId,
+                    totalSeats:              currentSeatsForSale,
+                    pricePerSeat:            initial.price_per_seat,
+                    priceFullAircraft:       initial.price_full_aircraft,
+                    flightPlanUrl:           existingPlanUrl,
+                    isVisible,
+                    crewMemberIds:           allCrew,
+                });
+
+                if (error) {
+                    toast.error("Error al actualizar el vuelo", error);
+                } else {
+                    toast.success(
+                        isVisible ? "Vuelo actualizado" : "Borrador guardado",
+                        isVisible ? "Los cambios ya son visibles" : "Puedes publicarlo desde el detalle del vuelo",
+                    );
+                    router.push(`/owner/vuelos/${flightId}`);
+                }
+            });
+            return;
+        }
+
+        handleSubmit(async (data) => {
+            if (showFlightPlan && !flightPlan && !existingPlanUrl) { setFlightPlanError(true); return; }
+            setFlightPlanError(false);
+            startTransition(async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase!.auth.getUser();
+                const uid = user?.id ?? ownerId;
+
+                const flightPlanUrl = await uploadFlightPlan(uid);
+                const allCrew = [data.captainId, ...(data.additionalCrew ?? []).map((c) => c.id).filter(Boolean)];
+
+                const { error } = await updateFlight(flightId, ownerId, {
+                    flightType:              flightType === "redondo" ? "ROUND_TRIP" : "ONE_WAY",
+                    departureAirportId:      data.originId,
+                    arrivalAirportId:        data.destinationId,
+                    departureFboName:        data.fboOrigin ?? "",
+                    arrivalFboName:          data.fboDestination ?? "",
+                    departureDatetime:       toISO(data.departureDate, data.departureTime),
+                    arrivalDatetime:         toISO(data.arrivalDate, data.arrivalTime),
+                    returnDepartureDatetime: flightType === "redondo" && data.returnDate && data.returnTime
+                        ? toISO(data.returnDate, data.returnTime)
+                        : null,
+                    returnArrivalDatetime:   flightType === "redondo" && data.returnArrivalDate && data.returnArrivalTime
+                        ? toISO(data.returnArrivalDate, data.returnArrivalTime)
+                        : null,
+                    returnDepartureFboName:  flightType === "redondo" ? (data.returnFboOrigin ?? null) : null,
+                    returnArrivalFboName:    flightType === "redondo" ? (data.returnFboDestination ?? null) : null,
+                    aircraftId:              data.aircraftId,
+                    totalSeats:              data.seatsForSale,
+                    pricePerSeat:            parseFloat(data.pricePerSeat.replace(/,/g, "")),
+                    priceFullAircraft:       parseFloat(data.priceFullAircraft.replace(/,/g, "")),
+                    flightPlanUrl,
+                    isVisible,
+                    crewMemberIds:           allCrew,
+                });
+
+                if (error) {
+                    toast.error("Error al actualizar el vuelo", error);
+                } else {
+                    toast.success(
+                        isVisible ? "Vuelo actualizado" : "Borrador guardado",
+                        isVisible ? "Los cambios ya son visibles" : "Puedes publicarlo desde el detalle del vuelo",
+                    );
+                    router.push(`/owner/vuelos/${flightId}`);
+                }
+            });
+        })();
+    };
 
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
@@ -316,20 +442,32 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                 </div>
             </div>
 
+            {hasPassengers && (
+                <div className="px-12 pb-4">
+                    <AlertBox
+                        variant="warning"
+                        title="Edición limitada"
+                        description={`Este vuelo ya tiene ${soldSeats} asiento${soldSeats !== 1 ? "s" : ""} vendido${soldSeats !== 1 ? "s" : ""}. Solo puedes cambiar la aeronave (igual o mayor capacidad), los asientos para venta y la tripulación.`}
+                    />
+                </div>
+            )}
+
             <div className="px-12 pb-8 flex flex-col gap-7">
                 {/* Type Toggle */}
                 <div className="flex">
                     {(["sencillo", "redondo"] as FlightType[]).map((t, i) => (
-                        <button
+                        <Button
                             key={t}
                             type="button"
+                            variant="ghost"
+                            disabled={hasPassengers}
                             onClick={() => setFlightType(t)}
                             className={`flex-1 h-11 border border-border transition-colors ${
                                 i === 0 ? "rounded-l-xl" : "rounded-r-xl border-l-0"
                             } ${flightType === t ? "bg-white text-text font-medium" : "bg-[#f6f6f4] text-muted"}`}
                         >
                             {t === "sencillo" ? "Sencillo" : "Redondo"}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
@@ -342,13 +480,13 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <SelectGroup label="Origen" error={errors.originId?.message} {...register("originId")}>
+                            <SelectGroup label="Origen" error={errors.originId?.message} disabled={hasPassengers} {...register("originId")}>
                                 <option value="">Seleccionar aeropuerto</option>
                                 {airports.map((a) => <option key={a.id} value={a.id}>{airportLabel(a)}</option>)}
                             </SelectGroup>
                         </div>
                         <div className="flex-1">
-                            <SelectGroup label="Destino" error={errors.destinationId?.message} {...register("destinationId")}>
+                            <SelectGroup label="Destino" error={errors.destinationId?.message} disabled={hasPassengers} {...register("destinationId")}>
                                 <option value="">Seleccionar aeropuerto</option>
                                 {airports.map((a) => <option key={a.id} value={a.id}>{airportLabel(a)}</option>)}
                             </SelectGroup>
@@ -359,10 +497,10 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" {...register("fboOrigin")} />
+                            <InputGroup label="FBO de origen" type="text" placeholder="Dirección del FBO" error={errors.fboOrigin?.message} disabled={hasPassengers} {...register("fboOrigin")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="FBO de destino (opcional)" type="text" placeholder="Dirección del FBO" {...register("fboDestination")} />
+                            <InputGroup label="FBO de destino (opcional)" type="text" placeholder="Dirección del FBO" disabled={hasPassengers} {...register("fboDestination")} />
                         </div>
                     </div>
 
@@ -370,19 +508,19 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} {...register("departureDate")} />
+                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} disabled={hasPassengers} {...register("departureDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} {...register("departureTime")} />
+                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} disabled={hasPassengers} {...register("departureTime")} />
                         </div>
                     </div>
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} {...register("arrivalDate")} />
+                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} disabled={hasPassengers} {...register("arrivalDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} {...register("arrivalTime")} />
+                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} disabled={hasPassengers} {...register("arrivalTime")} />
                         </div>
                     </div>
 
@@ -398,10 +536,26 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                             )}
                             <div className="flex gap-8">
                                 <div className="flex-1">
-                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} {...register("returnDate")} />
+                                    <InputGroup label="FBO de origen" placeholder="Dirección del FBO" error={errors.returnFboOrigin?.message} disabled={hasPassengers} {...register("returnFboOrigin")} />
                                 </div>
                                 <div className="flex-1">
-                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} {...register("returnTime")} />
+                                    <InputGroup label="FBO de destino (opcional)" placeholder="Dirección del FBO" disabled={hasPassengers} {...register("returnFboDestination")} />
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
+                                <div className="flex-1">
+                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} disabled={hasPassengers} {...register("returnDate")} />
+                                </div>
+                                <div className="flex-1">
+                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} disabled={hasPassengers} {...register("returnTime")} />
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
+                                <div className="flex-1">
+                                    <InputGroup label="Fecha de llegada" type="date" error={errors.returnArrivalDate?.message} disabled={hasPassengers} {...register("returnArrivalDate")} />
+                                </div>
+                                <div className="flex-1">
+                                    <InputGroup label="Hora de llegada" type="time" error={errors.returnArrivalTime?.message} disabled={hasPassengers} {...register("returnArrivalTime")} />
                                 </div>
                             </div>
                         </>
@@ -452,7 +606,7 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                         <SelectGroup label="" className="flex-1" {...register(`additionalCrew.${index}.id`)}>
                                             <option value="">Seleccionar tripulante</option>
                                             {otherCrew
-                                                .filter((c) => c.id !== captainId && (!usedCrewIds.has(c.id) || c.id === fields[index].id))
+                                                .filter((c) => c.id !== captainId && (!usedCrewIds.has(c.id) || c.id === (additionalCrew ?? [])[index]?.id))
                                                 .map((c) => (
                                                     <option key={c.id} value={c.id}>
                                                         {c.first_name} {c.last_name}
@@ -480,7 +634,6 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                 <div className="flex gap-7">
                     <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                         <h2 className="text-[11px] font-semibold text-text">Configuración comercial</h2>
-                        <h3 className="text-xs font-medium text-text">Opciones de venta</h3>
 
                         <div className="flex gap-3">
                             <div className="flex-1">
@@ -492,67 +645,108 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                                             label="Asientos para venta"
                                             value={field.value}
                                             onChange={field.onChange}
-                                            min={1}
+                                            min={hasPassengers ? soldSeats : 1}
                                             max={selectedAircraft?.seats ?? 20}
                                         />
                                     )}
                                 />
                             </div>
 
-                            <div className="flex-1 flex flex-col gap-1.5">
-                                <label className="text-xs font-medium text-text">Precio por asiento</label>
-                                <div className={`flex items-center h-10 px-3 rounded-lg border ${errors.pricePerSeat ? "border-error" : "border-border"}`}>
-                                    <span className="text-sm text-muted">$</span>
-                                    <input type="number" placeholder="0.00" className="flex-1 bg-transparent text-sm outline-none ml-2" {...register("pricePerSeat")} />
-                                    <span className="text-sm text-muted">MXN</span>
-                                </div>
-                                {errors.pricePerSeat && <span className="text-xs text-error">{errors.pricePerSeat.message}</span>}
+                            <div className="flex-1">
+                                <Controller
+                                    name="pricePerSeat"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <InputGroup
+                                            label="Precio por asiento"
+                                            prefix="$"
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="0"
+                                            error={errors.pricePerSeat?.message}
+                                            disabled={hasPassengers}
+                                            value={field.value
+                                                ? Number(field.value.replace(/,/g, "")).toLocaleString("es-MX")
+                                                : ""}
+                                            onChange={(e) => {
+                                                const raw = e.target.value.replace(/[^0-9.]/g, "");
+                                                field.onChange(raw);
+                                            }}
+                                            onBlur={field.onBlur}
+                                            name={field.name}
+                                        />
+                                    )}
+                                />
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-text">Precio por avión completo</label>
-                            <div className="h-10 px-3 rounded-lg border border-border flex items-center gap-2 bg-[#FAFAFA]">
-                                <span className="text-sm text-muted">$</span>
-                                <span className="text-sm text-text">
-                                    {fullPrice > 0 ? fullPrice.toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—"}
-                                </span>
-                            </div>
-                            {selectedAircraft && (
-                                <p className="text-[11px] text-muted">
-                                    Calculado con {selectedAircraft.seats} asientos del{" "}
-                                    {selectedAircraft.manufacturer ? `${selectedAircraft.manufacturer} ${selectedAircraft.model}` : selectedAircraft.model}
-                                </p>
-                            )}
+                        <div>
+                            <Controller
+                                name="priceFullAircraft"
+                                control={control}
+                                render={({ field }) => (
+                                    <InputGroup
+                                        label="Precio por avión completo"
+                                        prefix="$"
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0"
+                                        error={errors.priceFullAircraft?.message}
+                                        disabled={hasPassengers}
+                                        helperText={selectedAircraft && !hasPassengers
+                                            ? `Auto-calculado · puedes editarlo para ofrecer un descuento`
+                                            : undefined}
+                                        value={field.value
+                                            ? Number(field.value.replace(/,/g, "")).toLocaleString("es-MX")
+                                            : ""}
+                                        onChange={(e) => {
+                                            const raw = e.target.value.replace(/[^0-9.]/g, "");
+                                            field.onChange(raw);
+                                        }}
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                    />
+                                )}
+                            />
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
+                    {showFlightPlan && <div className="flex-1 bg-white rounded-2xl border border-border p-7 flex flex-col gap-4">
                         <h2 className="text-[11px] font-semibold text-text">Plan de vuelo</h2>
                         <p className="text-[11px] text-muted">Carga el PDF con el plan de vuelo detallado</p>
                         {existingPlanUrl && !flightPlan && (
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#FAFAFA] border border-border">
                                 <span className="text-[12px] text-text truncate">Plan de vuelo actual</span>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     onClick={() => setExistingPlanUrl(null)}
-                                    className="text-[11px] text-muted hover:text-text ml-2 shrink-0"
+                                    className="text-[11px] text-muted hover:text-text ml-2 shrink-0 h-auto p-0"
                                 >
                                     Eliminar
-                                </button>
+                                </Button>
                             </div>
                         )}
                         {(!existingPlanUrl || flightPlan) && (
                             <DocumentUpload
                                 accept=".pdf"
                                 document={flightPlan ? { name: flightPlan.name, size: formatFileSize(flightPlan.size) } : undefined}
-                                onUpload={(file) => { setFlightPlan(file); setExistingPlanUrl(null); }}
+                                onUpload={(file) => {
+                                    if (file.size > 10 * 1024 * 1024) {
+                                        toast.error("Archivo demasiado grande", "El plan de vuelo no puede superar los 10 MB.");
+                                        return;
+                                    }
+                                    setFlightPlan(file);
+                                    setExistingPlanUrl(null);
+                                    setFlightPlanError(false);
+                                }}
                                 onRemove={() => setFlightPlan(null)}
                                 pendingTitle="Plan de vuelo"
                                 pendingDescription="Máximo 10 MB"
+                                error={flightPlanError}
                             />
                         )}
-                    </div>
+                    </div>}
                 </div>
 
                 {/* Actions */}
@@ -560,8 +754,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                     <Button type="button" onClick={() => onSubmit(true)} variant="primary" className="w-60 h-10" disabled={isPending}>
                         {isPending ? "Actualizando..." : "Actualizar vuelo"}
                     </Button>
-                    <Button type="button" onClick={() => onSubmit(false)} variant="outline" className="w-60 h-10" disabled={isPending}>
-                        {isPending ? "Guardando..." : "Guardar borrador"}
+                    <Button type="button" onClick={() => router.push(`/owner/vuelos/${flightId}`)} variant="outline" className="w-60 h-10" disabled={isPending}>
+                        Cancelar
                     </Button>
                 </div>
             </div>

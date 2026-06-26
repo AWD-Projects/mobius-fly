@@ -2,8 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Input } from "@/components/atoms/Input";
-import { Select } from "@/components/atoms/Select";
+import { SelectGroup } from "@/components/molecules/SelectGroup";
 import { Button } from "@/components/atoms/Button";
 
 export interface FlightsFilters {
@@ -19,9 +18,17 @@ export interface FlightsFilterBarProps {
     filters:         FlightsFilters;
     onFiltersChange: (filters: FlightsFilters) => void;
     onClearFilters:  () => void;
+    airports:        { iata_code: string; city: string }[];
+    aircraftOptions: { id: string; model: string }[];
 }
 
-export const FlightsFilterBar: React.FC<FlightsFilterBarProps> = ({ filters, onFiltersChange, onClearFilters }) => {
+export const FlightsFilterBar: React.FC<FlightsFilterBarProps> = ({
+    filters,
+    onFiltersChange,
+    onClearFilters,
+    airports,
+    aircraftOptions,
+}) => {
     const { register, watch, reset } = useForm<FlightsFilters>({ defaultValues: filters });
 
     useEffect(() => {
@@ -40,55 +47,63 @@ export const FlightsFilterBar: React.FC<FlightsFilterBarProps> = ({ filters, onF
     };
 
     return (
-        <div className="w-full px-12 py-6 flex items-end gap-4">
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Fecha</label>
+        <div className="w-full px-12 py-6 grid items-end gap-3" style={{ gridTemplateColumns: "repeat(6, minmax(0, 1fr)) auto" }}>
+            <div className="flex flex-col gap-1.5">
+                <label className="block text-small font-medium tracking-[0.01em] text-secondary mb-2">Fecha</label>
                 <input
                     type="date"
-                    className="h-9 px-3 rounded-sm border border-border bg-transparent text-small text-text transition-all placeholder:text-muted focus-visible:outline-none focus-visible:bg-surface focus-visible:border-text focus-visible:border-2"
+                    className="flex h-10 w-full appearance-none rounded-sm border border-border bg-surface px-3 py-2 text-small text-text transition-all focus-visible:outline-none focus-visible:border-text focus-visible:border-2"
                     {...register("date")}
                 />
             </div>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Origen</label>
-                <Input type="text" placeholder="p. ej. MEX" className="h-9" {...register("origin")} />
-            </div>
+            <SelectGroup label="Origen" {...register("origin")}>
+                <option value="">Todos</option>
+                {airports.map((a) => (
+                    <option key={a.iata_code} value={a.iata_code}>
+                        {a.iata_code} — {a.city}
+                    </option>
+                ))}
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Destino</label>
-                <Input type="text" placeholder="p. ej. CUN" className="h-9" {...register("destination")} />
-            </div>
+            <SelectGroup label="Destino" {...register("destination")}>
+                <option value="">Todos</option>
+                {airports.map((a) => (
+                    <option key={a.iata_code} value={a.iata_code}>
+                        {a.iata_code} — {a.city}
+                    </option>
+                ))}
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Aeronave</label>
-                <Input type="text" placeholder="Todas" className="h-9" {...register("aircraft")} />
-            </div>
+            <SelectGroup label="Aeronave" {...register("aircraft")}>
+                <option value="">Todas</option>
+                {aircraftOptions.map((a) => (
+                    <option key={a.id} value={a.model}>
+                        {a.model}
+                    </option>
+                ))}
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Tipo</label>
-                <Select className="h-9" {...register("type")}>
-                    <option value="">Todos</option>
-                    <option value="charter">Sencillo</option>
-                    <option value="personal">Redondo</option>
-                </Select>
-            </div>
+            <SelectGroup label="Tipo" {...register("type")}>
+                <option value="">Todos</option>
+                <option value="charter">Sencillo</option>
+                <option value="personal">Redondo</option>
+            </SelectGroup>
 
-            <div className="flex flex-col gap-1.5 w-[140px]">
-                <label className="text-caption font-medium text-muted">Estado</label>
-                <Select className="h-9" {...register("status")}>
-                    <option value="">Todos</option>
-                    <option value="scheduled">Programado</option>
-                    <option value="delayed">Retrasado</option>
-                    <option value="in-flight">En vuelo</option>
-                    <option value="confirmed">A tiempo</option>
-                    <option value="completed">Completado</option>
-                    <option value="cancelled">Cancelado</option>
-                </Select>
-            </div>
+            <SelectGroup label="Estado" {...register("status")}>
+                <option value="">Todos</option>
+                <option value="pending_review">En revisión</option>
+                <option value="rejected">Rechazado</option>
+                <option value="scheduled">Programado</option>
+                <option value="delayed">Retrasado</option>
+                <option value="in-flight">En vuelo</option>
+                <option value="confirmed">A tiempo</option>
+                <option value="completed">Completado</option>
+                <option value="cancelled">Cancelado</option>
+            </SelectGroup>
 
-            <Button type="button" onClick={handleClear} variant="ghost" className="h-9 px-3">
-                Limpiar filtros
+            <Button type="button" onClick={handleClear} variant="ghost" className="h-10 px-3 shrink-0">
+                Limpiar
             </Button>
         </div>
     );

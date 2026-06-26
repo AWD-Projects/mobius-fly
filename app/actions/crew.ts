@@ -10,6 +10,7 @@ export interface CrewListItem {
     last_name: string;
     status: string;
     is_approved: boolean;
+    rejected_reason: string | null;
     license_number: string | null;
     email: string | null;
     phone: string | null;
@@ -53,7 +54,7 @@ export async function getCrewRoles(): Promise<CrewRoleRow[]> {
 export async function addCrewMember(
     ownerId: string,
     input: AddCrewMemberInput,
-): Promise<{ error: string | null; id: string | null }> {
+): Promise<{ error: string | null; member: CrewListItem | null }> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -68,15 +69,15 @@ export async function addCrewMember(
             status:         "ACTIVE",
             is_approved:    false,
         })
-        .select("id")
+        .select("id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)")
         .single();
 
     if (error) {
         console.error("[addCrewMember] error:", error.message);
-        return { error: error.message, id: null };
+        return { error: error.message, member: null };
     }
 
-    return { error: null, id: data.id };
+    return { error: null, member: data as unknown as CrewListItem };
 }
 
 export interface CrewDocumentRow {
@@ -101,6 +102,8 @@ export interface CrewDetailData {
     first_name: string;
     last_name: string;
     status: string;
+    is_approved: boolean;
+    rejected_reason: string | null;
     license_number: string | null;
     email: string | null;
     phone: string | null;
@@ -129,7 +132,7 @@ export async function getCrewMemberDetail(
         supabase
             .from("crew_members")
             .select(
-                "id, first_name, last_name, status, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(id, code, name)",
+                "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(id, code, name)",
             )
             .eq("id", crewId)
             .eq("owner_id", owner.id)
@@ -187,6 +190,17 @@ export async function updateCrewMember(
 ): Promise<{ error: string | null }> {
     const supabase = await createClient();
 
+    // Only allow editing while the crew member is pending review (ACTIVE + not approved)
+    const { data: current } = await supabase
+        .from("crew_members")
+        .select("status, is_approved")
+        .eq("id", crewId)
+        .single();
+
+    if (!current || !(current.status === "ACTIVE" && current.is_approved === false)) {
+        return { error: "Solo se puede editar un tripulante cuando está en proceso de revisión." };
+    }
+
     const { error } = await supabase
         .from("crew_members")
         .update({
@@ -236,48 +250,17 @@ export async function deleteCrewMember(
 ): Promise<{ error: string | null }> {
     const supabase = await createClient();
 
-    // 1. Get flight IDs this crew member is assigned to
-    const { data: assignments } = await supabase
+    // 1. Block deletion if the crew member is assigned to any flight, regardless of status
+    const { count: flightCount } = await supabase
         .from("flight_crew")
-        .select("flight_id")
+        .select("id", { count: "exact", head: true })
         .eq("crew_member_id", crewId);
 
-    const flightIds = ((assignments ?? []) as any[]).map((a) => a.flight_id);
-
-    // 2. Check if any of those flights are still active
-    if (flightIds.length > 0) {
-        const { data: activeStatuses } = await supabase
-            .from("flight_status")
-            .select("id")
-            .in("code", ["SCHEDULED", "DELAYED", "IN_FLIGHT", "ON_TIME"]);
-
-        const activeStatusIds = ((activeStatuses ?? []) as any[]).map((s) => s.id);
-
-        const { count } = await supabase
-            .from("flights")
-            .select("id", { count: "exact", head: true })
-            .in("id", flightIds)
-            .in("status_id", activeStatusIds);
-
-        if ((count ?? 0) > 0) {
-            return { error: "No se puede eliminar: el tripulante tiene vuelos activos asignados." };
-        }
+    if ((flightCount ?? 0) > 0) {
+        return { error: "No se puede eliminar: el tripulante está asignado a uno o más vuelos." };
     }
 
-    // 3. Remove flight_crew entries (NO ACTION FK — must clean up manually)
-    if (flightIds.length > 0) {
-        const { error: fcError } = await supabase
-            .from("flight_crew")
-            .delete()
-            .eq("crew_member_id", crewId);
-
-        if (fcError) {
-            console.error("[deleteCrewMember] flight_crew:", fcError.message);
-            return { error: fcError.message };
-        }
-    }
-
-    // 4. Delete crew member (crew_documents cascade automatically)
+    // 2. Delete crew member (crew_documents cascade automatically)
     const { error } = await supabase
         .from("crew_members")
         .delete()
@@ -333,7 +316,7 @@ export async function getAvailableCrewForTimeSlot(
     let query = supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", ownerId)
         .eq("status", "ACTIVE")
@@ -349,6 +332,38 @@ export async function getAvailableCrewForTimeSlot(
         console.error("[getAvailableCrewForTimeSlot] error:", error.message);
         return [];
     }
+    return (data ?? []) as unknown as CrewListItem[];
+}
+
+// ─── getAvailableCrewList ─────────────────────────────────────────────────────
+// Returns only crew that can be assigned to flights: ACTIVE status + approved by Mobius.
+
+export async function getAvailableCrewList(userId: string): Promise<CrewListItem[]> {
+    const supabase = await createClient();
+
+    const { data: owner } = await supabase
+        .from("owners")
+        .select("id")
+        .eq("user_id", userId)
+        .single();
+
+    if (!owner) return [];
+
+    const { data, error } = await supabase
+        .from("crew_members")
+        .select(
+            "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+        )
+        .eq("owner_id", owner.id)
+        .eq("status", "ACTIVE")
+        .eq("is_approved", true)
+        .order("first_name", { ascending: true });
+
+    if (error) {
+        console.error("[getAvailableCrewList] error:", error.message);
+        return [];
+    }
+
     return (data ?? []) as unknown as CrewListItem[];
 }
 
@@ -368,7 +383,7 @@ export async function getCrewList(userId: string): Promise<CrewListItem[]> {
     const { data, error } = await supabase
         .from("crew_members")
         .select(
-            "id, first_name, last_name, status, is_approved, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
+            "id, first_name, last_name, status, is_approved, rejected_reason, license_number, email, phone, crew_role:crew_roles!crew_members_crew_role_id_fkey(code)",
         )
         .eq("owner_id", owner.id)
         .order("first_name", { ascending: true });

@@ -133,8 +133,7 @@ export default function RecoverPasswordPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: data.email }),
         });
-        // Always advance (anti-enumeration)
-        if (res.ok || res.status === 200) {
+        if (res.ok) {
             setPendingEmail(data.email);
             setStep("otp");
         } else {

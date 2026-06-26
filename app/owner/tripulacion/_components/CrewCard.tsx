@@ -11,7 +11,8 @@ export interface CrewMember {
   role: string;
   base: string;
   licenses: string[];
-  status: "active" | "inactive" | "pending";
+  status: "active" | "inactive" | "pending" | "rejected";
+  rejectedReason?: string | null;
 }
 
 export interface CrewCardProps {
@@ -22,9 +23,10 @@ export interface CrewCardProps {
 }
 
 const statusConfig = {
-  active: { label: "Activo", status: "active" as const },
-  inactive: { label: "Inactivo", status: "inactive" as const },
-  pending: { label: "Pendiente", status: "pending" as const },
+  active:   { label: "Activo",                 status: "active"   as const },
+  inactive: { label: "Inactivo",               status: "inactive" as const },
+  pending:  { label: "Pendiente de aprobación",status: "pending"  as const },
+  rejected: { label: "Rechazado",              status: "inactive" as const },
 };
 
 export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit, onDelete }) => {
@@ -72,6 +74,13 @@ export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit, onDe
         </div>
       </div>
 
+      {member.status === "rejected" && member.rejectedReason && (
+        <div className="px-3 py-2 bg-[#FFEBEE] rounded-lg">
+          <p className="text-[11px] font-semibold text-[#C62828] mb-0.5">Motivo de rechazo</p>
+          <p className="text-[11px] text-[#C62828]/80 leading-snug">{member.rejectedReason}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-2 pt-2">
         <IconButton
           onClick={() => onView(member.id)}
@@ -80,13 +89,15 @@ export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit, onDe
           size="sm"
           aria-label="Ver detalles"
         />
-        <IconButton
-          onClick={() => onEdit(member.id)}
-          icon={<Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
-          variant="default"
-          size="sm"
-          aria-label="Editar"
-        />
+        {member.status === "pending" && (
+          <IconButton
+            onClick={() => onEdit(member.id)}
+            icon={<Edit2 className="w-[18px] h-[18px] text-muted" strokeWidth={1.5} />}
+            variant="default"
+            size="sm"
+            aria-label="Editar"
+          />
+        )}
         {onDelete && (
           <IconButton
             onClick={() => onDelete(member.id)}

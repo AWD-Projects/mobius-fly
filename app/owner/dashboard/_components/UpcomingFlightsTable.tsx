@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/molecules/Table";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
+import { Button } from "@/components/atoms/Button";
 import { ArrowRight } from "lucide-react";
 import type { DashboardUpcomingFlight } from "@/app/actions/dashboard";
 
@@ -12,14 +13,14 @@ export interface UpcomingFlightsTableProps {
     onViewAll?: () => void;
 }
 
-const STATUS_CFG: Record<string, { label: string; status: "pending" | "info" | "success" | "inactive" }> = {
-    SCHEDULED:      { label: "Programado",  status: "pending"  },
-    DELAYED:        { label: "Retrasado",   status: "pending"  },
-    IN_FLIGHT:      { label: "En vuelo",    status: "info"     },
-    ON_TIME:        { label: "A tiempo",    status: "success"  },
-    COMPLETED:      { label: "Completado",  status: "inactive" },
-    CANCELLED:      { label: "Cancelado",   status: "inactive" },
-    PENDING_REVIEW: { label: "En revisión", status: "pending"  },
+const STATUS_CFG: Record<string, { label: string; status: "pending" | "scheduled" | "info" | "success" | "inactive" | "warning" | "error" }> = {
+    SCHEDULED:      { label: "Programado",  status: "scheduled" },
+    DELAYED:        { label: "Retrasado",   status: "warning"   },
+    IN_FLIGHT:      { label: "En vuelo",    status: "info"      },
+    ON_TIME:        { label: "A tiempo",    status: "success"   },
+    COMPLETED:      { label: "Completado",  status: "inactive"  },
+    CANCELLED:      { label: "Cancelado",   status: "error"     },
+    PENDING_REVIEW: { label: "En revisión", status: "pending"   },
 };
 
 const TYPE_CFG: Record<string, { label: string; bg: string; color: string }> = {
@@ -38,13 +39,14 @@ export const UpcomingFlightsTable: React.FC<UpcomingFlightsTableProps> = ({
             <div className="flex items-center justify-between">
                 <h2 className="text-h3 font-semibold text-text">Vuelos próximos</h2>
                 {onViewAll && (
-                    <button
+                    <Button
                         onClick={onViewAll}
-                        className="flex items-center gap-1 text-small font-medium text-muted hover:text-text transition-colors"
+                        variant="link"
+                        size="sm"
                     >
                         Ver todos
-                        <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
-                    </button>
+                        <ArrowRight className="w-3 h-3" strokeWidth={2} />
+                    </Button>
                 )}
             </div>
 
@@ -53,11 +55,11 @@ export const UpcomingFlightsTable: React.FC<UpcomingFlightsTableProps> = ({
             ) : (
                 <Table>
                     <TableHeader>
-                        <TableHead width={220}>Destino</TableHead>
-                        <TableHead width={150}>Fecha</TableHead>
-                        <TableHead width={150}>Aeronave</TableHead>
-                        <TableHead width={100}>Tipo</TableHead>
-                        <TableHead width={130}>Estado</TableHead>
+                        <TableHead style={{ flex: 3 }}>Destino</TableHead>
+                        <TableHead style={{ flex: 2 }}>Fecha</TableHead>
+                        <TableHead style={{ flex: 2 }}>Aeronave</TableHead>
+                        <TableHead style={{ flex: 1.5 }}>Tipo</TableHead>
+                        <TableHead style={{ flex: 1.5 }}>Estado</TableHead>
                         <TableHead style={{ flex: 1 }}>Capacidad</TableHead>
                     </TableHeader>
                     <TableBody>
@@ -71,10 +73,10 @@ export const UpcomingFlightsTable: React.FC<UpcomingFlightsTableProps> = ({
                                     onClick={() => router.push(`/owner/vuelos/${flight.id}`)}
                                     className="cursor-pointer hover:bg-[#fafafa] transition-colors"
                                 >
-                                    <TableCell width={220} variant="emphasis">{flight.route}</TableCell>
-                                    <TableCell width={150}>{flight.date}</TableCell>
-                                    <TableCell width={150}>{flight.aircraft}</TableCell>
-                                    <TableCell width={100}>
+                                    <TableCell style={{ flex: 3 }} variant="emphasis">{flight.route}</TableCell>
+                                    <TableCell style={{ flex: 2 }}>{flight.date}</TableCell>
+                                    <TableCell style={{ flex: 2 }}>{flight.aircraft}</TableCell>
+                                    <TableCell style={{ flex: 1.5 }}>
                                         <span
                                             className="inline-block px-2 py-1 rounded text-caption font-medium"
                                             style={{ backgroundColor: typeCfg.bg, color: typeCfg.color }}
@@ -82,7 +84,7 @@ export const UpcomingFlightsTable: React.FC<UpcomingFlightsTableProps> = ({
                                             {typeCfg.label}
                                         </span>
                                     </TableCell>
-                                    <TableCell width={130}>
+                                    <TableCell style={{ flex: 1.5 }}>
                                         <StatusBadge status={statusCfg.status}>
                                             {statusCfg.label}
                                         </StatusBadge>

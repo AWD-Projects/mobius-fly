@@ -19,7 +19,7 @@ const SelectGroup = React.forwardRef<HTMLSelectElement, SelectGroupProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="block text-small font-medium tracking-[0.01em] text-secondary mb-2"
+            className="block text-caption font-medium tracking-[0.01em] text-secondary mb-2"
           >
             {label}
             {required && <span className="text-error ml-1">*</span>}

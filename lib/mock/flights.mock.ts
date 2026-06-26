@@ -275,6 +275,9 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
         ],
         flight_plan_url: null,
         return_departure_datetime: null,
+        return_arrival_datetime:   null,
+        return_departure_fbo_name: null,
+        return_arrival_fbo_name:   null,
     },
     "flight-006": {
         id: "flight-006",
@@ -311,6 +314,9 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
         ],
         flight_plan_url: null,
         return_departure_datetime: null,
+        return_arrival_datetime:   null,
+        return_departure_fbo_name: null,
+        return_arrival_fbo_name:   null,
     },
     "flight-007": {
         id: "flight-007",
@@ -348,6 +354,9 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
         ],
         flight_plan_url: null,
         return_departure_datetime: null,
+        return_arrival_datetime:   null,
+        return_departure_fbo_name: null,
+        return_arrival_fbo_name:   null,
     },
     "flight-rt-001-out": {
         id: "flight-rt-001-out",
@@ -375,6 +384,9 @@ export const MOCK_FLIGHT_DETAILS: Record<string, FlightDetail> = {
         ],
         flight_plan_url: null,
         return_departure_datetime: null,
+        return_arrival_datetime:   null,
+        return_departure_fbo_name: null,
+        return_arrival_fbo_name:   null,
     },
 };
 

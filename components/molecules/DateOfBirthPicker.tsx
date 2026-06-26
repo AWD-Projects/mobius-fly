@@ -114,13 +114,15 @@ const DateOfBirthPicker = React.forwardRef<HTMLInputElement, DateOfBirthPickerPr
       const formatted = formatTyping(e.target.value);
       setText(formatted);
       const parsed = displayToIso(formatted);
-      // Only commit when we have a complete, parseable date.
       if (parsed) {
+        // Complete valid date: commit it.
         commit(parsed);
-      } else if (iso) {
-        // User cleared/partial: clear committed value so validation reacts.
+      } else if (formatted === "") {
+        // Field was fully cleared: reset committed value.
         commit("");
       }
+      // Partial input (still typing): keep previous committed value to avoid
+      // triggering validation mid-keystroke.
     };
 
     const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {

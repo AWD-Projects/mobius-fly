@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, Hash, Calendar } from "lucide-react";
+import { ArrowRight, ArrowLeft, Hash, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 
 export interface FlightDetailHeroProps {
@@ -12,14 +14,14 @@ export interface FlightDetailHeroProps {
     statusCode:  string;
 }
 
-const STATUS_CFG: Record<string, { label: string; status: "pending" | "info" | "success" | "inactive" }> = {
-    SCHEDULED:      { label: "Programado",  status: "pending"  },
-    DELAYED:        { label: "Retrasado",   status: "pending"  },
-    IN_FLIGHT:      { label: "En vuelo",    status: "info"     },
-    ON_TIME:        { label: "A tiempo",    status: "success"  },
-    COMPLETED:      { label: "Completado",  status: "inactive" },
-    CANCELLED:      { label: "Cancelado",   status: "inactive" },
-    PENDING_REVIEW: { label: "En revisión", status: "pending"  },
+const STATUS_CFG: Record<string, { label: string; status: "pending" | "scheduled" | "info" | "success" | "inactive" | "warning" | "error" }> = {
+    SCHEDULED:      { label: "Programado",  status: "scheduled" },
+    DELAYED:        { label: "Retrasado",   status: "warning"   },
+    IN_FLIGHT:      { label: "En vuelo",    status: "info"      },
+    ON_TIME:        { label: "A tiempo",    status: "success"   },
+    COMPLETED:      { label: "Completado",  status: "inactive"  },
+    CANCELLED:      { label: "Cancelado",   status: "error"     },
+    PENDING_REVIEW: { label: "En revisión", status: "pending"   },
 };
 
 export const FlightDetailHero: React.FC<FlightDetailHeroProps> = ({
@@ -29,10 +31,19 @@ export const FlightDetailHero: React.FC<FlightDetailHeroProps> = ({
     date,
     statusCode,
 }) => {
+    const router = useRouter();
     const cfg = STATUS_CFG[statusCode] ?? { label: statusCode, status: "pending" as const };
 
     return (
         <div className="w-full bg-[#f6f6f4] px-12 py-8 border-b border-border">
+            <Button
+                onClick={() => router.push("/owner/vuelos")}
+                variant="link"
+                className="flex items-center gap-3 mb-5 p-0 text-sm font-medium text-text hover:opacity-70"
+            >
+                <ArrowLeft className="w-5 h-5" />
+                Volver a vuelos
+            </Button>
             <div className="flex items-center gap-2 mb-5">
                 <span className="text-xs text-[#999999]">Vuelos</span>
                 <span className="text-xs text-[#CCCCCC]">/</span>

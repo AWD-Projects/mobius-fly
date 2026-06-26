@@ -79,13 +79,12 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
             .from("crew_members")
             .select("id", { count: "exact", head: true })
             .eq("owner_id", owner.id)
-            .eq("status", "ACTIVE"),
+            .eq("status", "ACTIVE")
+            .eq("is_approved", true),
 
         supabase
             .from("document_status")
-            .select("id")
-            .eq("code", "PENDING_REVIEW")
-            .single(),
+            .select("id, code"),
 
         supabase
             .from("flights")
@@ -111,29 +110,57 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
             .gte("departure_datetime", monthStart),
     ]);
 
-    // Step 3: pending docs (needs aircraft IDs from step 2)
+    // Step 3: pending docs + unapproved aircraft (needs aircraft IDs from step 2)
     const aircraftList       = (aircraftListRes.data ?? []) as { id: string; status: string }[];
     const aircraftIds        = aircraftList.map((a) => a.id);
-    const pendingDocStatusId = docStatusRes.data?.id;
+    const docStatuses        = (docStatusRes.data ?? []) as { id: string; code: string }[];
+    const pendingDocStatusId = docStatuses.find((s) => s.code === "PENDING_REVIEW")?.id;
+    const approvedDocStatusId = docStatuses.find((s) => s.code === "APPROVED")?.id;
 
     let pendingDocsCount = 0;
-    if (aircraftIds.length > 0 && pendingDocStatusId) {
-        const { count } = await supabase
-            .from("aircraft_documents")
-            .select("id", { count: "exact", head: true })
-            .in("aircraft_id", aircraftIds)
-            .eq("document_status_id", pendingDocStatusId);
-        pendingDocsCount = count ?? 0;
+    let unapprovedAircraftIds: string[] = [];
+
+    if (aircraftIds.length > 0) {
+        const queries: PromiseLike<any>[] = [];
+
+        if (pendingDocStatusId) {
+            queries.push(
+                supabase
+                    .from("aircraft_documents")
+                    .select("id", { count: "exact", head: true })
+                    .in("aircraft_id", aircraftIds)
+                    .eq("document_status_id", pendingDocStatusId)
+                    .then(({ count }) => { pendingDocsCount = count ?? 0; }),
+            );
+        }
+
+        if (approvedDocStatusId) {
+            queries.push(
+                supabase
+                    .from("aircraft_documents")
+                    .select("aircraft_id")
+                    .in("aircraft_id", aircraftIds)
+                    .neq("document_status_id", approvedDocStatusId)
+                    .then(({ data }) => {
+                        unapprovedAircraftIds = [...new Set((data ?? []).map((d: any) => d.aircraft_id))];
+                    }),
+            );
+        }
+
+        await Promise.all(queries);
     }
 
     // Derived stats
-    const activeAircraftCount      = aircraftList.filter((a) => a.status === "ACTIVE").length;
+    const activeAircraftCount = aircraftList.filter(
+        (a) => a.status === "ACTIVE" && !unapprovedAircraftIds.includes(a.id),
+    ).length;
     const maintenanceAircraftCount = aircraftList.filter((a) => a.status === "MAINTENANCE").length;
 
     const monthFlights    = (monthFlightsRes.data ?? []) as any[];
+    const MOBIUS_FEE = 0.15;
     const monthlyRevenue  = monthFlights.reduce((sum, f) => {
         const sold = (f.total_seats ?? 0) - (f.available_seats ?? 0);
-        return sum + sold * Number(f.price_per_seat ?? 0);
+        return sum + sold * Number(f.price_per_seat ?? 0) * (1 - MOBIUS_FEE);
     }, 0);
 
     const upcomingFlights: DashboardUpcomingFlight[] = ((upcomingRes.data ?? []) as any[]).map((row) => {
@@ -143,6 +170,7 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
             id:         row.id,
             route:      `${dep?.city ?? dep?.iata_code ?? "—"} → ${arr?.city ?? arr?.iata_code ?? "—"}`,
             date:       new Date(row.departure_datetime).toLocaleDateString("es-MX", {
+                            timeZone: "America/Mexico_City",
                             day: "numeric", month: "short",
                             hour: "2-digit", minute: "2-digit",
                         }),

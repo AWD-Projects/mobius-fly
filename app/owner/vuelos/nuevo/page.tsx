@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAirports } from "@/app/actions/flights";
 import { getAircraftList } from "@/app/actions/aircraft";
-import { getCrewList } from "@/app/actions/crew";
+import { getAvailableCrewList } from "@/app/actions/crew";
 import { CreateFlightContent } from "./_components/CreateFlightContent";
 
 export default async function CreateFlightPage() {
@@ -22,7 +22,7 @@ export default async function CreateFlightPage() {
     const [airports, aircraft, crew] = await Promise.all([
         getAirports(),
         getAircraftList(user.id),
-        getCrewList(user.id),
+        getAvailableCrewList(user.id),
     ]);
 
     const hasAircraft = aircraft.length > 0;

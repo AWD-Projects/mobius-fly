@@ -2,12 +2,13 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Image } from "lucide-react";
+import { Image, ArrowLeft, Settings, CheckCircle, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { StatusBadge } from "@/components/molecules/StatusBadge";
 import { toast } from "@/components/atoms/Toast";
 import { updateAircraftStatus, deleteAircraft } from "@/app/actions/aircraft";
 import type { AircraftDetailData } from "@/app/actions/aircraft";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -19,9 +20,12 @@ interface Props {
 // ─── Config maps ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; status: "success" | "pending" | "inactive" }> = {
-    ACTIVE:      { label: "Activo",          status: "success"  },
-    MAINTENANCE: { label: "Mantenimiento",   status: "pending"  },
-    INACTIVE:    { label: "Inactivo",        status: "inactive" },
+    ACTIVE:      { label: "Activo",               status: "success"  },
+    DOC_PENDING: { label: "Pendiente de revisión", status: "pending"  },
+    DOC_REJECTED:{ label: "Doc. rechazada",        status: "pending"  },
+    DOC_MISSING: { label: "Doc. faltante",         status: "inactive" },
+    MAINTENANCE: { label: "Mantenimiento",         status: "pending"  },
+    INACTIVE:    { label: "Inactivo",              status: "inactive" },
 };
 
 const DOC_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -42,10 +46,19 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [currentStatus, setCurrentStatus] = useState(data.status.toUpperCase());
-    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-    const statusCfg  = STATUS_CONFIG[currentStatus] ?? { label: currentStatus, status: "inactive" as const };
-    const isActive   = currentStatus === "ACTIVE";
+    const effectiveStatus = React.useMemo(() => {
+        if (currentStatus !== "ACTIVE") return currentStatus;
+        const codes = data.documents.map((d) => d.document_status?.code ?? "");
+        if (codes.length === 0)                              return "DOC_MISSING";
+        if (codes.some((c) => c === "REJECTED"))             return "DOC_REJECTED";
+        if (codes.some((c) => c === "PENDING_REVIEW"))       return "DOC_PENDING";
+        return "ACTIVE";
+    }, [currentStatus, data.documents]);
+
+    const statusCfg  = STATUS_CONFIG[effectiveStatus] ?? { label: effectiveStatus, status: "inactive" as const };
+    const isActive   = effectiveStatus === "ACTIVE";
     const isMaint    = currentStatus === "MAINTENANCE";
     const name       = data.manufacturer ? `${data.manufacturer} ${data.model}` : data.model;
 
@@ -54,7 +67,6 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
             const { error } = await deleteAircraft(data.id, ownerId);
             if (error) {
                 toast.error("No se pudo eliminar", error);
-                setConfirmDelete(false);
             } else {
                 toast.success("Aeronave eliminada", `${name} fue eliminada correctamente.`);
                 router.push("/owner/aeronaves");
@@ -82,7 +94,15 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
             {/* Header */}
-            <div className="w-full bg-[#f6f6f4] px-12 py-8 border-b border-border">
+            <div className="w-full bg-[#f6f6f4] px-12 py-8">
+                <Button
+                    onClick={() => router.push("/owner/aeronaves")}
+                    variant="link"
+                    className="flex items-center gap-3 mb-5 p-0 text-sm font-medium text-text hover:opacity-70"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                    Volver a aeronaves
+                </Button>
                 <div className="flex items-center justify-between w-full">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-[28px] font-semibold text-text">{name}</h1>
@@ -223,88 +243,83 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
                     </div>
 
                     {/* Actions */}
-                    <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-3">
-                        <h2 className="text-sm font-semibold text-text">Acciones</h2>
+                    <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-2">
+                        <h2 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">Acciones</h2>
 
                         {isActive && (
                             <Button
                                 onClick={() => handleSetStatus("MAINTENANCE")}
-                                variant="primary"
-                                className="w-full h-10"
-                                disabled={isPending}
+                                variant="outline"
+                                className="w-full h-10 justify-start gap-2.5"
+                                isLoading={isPending}
+                                icon={<Settings className="w-4 h-4 text-muted" />}
                             >
-                                {isPending ? "Actualizando..." : "Marcar como mantenimiento"}
+                                Enviar a mantenimiento
                             </Button>
                         )}
 
                         {isMaint && (
                             <Button
                                 onClick={() => handleSetStatus("ACTIVE")}
-                                variant="primary"
-                                className="w-full h-10"
-                                disabled={isPending}
+                                variant="outline"
+                                className="w-full h-10 justify-start gap-2.5"
+                                isLoading={isPending}
+                                icon={<CheckCircle className="w-4 h-4 text-muted" />}
                             >
-                                {isPending ? "Actualizando..." : "Marcar como activo"}
+                                Marcar como activo
                             </Button>
                         )}
 
-                        {!isActive && !isMaint && (
+                        {currentStatus !== "ACTIVE" && !isMaint && (
                             <Button
                                 onClick={() => handleSetStatus("ACTIVE")}
-                                variant="primary"
-                                className="w-full h-10"
-                                disabled={isPending}
+                                variant="outline"
+                                className="w-full h-10 justify-start gap-2.5"
+                                isLoading={isPending}
+                                icon={<CheckCircle className="w-4 h-4 text-muted" />}
                             >
-                                {isPending ? "Actualizando..." : "Activar aeronave"}
+                                Activar aeronave
                             </Button>
                         )}
+
+                        {(effectiveStatus === "DOC_PENDING" || effectiveStatus === "DOC_REJECTED") && (
+                            <Button
+                                onClick={() => router.push(`/owner/aeronaves/${data.id}/edit`)}
+                                variant="ghost"
+                                className="w-full h-10 justify-start gap-2.5"
+                                disabled={isPending}
+                                icon={<Pencil className="w-4 h-4 text-muted" />}
+                            >
+                                Editar aeronave
+                            </Button>
+                        )}
+
+                        <div className="w-full h-px bg-border mt-1" />
 
                         <Button
-                            onClick={() => router.push(`/owner/aeronaves/${data.id}/edit`)}
-                            variant="outline"
-                            className="w-full h-10"
+                            onClick={() => setShowDeleteDialog(true)}
+                            variant="ghost-destructive"
+                            className="w-full h-10 justify-start gap-2.5 text-[12px]"
                             disabled={isPending}
+                            icon={<Trash2 className="w-4 h-4" />}
                         >
-                            Editar aeronave
+                            Eliminar aeronave
                         </Button>
-
-                        {!confirmDelete ? (
-                            <Button
-                                onClick={() => setConfirmDelete(true)}
-                                variant="outline"
-                                className="w-full h-10 text-red-600 border-red-200 hover:bg-red-50"
-                                disabled={isPending}
-                            >
-                                Eliminar aeronave
-                            </Button>
-                        ) : (
-                            <div className="flex flex-col gap-2 pt-1">
-                                <p className="text-[11px] text-center text-[#666666]">
-                                    ¿Confirmar eliminación? Esta acción no se puede deshacer.
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => setConfirmDelete(false)}
-                                        variant="outline"
-                                        className="flex-1 h-9 text-xs"
-                                        disabled={isPending}
-                                    >
-                                        Cancelar
-                                    </Button>
-                                    <Button
-                                        onClick={handleDelete}
-                                        variant="outline"
-                                        className="flex-1 h-9 text-xs text-red-600 border-red-300 hover:bg-red-50"
-                                        disabled={isPending}
-                                    >
-                                        {isPending ? "Eliminando..." : "Confirmar"}
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={showDeleteDialog}
+                title="Eliminar aeronave"
+                description="¿Estás seguro de que deseas eliminar esta aeronave? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                isLoading={isPending}
+                destructive
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteDialog(false)}
+            />
         </div>
     );
 }

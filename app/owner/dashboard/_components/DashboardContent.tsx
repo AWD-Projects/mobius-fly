@@ -7,11 +7,13 @@ import { KpiCard } from "@/components/organisms/KpiCard";
 import { AttentionSectionCard } from "@/components/organisms/AttentionSectionCard";
 import { UpcomingFlightsTable } from "./UpcomingFlightsTable";
 import { Plane, Users, Clock, DollarSign, FileText, Settings, type LucideIcon } from "lucide-react";
+import { AlertBox } from "@/components/molecules/AlertBox";
 import type { OwnerDashboardData } from "@/app/actions/dashboard";
 
 interface Props {
-    data:       OwnerDashboardData;
-    firstName:  string | null;
+    data:           OwnerDashboardData;
+    firstName:      string | null;
+    documentStatus: string | null;
 }
 
 function formatRevenue(amount: number): string {
@@ -20,7 +22,7 @@ function formatRevenue(amount: number): string {
     return amount.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 }
 
-export function DashboardContent({ data, firstName }: Props) {
+export function DashboardContent({ data, firstName, documentStatus }: Props) {
     const router = useRouter();
 
     const kpiData = [
@@ -103,6 +105,16 @@ export function DashboardContent({ data, firstName }: Props) {
 
     return (
         <div className="w-full bg-[#f6f6f4] min-h-screen">
+            {documentStatus === "PENDING_REVIEW" && (
+                <div className="px-12 pt-6">
+                    <AlertBox
+                        variant="pending"
+                        title="Documento de identidad en revisión"
+                        description="Nuestro equipo está validando tu documento. Te notificaremos cuando sea aprobado. Este proceso puede tomar hasta 48 horas hábiles."
+                    />
+                </div>
+            )}
+
             {/* Welcome */}
             <div className="px-12 py-8 flex items-center justify-between">
                 <div className="flex flex-col gap-1.5">

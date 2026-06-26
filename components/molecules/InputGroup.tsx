@@ -2,15 +2,16 @@ import * as React from "react";
 import { Input, InputProps } from "@/components/atoms/Input";
 import { cn } from "@/lib/utils";
 
-export interface InputGroupProps extends Omit<InputProps, "error"> {
+export interface InputGroupProps extends Omit<InputProps, "error" | "prefix"> {
   label?: string;
   error?: string;
   helperText?: string;
   required?: boolean;
+  prefix?: React.ReactNode;
 }
 
 const InputGroup = React.forwardRef<HTMLInputElement, InputGroupProps>(
-  ({ label, error, helperText, required, className, id, ...props }, ref) => {
+  ({ label, error, helperText, required, prefix, className, id, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? `input-${generatedId}`;
 
@@ -19,20 +20,28 @@ const InputGroup = React.forwardRef<HTMLInputElement, InputGroupProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-small font-medium tracking-[0.01em] text-secondary mb-2"
+            className="block text-caption font-medium tracking-[0.01em] text-secondary mb-2"
           >
             {label}
             {required && <span className="text-error ml-1">*</span>}
           </label>
         )}
-        <Input
-          id={inputId}
-          ref={ref}
-          error={!!error}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
-          {...props}
-        />
+        <div className="relative w-full">
+          {prefix && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-caption text-muted pointer-events-none select-none z-10">
+              {prefix}
+            </span>
+          )}
+          <Input
+            id={inputId}
+            ref={ref}
+            error={!!error}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
+            className={prefix ? "pl-7" : undefined}
+            {...props}
+          />
+        </div>
         {error && (
           <p id={`${inputId}-error`} className="mt-2 text-small text-error">
             {error}

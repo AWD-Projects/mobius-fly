@@ -32,6 +32,10 @@ export default async function ThankYouPage({ searchParams }: Props) {
                 arrival_datetime,
                 duration_minutes,
                 flight_type,
+                return_departure_datetime,
+                return_arrival_datetime,
+                return_departure_fbo_name,
+                return_arrival_fbo_name,
                 departure_airport:airports!flights_departure_airport_id_fkey (
                     iata_code,
                     city
@@ -71,20 +75,15 @@ export default async function ThankYouPage({ searchParams }: Props) {
             }}
             flight={{
                 departureDatetime: flight?.departure_datetime ?? "",
-                arrivalDatetime: flight?.arrival_datetime ?? "",
-                flightType: (flight?.flight_type ?? "ONE_WAY") as "ONE_WAY" | "ROUND_TRIP",
-                departureAirport: {
-                    iataCode: depAirport?.iata_code ?? "",
-                    city: depAirport?.city ?? "",
-                },
-                arrivalAirport: {
-                    iataCode: arrAirport?.iata_code ?? "",
-                    city: arrAirport?.city ?? "",
-                },
-                aircraft: {
-                    manufacturer: aircraft?.manufacturer ?? "",
-                    model: aircraft?.model ?? "",
-                },
+                arrivalDatetime:   flight?.arrival_datetime   ?? "",
+                flightType:        (flight?.flight_type ?? "ONE_WAY") as "ONE_WAY" | "ROUND_TRIP",
+                returnDepartureDatetime: flight?.return_departure_datetime ?? null,
+                returnArrivalDatetime:   flight?.return_arrival_datetime   ?? null,
+                returnDepartureFboName:  flight?.return_departure_fbo_name ?? null,
+                returnArrivalFboName:    flight?.return_arrival_fbo_name   ?? null,
+                departureAirport: { iataCode: depAirport?.iata_code ?? "", city: depAirport?.city ?? "" },
+                arrivalAirport:   { iataCode: arrAirport?.iata_code ?? "", city: arrAirport?.city ?? "" },
+                aircraft:         { manufacturer: aircraft?.manufacturer ?? "", model: aircraft?.model ?? "" },
             }}
         />
     );

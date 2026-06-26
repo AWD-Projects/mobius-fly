@@ -100,7 +100,7 @@ const TableHead = React.forwardRef<HTMLDivElement, TableHeadProps>(
       <div
         ref={ref}
         className={cn(
-          "text-caption font-medium text-muted",
+          "text-[11px] font-medium text-muted",
           className
         )}
         style={{ width, flexShrink: 0, ...style }}
@@ -121,9 +121,9 @@ export interface TableCellProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles = {
-  default: "text-small font-normal text-muted",
-  emphasis: "text-small font-medium text-text",
-  muted: "text-small font-normal text-text/50",
+  default: "text-[12px] font-normal text-muted",
+  emphasis: "text-[12px] font-medium text-text",
+  muted: "text-[12px] font-normal text-text/50",
 };
 
 const TableCell = React.forwardRef<HTMLDivElement, TableCellProps>(
