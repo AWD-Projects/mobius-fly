@@ -269,14 +269,14 @@ export default function Home() {
 
   // Comparison table data
   const comparisonFeatures = [
-    { feature: "Modelo de compra", mobius: "Por asiento", traditional: "Vuelo completo", jetCard: "Membresía anual", fullCharter: "Vuelo completo" },
-    { feature: "Costo por asiento", mobius: "Desde €900", traditional: "€10,000+", jetCard: "€25k - €50k/año", fullCharter: "€15,000+" },
+    { feature: "Modelo de compra", mobius: "Por asiento", traditional: "Avión completo", jetCard: "Horas prepagadas", fullCharter: "Avión completo" },
+    { feature: "Costo de entrada", mobius: "Desde $8,500 MXN/asiento", traditional: "$180,000+ MXN el vuelo", jetCard: "$3.7M MXN (25 hrs mín.)", fullCharter: "$200,000+ MXN el vuelo" },
     { feature: "Vuelo completo obligatorio", mobius: "No", traditional: "Sí", jetCard: "Sí", fullCharter: "Sí" },
-    { feature: "Transparencia de costos", mobius: "Completa", traditional: "Parcial", jetCard: "Parcial", fullCharter: "Negociable" },
+    { feature: "Transparencia de precios", mobius: "Precio fijo visible", traditional: "Variable, negociable", jetCard: "Tarifa por hora fija", fullCharter: "Precio negociado" },
     { feature: "Flexibilidad de reserva", mobius: "Muy alta", traditional: "Baja", jetCard: "Moderada", fullCharter: "Alta" },
-    { feature: "Proceso de pago", mobius: "Digital, instantáneo", traditional: "Manual", jetCard: "Acuerdos previos", fullCharter: "Manual" },
+    { feature: "Proceso de pago", mobius: "Digital, instantáneo", traditional: "Manual, con depósito", jetCard: "Contrato por bloque", fullCharter: "Manual o depósito" },
     { feature: "Acceso a vuelos vacíos", mobius: "Sí, especializado", traditional: "No", jetCard: "Ocasionalmente", fullCharter: "No" },
-    { feature: "Ideal para", mobius: "Viajeros ocasionales", traditional: "Vuelos frecuentes", jetCard: "Usuarios frecuentes", fullCharter: "Grupos grandes" },
+    { feature: "Ideal para", mobius: "Viajeros ocasionales", traditional: "Grupos y ejecutivos", jetCard: "Usuarios muy frecuentes", fullCharter: "Grupos o eventos" },
   ];
 
   // FAQ data
@@ -352,7 +352,8 @@ export default function Home() {
         </m.div>
       )}
     </AnimatePresence>
-    <div ref={scrollContainerRef} className="lg:snap-y lg:snap-mandatory overflow-y-scroll h-screen">
+    <div className="overflow-x-hidden h-screen">
+    <div ref={scrollContainerRef} className="lg:snap-y lg:snap-mandatory overflow-y-scroll h-full">
       {/* Fixed Navbar - Aparece después del scroll */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -464,6 +465,7 @@ export default function Home() {
         sectionPadding={sectionPadding}
         onScrollToSection={scrollToSection}
       />
+    </div>
     </div>
     </LazyMotion>
   );

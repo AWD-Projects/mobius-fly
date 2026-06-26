@@ -66,7 +66,6 @@ export const ContactSection = React.memo<ContactSectionProps>(({
     defaultValues: { userType: "", name: "", email: "", phone: "", message: "" },
   });
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const userType = watch("userType");
 
   const handleNext = React.useCallback(async () => {
@@ -131,15 +130,15 @@ export const ContactSection = React.memo<ContactSectionProps>(({
             )}
 
             {/* Form Content */}
-            <div className="flex-1 min-h-[320px] sm:min-h-[420px] md:min-h-[460px] flex flex-col items-center justify-center">
+            <div className="flex-1 min-h-[320px] sm:min-h-[420px] md:min-h-[460px] flex flex-col items-center justify-center overflow-hidden">
 
               {/* Step 1: User Type Selection */}
               {step === 1 && (
                 <m.div
                   key="step1"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                   className="w-full flex flex-col items-center gap-8"
                 >
@@ -169,9 +168,9 @@ export const ContactSection = React.memo<ContactSectionProps>(({
               {step === 2 && (
                 <m.div
                   key="step2"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                   className="w-full flex flex-col items-center gap-8"
                 >
@@ -225,9 +224,9 @@ export const ContactSection = React.memo<ContactSectionProps>(({
               {step === 3 && (
                 <m.div
                   key="step3"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                   className="w-full flex flex-col items-center gap-8"
                 >

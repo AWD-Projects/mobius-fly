@@ -42,3 +42,8 @@ next-env.d.ts
 
 # storybook
 storybook-static
+
+# videos (serve from CDN/YouTube/bucket instead)
+*.mp4
+*.mov
+*.webm

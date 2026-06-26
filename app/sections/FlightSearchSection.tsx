@@ -4,6 +4,7 @@ import * as React from "react";
 import { m } from "framer-motion";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { FlightSearchCard, type FlightSearchParams } from "@/components/organisms/FlightSearchCard";
+import { FlightSearchCardMobile } from "@/components/organisms/FlightSearchCardMobile";
 import { getAirports } from "@/app/actions/flights";
 import type { Airport as AppAirport } from "@/types/app.types";
 
@@ -95,67 +96,77 @@ export const FlightSearchSection = React.memo<FlightSearchSectionProps>(({
           viewport={{ once: true, amount: 0.8 }}
           className="flex flex-col items-center gap-4 w-full"
         >
-          <FlightSearchCard
-            tripType={tripType}
-            originCode={originCode}
-            destinationCode={destinationCode}
-            departureDate={departureDate}
-            returnDate={returnDate}
-            passengers={passengers}
-            airports={airports.length > 0 ? airports : undefined}
-            minDepartureDate={todayISO}
-            minReturnDate={departureDate || todayISO}
-            onTripTypeChange={setTripType}
-            onOriginChange={setOriginCode}
-            onDestinationChange={setDestinationCode}
-            onDepartureDateChange={setDepartureDate}
-            onReturnDateChange={setReturnDate}
-            onPassengersChange={setPassengers}
-            onSwapClick={() => {
-              setOriginCode(destinationCode);
-              setDestinationCode(originCode);
-            }}
-          />
+          {/* Mobile card */}
+          <div className="block lg:hidden w-full">
+            <FlightSearchCardMobile
+              tripType={tripType}
+              originCode={originCode}
+              destinationCode={destinationCode}
+              departureDate={departureDate}
+              returnDate={returnDate}
+              passengers={passengers}
+              airports={airports.length > 0 ? airports : undefined}
+              minDepartureDate={todayISO}
+              minReturnDate={departureDate || todayISO}
+              onTripTypeChange={setTripType}
+              onOriginChange={setOriginCode}
+              onDestinationChange={setDestinationCode}
+              onDepartureDateChange={setDepartureDate}
+              onReturnDateChange={setReturnDate}
+              onPassengersChange={setPassengers}
+              onSwapClick={() => { setOriginCode(destinationCode); setDestinationCode(originCode); }}
+              onSearch={onSearch ? () => { if (canSearch && !isSearching) { setIsSearching(true); onSearch({ tripType, originCode, destinationCode, departureDate, returnDate: tripType === "roundtrip" ? returnDate : undefined, passengers }); } } : undefined}
+            />
+          </div>
 
-          {/* Search button lives outside the card to preserve card layout */}
-          {onSearch && (
-            <button
-              onClick={handleSearch}
-              disabled={!canSearch || isSearching}
-              className="relative flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed rounded-sm px-5 py-2 text-small font-semibold min-w-[140px]"
-              style={{
-                backgroundColor: "var(--color-primary)",
-                color: "#ffffff",
-              }}
-            >
-              {isSearching ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4 shrink-0"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12" cy="12" r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Buscando...
-                </>
-              ) : (
-                "Buscar vuelos"
-              )}
-            </button>
-          )}
+          {/* Desktop card */}
+          <div className="hidden lg:flex flex-col items-center gap-4 w-full">
+            <FlightSearchCard
+              tripType={tripType}
+              originCode={originCode}
+              destinationCode={destinationCode}
+              departureDate={departureDate}
+              returnDate={returnDate}
+              passengers={passengers}
+              airports={airports.length > 0 ? airports : undefined}
+              minDepartureDate={todayISO}
+              minReturnDate={departureDate || todayISO}
+              onTripTypeChange={setTripType}
+              onOriginChange={setOriginCode}
+              onDestinationChange={setDestinationCode}
+              onDepartureDateChange={setDepartureDate}
+              onReturnDateChange={setReturnDate}
+              onPassengersChange={setPassengers}
+              onSwapClick={() => { setOriginCode(destinationCode); setDestinationCode(originCode); }}
+            />
+
+            {onSearch && (
+              <button
+                onClick={handleSearch}
+                disabled={!canSearch || isSearching}
+                className="relative flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed rounded-sm px-5 py-2 text-small font-semibold min-w-[140px]"
+                style={{ backgroundColor: "var(--color-primary)", color: "#ffffff" }}
+              >
+                {isSearching ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4 shrink-0"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Buscando...
+                  </>
+                ) : (
+                  "Buscar vuelos"
+                )}
+              </button>
+            )}
+          </div>
         </m.div>
 
         {/* Trust badges */}
