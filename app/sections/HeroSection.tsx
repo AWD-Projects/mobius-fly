@@ -48,7 +48,7 @@ export const HeroSection = React.memo<HeroSectionProps>(({
       style={{ backgroundColor: "#090E11" }}
     >
       {/* Background Image */}
-      <div className="absolute inset-0 flex items-center justify-center md:justify-end pr-0 md:pr-12 lg:pr-16 xl:pr-24 2xl:pr-48">
+      <div className="absolute inset-0 overflow-hidden flex items-center justify-center md:justify-end pr-0 md:pr-12 lg:pr-16 xl:pr-24 2xl:pr-48">
         <div className="relative w-[400px] h-[400px] sm:w-[450px] sm:h-[450px] md:w-[450px] md:h-[450px] lg:w-[550px] lg:h-[550px] xl:w-[600px] xl:h-[600px] opacity-40 sm:opacity-60 md:opacity-100">
           <Image
             src="/assets/window.jpg"

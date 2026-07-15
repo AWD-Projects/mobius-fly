@@ -92,10 +92,6 @@ export const AircraftCardWithImage: React.FC<AircraftCardWithImageProps> = ({
             <span className="text-muted text-caption font-medium">Capacidad</span>
             <span className="text-text text-small font-semibold">{capacity}</span>
           </div>
-          <div className="flex flex-col gap-1.5 flex-1">
-            <span className="text-muted text-caption font-medium">Alcance</span>
-            <span className="text-text text-small font-semibold">{range}</span>
-          </div>
         </div>
       </div>
     </div>

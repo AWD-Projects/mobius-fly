@@ -1,6 +1,6 @@
 import * as React from "react";
+import Image from "next/image";
 import { m } from "framer-motion";
-import { Play, Plane } from "lucide-react";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 
 interface ExperienceSectionProps {
@@ -40,123 +40,72 @@ export const ExperienceSection = React.memo<ExperienceSectionProps>(({
           viewport={{ once: true, amount: 0.3 }}
           className="w-full max-w-7xl"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:auto-rows-[280px]">
-            {/* Video Placeholder - Large */}
-            <div
-              className="relative overflow-hidden group cursor-pointer h-[200px] sm:h-[240px] lg:col-span-5 lg:row-span-1 rounded-2xl"
-              style={{
-                backgroundColor: "#1a1a1a",
-              }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div
-                  className="transition-transform group-hover:scale-110"
-                  style={{
-                    width: "80px",
-                    height: "80px",
-                    borderRadius: "50%",
-                    border: "3px solid #F6F6F4",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Play
-                    size={32}
-                    fill="#F6F6F4"
-                    strokeWidth={0}
-                    style={{ marginLeft: "4px" }}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:auto-rows-[200px] xl:auto-rows-[240px] 2xl:auto-rows-[300px]">
+            {/* Video */}
+            <div className="relative overflow-hidden h-[240px] sm:h-[260px] lg:h-auto lg:col-span-5 lg:row-span-1 rounded-2xl bg-black">
+              <video
+                src={process.env.NEXT_PUBLIC_EXPERIENCE_VIDEO_URL ?? "/assets/experience/Video.mp4"}
+                className="absolute inset-0 w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
             </div>
 
-            {/* Wing Photo */}
-            <div
-              className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-4 lg:row-span-1 rounded-2xl"
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              }}
-            >
-              <span
-                style={{
-                  color: "#F6F6F4",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  opacity: 0.8,
-                }}
-              >
-                Vista del ala
-              </span>
+            {/* Window View */}
+            <div className="relative overflow-hidden h-[240px] sm:h-[260px] lg:h-auto lg:col-span-4 lg:row-span-1 rounded-2xl bg-neutral-200">
+              <Image
+                src="/assets/experience/01-hero-window.webp"
+                alt="Vista del ala"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover"
+              />
             </div>
 
-            {/* Service Photo */}
-            <div
-              className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-3 lg:row-span-1 rounded-2xl"
-              style={{
-                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-              }}
-            >
-              <span
-                className="text-xs sm:text-sm font-medium"
-                style={{
-                  color: "#F6F6F4",
-                  opacity: 0.8,
-                }}
-              >
-                Servicio a bordo
-              </span>
+            {/* Dining / Service */}
+            <div className="relative overflow-hidden h-[240px] sm:h-[260px] lg:h-auto lg:col-span-3 lg:row-span-1 rounded-2xl bg-neutral-200">
+              <Image
+                src="/assets/experience/03-private-jet-dining.webp"
+                alt="Servicio a bordo"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="object-cover"
+              />
             </div>
 
-            {/* Plane Silhouette */}
-            <div
-              className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-3 lg:row-span-1 rounded-2xl"
-              style={{
-                backgroundColor: "#E8E8E6",
-              }}
-            >
-              <Plane
-                size={60}
-                className="sm:w-20 sm:h-20"
-                strokeWidth={1}
-                style={{ color: "#39424E", opacity: 0.3 }}
+            {/* FBO Lounge */}
+            <div className="relative overflow-hidden h-[240px] sm:h-[260px] lg:h-auto lg:col-span-3 lg:row-span-1 rounded-2xl bg-neutral-200">
+              <Image
+                src="/assets/experience/02-fbo-lounge.webp"
+                alt="Lounge privado"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="object-cover"
               />
             </div>
 
             {/* Jet on Tarmac */}
-            <div
-              className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-4 lg:row-span-1 rounded-2xl"
-              style={{
-                background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-              }}
-            >
-              <span
-                className="text-xs sm:text-sm font-medium"
-                style={{
-                  color: "#F6F6F4",
-                  opacity: 0.8,
-                }}
-              >
-                Jet en pista
-              </span>
+            <div className="relative overflow-hidden h-[240px] sm:h-[260px] lg:h-auto lg:col-span-4 lg:row-span-1 rounded-2xl bg-neutral-200">
+              <Image
+                src="/assets/experience/05-jet-tarmac.webp"
+                alt="Jet en pista"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover"
+              />
             </div>
 
-            {/* Cockpit View */}
-            <div
-              className="relative overflow-hidden flex items-center justify-center h-[200px] sm:h-[240px] lg:col-span-5 lg:row-span-1 rounded-2xl"
-              style={{
-                background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-              }}
-            >
-              <span
-                className="text-xs sm:text-sm font-medium"
-                style={{
-                  color: "#F6F6F4",
-                  opacity: 0.8,
-                }}
-              >
-                Vista desde cabina
-              </span>
+            {/* Cabin Detail */}
+            <div className="relative overflow-hidden h-[240px] sm:h-[260px] lg:h-auto lg:col-span-5 lg:row-span-1 rounded-2xl bg-neutral-200">
+              <Image
+                src="/assets/experience/06-cabin-detail.webp"
+                alt="Detalle de cabina"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 42vw"
+                className="object-cover"
+              />
             </div>
           </div>
         </m.div>

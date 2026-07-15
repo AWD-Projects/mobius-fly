@@ -24,6 +24,7 @@ export interface ImageUploadProps {
   className?: string;
   aspectRatio?: "square" | "video" | "auto";
   previewHeight?: number;
+  error?: boolean;
 }
 
 const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
@@ -41,6 +42,7 @@ const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
       className,
       aspectRatio = "auto",
       previewHeight = 180,
+      error = false,
     },
     ref
   ) => {
@@ -108,7 +110,8 @@ const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
               "flex flex-col items-center justify-center gap-4 rounded-md cursor-pointer transition-all",
               "bg-neutral/20 border-2 border-dashed border-border",
               "hover:border-muted hover:bg-neutral/30",
-              isDragging && "border-primary bg-primary/5",
+              isDragging && "border-primary bg-[#C4A77D]/5",
+              error && !isDragging && "border-error bg-[#D25C5C]/5",
               aspectRatioClass,
               !aspectRatio || aspectRatio === "auto" ? "p-6" : ""
             )}

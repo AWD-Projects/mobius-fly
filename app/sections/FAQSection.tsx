@@ -45,8 +45,8 @@ export const FAQSection = React.memo<FAQSectionProps>(({
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 max-w-6xl">
           {/* Left Column - Para compradores */}
           <m.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             viewport={{ once: true, amount: 0.3 }}
             className="flex flex-col gap-6"
@@ -77,8 +77,8 @@ export const FAQSection = React.memo<FAQSectionProps>(({
 
           {/* Right Column - Para propietarios */}
           <m.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             viewport={{ once: true, amount: 0.3 }}
             className="flex flex-col gap-6"

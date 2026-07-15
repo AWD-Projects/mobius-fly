@@ -9,9 +9,12 @@ import { cn } from "@/lib/utils";
 
 interface AccountStepProps {
   form: UseFormReturn<AccountFormData>;
+  onCheckEmailExists: (email: string) => Promise<boolean>;
 }
 
-export const AccountStep = React.memo<AccountStepProps>(({ form }) => {
+export const AccountStep = React.memo<AccountStepProps>(({ form, onCheckEmailExists }) => {
+  const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
+
   const { minBirthDate, maxBirthDate } = React.useMemo(() => {
     const today = new Date();
     const max = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
@@ -65,7 +68,10 @@ export const AccountStep = React.memo<AccountStepProps>(({ form }) => {
                 name={field.name}
                 ref={field.ref}
                 value={field.value ?? ""}
-                onChange={field.onChange}
+                onChange={(value) => {
+                  field.onChange(value);
+                  if (value) form.clearErrors("birthDate");
+                }}
                 onBlur={field.onBlur}
                 min={minBirthDate}
                 max={maxBirthDate}
@@ -107,10 +113,31 @@ export const AccountStep = React.memo<AccountStepProps>(({ form }) => {
           <Input
             id="email"
             type="email"
-            {...form.register("email")}
+            {...form.register("email", {
+              onBlur: async (e) => {
+                const email = e.target.value;
+                if (!email || form.formState.errors.email) return;
+                setIsCheckingEmail(true);
+                try {
+                  const taken = await onCheckEmailExists(email);
+                  if (taken) {
+                    form.setError("email", {
+                      type: "manual",
+                      message: "Este correo ya está registrado.",
+                    });
+                  }
+                } finally {
+                  setIsCheckingEmail(false);
+                }
+              },
+            })}
             className="w-full"
             error={!!form.formState.errors.email}
+            disabled={isCheckingEmail}
           />
+          {isCheckingEmail && (
+            <p className="text-xs text-text opacity-60">Verificando correo...</p>
+          )}
           {form.formState.errors.email && (
             <p className="text-xs text-error">{form.formState.errors.email.message}</p>
           )}

@@ -1,13 +1,35 @@
-import { SectionHeader } from "@/components/molecules/SectionHeader";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getOwnerDashboard } from "@/app/actions/dashboard";
+import { DashboardContent } from "./_components/DashboardContent";
 
-export default function OwnerDashboardPage() {
+export default async function OwnerDashboardPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const [dashboardData, docsResult] = await Promise.all([
+        getOwnerDashboard(user.id),
+        supabase
+            .from("user_documents")
+            .select("document_status_code:document_status!user_documents_document_status_id_fkey(code)")
+            .eq("user_id", user.id)
+            .limit(1),
+    ]);
+
+    if (!dashboardData) redirect("/login");
+
+    const firstName = (user.user_metadata?.first_name as string | undefined) ?? null;
+
+    const docRow = docsResult.data?.[0] as { document_status_code: { code: string } | null } | undefined;
+    const documentStatus = docRow?.document_status_code?.code ?? null;
+
     return (
-        <div className="px-6 py-8 md:px-10 md:py-10 max-w-6xl">
-            <SectionHeader
-                size="page"
-                title="Dashboard"
-                subtitle="Resumen general de tu flota y actividad reciente."
-            />
-        </div>
+        <DashboardContent
+            data={dashboardData}
+            firstName={firstName}
+            documentStatus={documentStatus}
+        />
     );
 }

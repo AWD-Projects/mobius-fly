@@ -16,6 +16,13 @@
 # misc
 .DS_Store
 *.pem
+*.pdf
+
+# docs internos
+/docs
+
+# configuración local de Claude
+/.claude
 
 # debug
 npm-debug.log*
@@ -35,3 +42,8 @@ next-env.d.ts
 
 # storybook
 storybook-static
+
+# videos (serve from CDN/YouTube/bucket instead)
+*.mp4
+*.mov
+*.webm

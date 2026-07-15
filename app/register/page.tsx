@@ -96,6 +96,11 @@ export default function RegisterPage() {
     }, []);
 
     const handleDocumentUpload = useCallback((file: File) => {
+        if (file.size > 10 * 1024 * 1024) {
+            setApiError("El archivo excede el tamaño máximo permitido de 10 MB.");
+            return;
+        }
+        setApiError(null);
         setIdFile(file);
         setIdDocument({
             name: file.name,
@@ -128,6 +133,17 @@ export default function RegisterPage() {
             setVerificationCode(newCode);
             const lastInput = document.getElementById("code-5");
             lastInput?.focus();
+        }
+    }, []);
+
+    const handleCheckEmailExists = useCallback(async (email: string): Promise<boolean> => {
+        try {
+            const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+            if (!res.ok) return false;
+            const data = await res.json() as { exists: boolean };
+            return data.exists;
+        } catch {
+            return false;
         }
     }, []);
 
@@ -222,8 +238,12 @@ export default function RegisterPage() {
 
     const handlePrev = useCallback(() => {
         setApiError(null);
-        if (step > 1) setStep((step - 1) as Step);
-    }, [step]);
+        if (step > 1) {
+            const prevStep = (step - 1) as Step;
+            if (prevStep === 2) accountForm.clearErrors();
+            setStep(prevStep);
+        }
+    }, [step, accountForm]);
 
     const handleSubmit = useCallback(async () => {
         setApiError(null);
@@ -319,7 +339,7 @@ export default function RegisterPage() {
                                 )}
 
                                 {step === 2 && (
-                                    <AccountStep form={accountForm} />
+                                    <AccountStep form={accountForm} onCheckEmailExists={handleCheckEmailExists} />
                                 )}
 
                                 {step === 3 && (

@@ -31,7 +31,7 @@ export type ReservationStatusCode =
     | "CONFIRMED"
     | "CANCELLED";
 
-export type DocumentStatusCode = "PENDING" | "APPROVED" | "REJECTED";
+export type DocumentStatusCode = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 
 export interface UserDocument {
     id: string;
@@ -48,6 +48,50 @@ export interface OwnerProfile {
     user_id: string;
     fleet_name: string | null;
     status: "PENDING_ONBOARDING" | "ACTIVE" | "SUSPENDED";
+    stripe_account_id: string | null;
+    stripe_onboarding_completed_at: string | null;
+    stripe_charges_enabled: boolean | null;
+    stripe_payouts_enabled: boolean | null;
+    stripe_details_submitted: boolean | null;
+    created_at: string | null;
+    updated_at: string | null;
+}
+
+export interface FleetStats {
+    total_aircrafts: number;
+    unique_manufacturers: number;
+    total_seats_capacity: number;
+}
+
+export interface CrewStats {
+    total_crew: number;
+    active_crew: number;
+    crew_by_role: { role_name: string; count: number }[];
+}
+
+export interface FlightStats {
+    total_flights: number;
+    completed_flights: number;
+    upcoming_flights: number;
+    cancelled_flights: number;
+    total_seats_sold: number;
+}
+
+export interface EarningsStats {
+    total_earnings: number;
+    earnings_this_month: number;
+    total_transactions: number;
+    avg_earning_per_transaction: number;
+    currency: "MXN";
+}
+
+export interface OwnerProfileDetail extends OwnerProfile {
+    user_profile: UserProfile;
+    user_documents: UserDocument[];
+    fleet_stats: FleetStats;
+    crew_stats: CrewStats;
+    flight_stats: FlightStats;
+    earnings_stats: EarningsStats;
 }
 
 export interface Airport {
@@ -104,6 +148,9 @@ export interface FlightDetail extends FlightListItem {
     crew: CrewMemberPublic[];
     flight_plan_url: string | null;
     return_departure_datetime: string | null;
+    return_arrival_datetime: string | null;
+    return_departure_fbo_name: string | null;
+    return_arrival_fbo_name: string | null;
 }
 
 export interface ReservationPassenger {

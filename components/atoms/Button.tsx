@@ -18,6 +18,10 @@ const buttonVariants = cva(
           "border-0 text-primary underline-offset-4 hover:underline hover:text-primary/80",
         outline:
           "border-border bg-transparent text-text hover:bg-neutral/60 hover:border-text",
+        destructive:
+          "border-error bg-error text-white shadow-soft hover:brightness-110 hover:-translate-y-[1px]",
+        "ghost-destructive":
+          "border-error [color:var(--color-error)] hover:bg-neutral/60 hover:border-error",
       },
       size: {
         sm: "h-9 px-4 text-caption",

@@ -96,6 +96,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         const first = store.passengers[0];
         if (!first || first.slotType !== "adult" || first.isCompleted) return;
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoadingDocument(true);
         fetch("/api/auth/my-document")
             .then((res) => res.json())
@@ -388,6 +389,27 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                                 <TypeBadge variant="neutral">
                                     {flight.flight_type === "ONE_WAY" ? "Sencillo" : "Redondo"}
                                 </TypeBadge>
+
+                                {flight.flight_type === "ROUND_TRIP" && flight.return_departure_datetime && (
+                                    <>
+                                        <div className="w-full h-px bg-border" />
+                                        <span className="text-[10px] font-semibold text-muted uppercase tracking-wide">Regreso</span>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-h3 font-bold text-text">{flight.arrival_airport.iata_code}</span>
+                                            <span className="text-muted text-small">→</span>
+                                            <span className="text-h3 font-bold text-text">{flight.departure_airport.iata_code}</span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1.5 text-small">
+                                            <span className="text-text font-medium">{fmtDayDate(flight.return_departure_datetime)}</span>
+                                            <span className="text-muted">
+                                                {fmtTime(flight.return_departure_datetime)}
+                                                {flight.return_arrival_datetime ? ` – ${fmtTime(flight.return_arrival_datetime)}` : ""}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
 
                                 <div className="w-full h-px bg-border" />
 

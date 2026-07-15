@@ -5,6 +5,7 @@ import { m, LazyMotion, domAnimation } from "framer-motion";
 import {
     LayoutDashboard,
     Plane,
+    PlaneTakeoff,
     Ticket,
     Users,
     CircleUser,
@@ -46,10 +47,10 @@ const NAV_ITEMS: OwnerDockItem[] = [
         icon: <Plane size={22} strokeWidth={1.5} />,
     },
     {
-        id: "manifiestos",
-        label: "Manifiestos",
-        href: "/owner/manifiestos",
-        icon: <Ticket size={22} strokeWidth={1.5} />,
+        id: "aeronaves",
+        label: "Aeronaves",
+        href: "/owner/aeronaves",
+        icon: <PlaneTakeoff size={22} strokeWidth={1.5} />,
     },
     {
         id: "tripulacion",
@@ -164,7 +165,7 @@ export const OwnerDock = React.memo<OwnerDockProps>(({
                             key={item.id}
                             label={item.label}
                             icon={item.icon}
-                            isActive={activeHref === item.href}
+                            isActive={!!activeHref?.startsWith(item.href)}
                             onClick={() => handleNavigate(item.href)}
                             layoutGroup="dock-desktop"
                             tooltipPosition="right"
@@ -208,7 +209,7 @@ export const OwnerDock = React.memo<OwnerDockProps>(({
                         key={item.id}
                         label={item.label}
                         icon={item.icon}
-                        isActive={activeHref === item.href}
+                        isActive={!!activeHref?.startsWith(item.href)}
                         onClick={() => handleNavigate(item.href)}
                         layoutGroup="dock-mobile"
                         tooltipPosition="top"
