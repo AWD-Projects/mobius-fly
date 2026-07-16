@@ -61,9 +61,6 @@ export const FleetNameStep = React.memo<FleetNameStepProps>(({ onContinue, isLoa
           placeholder="Ej. Aerolineas del Norte"
           error={error || undefined}
         />
-        {error && (
-          <p className="text-[11px] text-[#C62828] mt-1">{error}</p>
-        )}
       </div>
 
       <Button

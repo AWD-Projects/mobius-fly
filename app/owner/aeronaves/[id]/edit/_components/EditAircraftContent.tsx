@@ -190,8 +190,29 @@ export function EditAircraftContent({ aircraftId, ownerId, initial, documents: i
                         <InputGroup label="Fabricante" type="text" placeholder="p. ej. Cessna" {...register("manufacturer")} />
                         <InputGroup label="Modelo de la aeronave" type="text" placeholder="p. ej. 208B Grand Caravan" error={errors.model?.message} {...register("model")} />
                         <InputGroup label="Matrícula / Tail number" type="text" placeholder="p. ej. N2345XY" error={errors.tailNumber?.message} {...register("tailNumber")} />
-                        <InputGroup label="Año del avión" type="text" placeholder="p. ej. 2020" {...register("year")} />
-                        <InputGroup label="Número de asientos" type="text" placeholder="p. ej. 8" error={errors.seats?.message} {...register("seats")} />
+                        <InputGroup
+                            label="Año del avión"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="p. ej. 2020"
+                            {...register("year", {
+                                onChange: (e) => {
+                                    e.target.value = e.target.value.replace(/\D/g, "");
+                                },
+                            })}
+                        />
+                        <InputGroup
+                            label="Número de asientos"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="p. ej. 8"
+                            error={errors.seats?.message}
+                            {...register("seats", {
+                                onChange: (e) => {
+                                    e.target.value = e.target.value.replace(/\D/g, "");
+                                },
+                            })}
+                        />
                     </div>
                 </div>
 

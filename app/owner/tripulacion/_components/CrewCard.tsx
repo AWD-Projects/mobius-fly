@@ -26,7 +26,7 @@ const statusConfig = {
   active:   { label: "Activo",                 status: "active"   as const },
   inactive: { label: "Inactivo",               status: "inactive" as const },
   pending:  { label: "Pendiente de aprobación",status: "pending"  as const },
-  rejected: { label: "Rechazado",              status: "inactive" as const },
+  rejected: { label: "Rechazado",              status: "rejected" as const },
 };
 
 export const CrewCard: React.FC<CrewCardProps> = ({ member, onView, onEdit, onDelete }) => {

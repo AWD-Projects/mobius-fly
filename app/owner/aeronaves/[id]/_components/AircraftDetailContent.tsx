@@ -244,7 +244,7 @@ export function AircraftDetailContent({ data, ownerId }: Props) {
 
                     {/* Actions */}
                     <div className="bg-white rounded-2xl border border-border p-6 flex flex-col gap-2">
-                        <h2 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">Acciones</h2>
+                        <h2 className="text-[13px] font-semibold text-text mb-1">Acciones</h2>
 
                         {isActive && (
                             <Button

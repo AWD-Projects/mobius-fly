@@ -141,6 +141,8 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
     const soldSeats     = initial.total_seats - initial.available_seats;
     const hasPassengers = soldSeats > 0;
+    // Un vuelo retrasado puede reprogramar fecha/hora aunque ya tenga pasajeros
+    const dateTimeDisabled = hasPassengers && initial.status_code !== "DELAYED";
     const requiredSeats = initial.aircraft?.seats ?? null;
 
     const {
@@ -508,19 +510,19 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} disabled={hasPassengers} {...register("departureDate")} />
+                            <InputGroup label="Fecha de salida" type="date" error={errors.departureDate?.message} disabled={dateTimeDisabled} {...register("departureDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} disabled={hasPassengers} {...register("departureTime")} />
+                            <InputGroup label="Hora de salida" type="time" error={errors.departureTime?.message} disabled={dateTimeDisabled} {...register("departureTime")} />
                         </div>
                     </div>
 
                     <div className="flex gap-8">
                         <div className="flex-1">
-                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} disabled={hasPassengers} {...register("arrivalDate")} />
+                            <InputGroup label="Fecha de llegada" type="date" error={errors.arrivalDate?.message} disabled={dateTimeDisabled} {...register("arrivalDate")} />
                         </div>
                         <div className="flex-1">
-                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} disabled={hasPassengers} {...register("arrivalTime")} />
+                            <InputGroup label="Hora de llegada" type="time" error={errors.arrivalTime?.message} disabled={dateTimeDisabled} {...register("arrivalTime")} />
                         </div>
                     </div>
 
@@ -544,18 +546,18 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                             </div>
                             <div className="flex gap-8">
                                 <div className="flex-1">
-                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} disabled={hasPassengers} {...register("returnDate")} />
+                                    <InputGroup label="Fecha de salida" type="date" error={errors.returnDate?.message} disabled={dateTimeDisabled} {...register("returnDate")} />
                                 </div>
                                 <div className="flex-1">
-                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} disabled={hasPassengers} {...register("returnTime")} />
+                                    <InputGroup label="Hora de salida" type="time" error={errors.returnTime?.message} disabled={dateTimeDisabled} {...register("returnTime")} />
                                 </div>
                             </div>
                             <div className="flex gap-8">
                                 <div className="flex-1">
-                                    <InputGroup label="Fecha de llegada" type="date" error={errors.returnArrivalDate?.message} disabled={hasPassengers} {...register("returnArrivalDate")} />
+                                    <InputGroup label="Fecha de llegada" type="date" error={errors.returnArrivalDate?.message} disabled={dateTimeDisabled} {...register("returnArrivalDate")} />
                                 </div>
                                 <div className="flex-1">
-                                    <InputGroup label="Hora de llegada" type="time" error={errors.returnArrivalTime?.message} disabled={hasPassengers} {...register("returnArrivalTime")} />
+                                    <InputGroup label="Hora de llegada" type="time" error={errors.returnArrivalTime?.message} disabled={dateTimeDisabled} {...register("returnArrivalTime")} />
                                 </div>
                             </div>
                         </>

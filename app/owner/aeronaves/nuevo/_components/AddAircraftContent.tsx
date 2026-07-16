@@ -254,16 +254,26 @@ export function AddAircraftContent({ ownerId }: Props) {
                                 <InputGroup
                                     label="Año del avión"
                                     type="text"
+                                    inputMode="numeric"
                                     placeholder="p. ej. 2020"
                                     error={errors.year?.message}
-                                    {...register("year")}
+                                    {...register("year", {
+                                        onChange: (e) => {
+                                            e.target.value = e.target.value.replace(/\D/g, "");
+                                        },
+                                    })}
                                 />
                                 <InputGroup
                                     label="Número de asientos"
                                     type="text"
+                                    inputMode="numeric"
                                     placeholder="p. ej. 8"
                                     error={errors.seats?.message}
-                                    {...register("seats")}
+                                    {...register("seats", {
+                                        onChange: (e) => {
+                                            e.target.value = e.target.value.replace(/\D/g, "");
+                                        },
+                                    })}
                                 />
                                 <SelectGroup
                                     label="Tipo de aeronave"

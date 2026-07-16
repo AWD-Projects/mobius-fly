@@ -39,8 +39,8 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
       onUpload,
       onRemove,
       accept = ".pdf,.doc,.docx",
-      pendingTitle = "Upload PDF document",
-      pendingDescription = "Drag & drop or click to select",
+      pendingTitle = "Subir documento PDF",
+      pendingDescription = "Arrastra y suelta o haz clic para seleccionar",
       className,
       variant = "default",
       isLoading = false,
@@ -162,7 +162,7 @@ const DocumentUpload = React.forwardRef<HTMLDivElement, DocumentUploadProps>(
                 onClick={onRemove}
                 variant="ghost"
                 size="sm"
-                aria-label="Remove document"
+                aria-label="Eliminar documento"
                 className="text-success hover:text-success/70"
               />
             )}
