@@ -202,36 +202,36 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
             </div>
 
             {/* Actions */}
-            <div className="px-6 py-6">
-                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Acciones</h3>
-                <div className="flex flex-col gap-2">
-                    {transitions.map(({ label, next, destructive }) => (
-                        <Button
-                            key={next}
-                            onClick={() => handleStatusChange(next, label)}
-                            variant={destructive ? "ghost-destructive" : "outline"}
-                            className="w-full h-10 justify-start"
-                            isLoading={isPending && pendingStatusNext === next}
-                            disabled={isPending || isDeleting}
-                        >
-                            {label}
-                        </Button>
-                    ))}
-                    {!isTerminal && statusCode !== "IN_FLIGHT" && (
-                        <Button
-                            onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
-                            variant="ghost"
-                            className="w-full h-10 justify-start gap-2.5"
-                            disabled={isPending || isDeleting}
-                            icon={<Pencil className="w-4 h-4 text-muted" />}
-                        >
-                            Editar vuelo
-                        </Button>
-                    )}
+            {!isTerminal && (
+                <div className="px-6 py-6">
+                    <h3 className="text-[13px] font-semibold text-text mb-3">Acciones</h3>
+                    <div className="flex flex-col gap-2">
+                        {transitions.map(({ label, next, destructive }) => (
+                            <Button
+                                key={next}
+                                onClick={() => handleStatusChange(next, label)}
+                                variant={destructive ? "ghost-destructive" : "outline"}
+                                className="w-full h-10 justify-start"
+                                isLoading={isPending && pendingStatusNext === next}
+                                disabled={isPending || isDeleting}
+                            >
+                                {label}
+                            </Button>
+                        ))}
+                        {statusCode !== "IN_FLIGHT" && (
+                            <Button
+                                onClick={() => router.push(`/owner/vuelos/${flightId}/edit`)}
+                                variant="ghost"
+                                className="w-full h-10 justify-start gap-2.5"
+                                disabled={isPending || isDeleting}
+                                icon={<Pencil className="w-4 h-4 text-muted" />}
+                            >
+                                Editar vuelo
+                            </Button>
+                        )}
 
-                    {!isTerminal && <div className="-mx-6 h-px bg-border mt-4" />}
+                        <div className="-mx-6 h-px bg-border mt-4" />
 
-                    {!isTerminal && (
                         <div className="flex items-center justify-between pt-3 pb-1">
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-[13px] font-medium text-text">Visible para compradores</span>
@@ -245,34 +245,33 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                                 onChange={(e) => handleToggleVisibility(e.target.checked)}
                             />
                         </div>
-                    )}
 
+                        {canCancel && (
+                            <Button
+                                onClick={() => setShowCancelDialog(true)}
+                                variant="ghost-destructive"
+                                className="w-full h-10 justify-start gap-2.5 text-[12px]"
+                                disabled={isPending || isDeleting || isCancelling}
+                                icon={<Trash2 className="w-4 h-4" />}
+                            >
+                                Cancelar vuelo
+                            </Button>
+                        )}
 
-                    {canCancel && (
-                        <Button
-                            onClick={() => setShowCancelDialog(true)}
-                            variant="ghost-destructive"
-                            className="w-full h-10 justify-start gap-2.5 text-[12px]"
-                            disabled={isPending || isDeleting || isCancelling}
-                            icon={<Trash2 className="w-4 h-4" />}
-                        >
-                            Cancelar vuelo
-                        </Button>
-                    )}
-
-                    {canDelete && (
-                        <Button
-                            onClick={() => setShowDeleteDialog(true)}
-                            variant="ghost-destructive"
-                            className="w-full h-10 justify-start gap-2.5 text-[12px]"
-                            disabled={isPending || isDeleting || isCancelling}
-                            icon={<Trash2 className="w-4 h-4" />}
-                        >
-                            Eliminar vuelo
-                        </Button>
-                    )}
+                        {canDelete && (
+                            <Button
+                                onClick={() => setShowDeleteDialog(true)}
+                                variant="ghost-destructive"
+                                className="w-full h-10 justify-start gap-2.5 text-[12px]"
+                                disabled={isPending || isDeleting || isCancelling}
+                                icon={<Trash2 className="w-4 h-4" />}
+                            >
+                                Eliminar vuelo
+                            </Button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <ConfirmDialog
                 open={showCancelDialog}

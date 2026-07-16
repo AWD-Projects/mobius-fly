@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { FEE_RATES } from "@/lib/payments/fees";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,11 +18,14 @@ export interface DashboardUpcomingFlight {
 
 export interface OwnerDashboardData {
     kpis: {
-        activeFlights:   number;
-        activeAircraft:  number;
-        activeCrew:      number;
-        pendingDocs:     number;
-        monthlyRevenue:  number;
+        activeFlights:            number;
+        activeAircraft:           number;
+        activeCrew:               number;
+        pendingDocs:              number;
+        monthlyRevenue:           number;
+        monthlyRevenueGross:      number;
+        monthlyRevenueCommission: number;
+        monthLabel:               string;
     };
     upcomingFlights: DashboardUpcomingFlight[];
     attention: {
@@ -52,7 +56,6 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
     const finishedStatusIds = ["COMPLETED", "CANCELLED"]
         .map(statusId).filter(Boolean) as string[];
 
-    const now        = new Date().toISOString();
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
     // Step 2: all bulk data in parallel
@@ -98,10 +101,9 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
                 flight_crew!flight_crew_flight_id_fkey(crew_member_id)
             `)
             .eq("owner_id", owner.id)
-            .gte("departure_datetime", now)
             .not("status_id", "in", `(${finishedStatusIds.join(",")})`)
             .order("departure_datetime", { ascending: true })
-            .limit(5),
+            .limit(50),
 
         supabase
             .from("flights")
@@ -156,14 +158,28 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
     ).length;
     const maintenanceAircraftCount = aircraftList.filter((a) => a.status === "MAINTENANCE").length;
 
-    const monthFlights    = (monthFlightsRes.data ?? []) as any[];
-    const MOBIUS_FEE = 0.15;
-    const monthlyRevenue  = monthFlights.reduce((sum, f) => {
-        const sold = (f.total_seats ?? 0) - (f.available_seats ?? 0);
-        return sum + sold * Number(f.price_per_seat ?? 0) * (1 - MOBIUS_FEE);
-    }, 0);
+    const round = (n: number) => Math.round(n * 100) / 100;
 
-    const upcomingFlights: DashboardUpcomingFlight[] = ((upcomingRes.data ?? []) as any[]).map((row) => {
+    const monthFlights = (monthFlightsRes.data ?? []) as any[];
+    const monthlyRevenueGross = monthFlights.reduce((sum, f) => {
+        const sold = (f.total_seats ?? 0) - (f.available_seats ?? 0);
+        return sum + sold * Number(f.price_per_seat ?? 0);
+    }, 0);
+    const monthlyRevenueCommission = round(monthlyRevenueGross * FEE_RATES.OWNER_COMMISSION);
+    const monthlyRevenue = round(monthlyRevenueGross - monthlyRevenueCommission);
+
+    const monthLabelRaw = new Date().toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+    const monthLabel = monthLabelRaw.charAt(0).toUpperCase() + monthLabelRaw.slice(1);
+
+    const nowTime = Date.now();
+    const upcomingRows = ((upcomingRes.data ?? []) as any[])
+        .sort((a, b) =>
+            Math.abs(new Date(a.departure_datetime).getTime() - nowTime) -
+            Math.abs(new Date(b.departure_datetime).getTime() - nowTime),
+        )
+        .slice(0, 5);
+
+    const upcomingFlights: DashboardUpcomingFlight[] = upcomingRows.map((row) => {
         const dep = row.departure_airport;
         const arr = row.arrival_airport;
         return {
@@ -195,6 +211,9 @@ export async function getOwnerDashboard(userId: string): Promise<OwnerDashboardD
             activeCrew:     crewCountRes.count ?? 0,
             pendingDocs:    pendingDocsCount,
             monthlyRevenue,
+            monthlyRevenueGross,
+            monthlyRevenueCommission,
+            monthLabel,
         },
         upcomingFlights,
         attention: {

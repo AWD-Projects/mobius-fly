@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/Button";
 import { KpiCard } from "@/components/organisms/KpiCard";
 import { AttentionSectionCard } from "@/components/organisms/AttentionSectionCard";
 import { UpcomingFlightsTable } from "./UpcomingFlightsTable";
-import { Plane, Users, Clock, DollarSign, FileText, Settings, type LucideIcon } from "lucide-react";
+import { Plane, Users, Clock, DollarSign, FileText, Settings, Info, type LucideIcon } from "lucide-react";
 import { AlertBox } from "@/components/molecules/AlertBox";
 import type { OwnerDashboardData } from "@/app/actions/dashboard";
 
@@ -20,6 +20,68 @@ function formatRevenue(amount: number): string {
     if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
     if (amount >= 1_000)     return `$${(amount / 1_000).toFixed(1)}K`;
     return amount.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+}
+
+function formatCurrencyFull(amount: number): string {
+    return amount.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+}
+
+// ─── Tooltip de desglose de ingresos ─────────────────────────────────────────
+
+interface RevenueBreakdownTooltipProps {
+    monthLabel: string;
+    gross:      number;
+    commission: number;
+    net:        number;
+}
+
+function RevenueBreakdownTooltip({ monthLabel, gross, commission, net }: RevenueBreakdownTooltipProps) {
+    const [isVisible, setIsVisible] = useState(false);
+
+    return (
+        <div
+            className="relative inline-flex"
+            onMouseEnter={() => setIsVisible(true)}
+            onMouseLeave={() => setIsVisible(false)}
+        >
+            <button
+                type="button"
+                aria-label="Ver desglose de ingresos"
+                className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors"
+                onClick={() => setIsVisible((v) => !v)}
+            >
+                <Info className="w-3 h-3 text-white" strokeWidth={2} />
+            </button>
+
+            {isVisible && (
+                <div className="absolute z-50 top-full right-0 mt-2 w-64 rounded-lg border border-border bg-white shadow-lg p-3.5 flex flex-col gap-2 text-left">
+                    <p className="text-[11px] font-semibold text-text">Desglose de {monthLabel}</p>
+
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex justify-between text-[11px]">
+                            <span className="text-muted">Ventas totales</span>
+                            <span className="text-text">{formatCurrencyFull(gross)}</span>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                            <span className="text-muted">Comisión Mobius (5%)</span>
+                            <span className="text-text">-{formatCurrencyFull(commission)}</span>
+                        </div>
+                    </div>
+
+                    <div className="w-full h-px bg-border" />
+
+                    <div className="flex justify-between text-[11px] font-semibold">
+                        <span className="text-text">Ingreso estimado</span>
+                        <span className="text-text">{formatCurrencyFull(net)}</span>
+                    </div>
+
+                    <p className="text-[10px] text-muted italic leading-snug">
+                        Valor aproximado, calculado con los asientos vendidos hasta hoy en vuelos de {monthLabel.toLowerCase()}.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export function DashboardContent({ data, firstName, documentStatus }: Props) {
@@ -56,13 +118,6 @@ export function DashboardContent({ data, firstName, documentStatus }: Props) {
             subtitle:        "Requieren revisión",
             variant:         "secondary" as const,
             backgroundColor: "#FFFFFF",
-        },
-        {
-            icon:            DollarSign,
-            value:           formatRevenue(data.kpis.monthlyRevenue),
-            title:           "Ingresos del mes",
-            subtitle:        "Asientos vendidos",
-            variant:         "dark" as const,
         },
     ];
 
@@ -155,6 +210,24 @@ export function DashboardContent({ data, firstName, documentStatus }: Props) {
                 {kpiData.map((kpi, i) => (
                     <KpiCard key={i} {...kpi} />
                 ))}
+
+                <div className="relative w-[280px] flex-shrink-0">
+                    <KpiCard
+                        icon={DollarSign}
+                        value={formatRevenue(data.kpis.monthlyRevenue)}
+                        title="Ingresos del mes"
+                        subtitle={`Estimado de ${data.kpis.monthLabel}`}
+                        variant="dark"
+                    />
+                    <div className="absolute top-6 right-6">
+                        <RevenueBreakdownTooltip
+                            monthLabel={data.kpis.monthLabel}
+                            gross={data.kpis.monthlyRevenueGross}
+                            commission={data.kpis.monthlyRevenueCommission}
+                            net={data.kpis.monthlyRevenue}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Main */}
