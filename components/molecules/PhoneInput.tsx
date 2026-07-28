@@ -118,8 +118,13 @@ const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
 
-    // Keep internal state in sync if `value` changes externally.
+    // Keep internal state in sync if `value` changes externally. Skip when
+    // `value` is just the echo of our own last emit (e.g. RHF round-tripping
+    // the onChange back through props) — otherwise every keystroke on an
+    // incomplete number gets re-parsed and the calling code bleeds into
+    // `digits`, which the user then can't fully delete.
     React.useEffect(() => {
+      if (value === buildE164(digits, country)) return;
       const next = parseE164(value ?? "", country);
       setDigits((prev) => (prev === next.national ? prev : next.national));
       if (next.country !== country && value) setCountry(next.country);
