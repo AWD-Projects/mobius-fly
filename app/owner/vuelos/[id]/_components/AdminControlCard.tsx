@@ -4,7 +4,7 @@ import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/Button";
 import { Switch } from "@/components/atoms/Switch";
-import { Download, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Download, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/components/atoms/Toast";
 import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
 import { updateFlightStatus, deleteFlight, cancelFlight, toggleFlightVisibility } from "@/app/actions/flights";
@@ -181,7 +181,14 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                                 className={`flex items-center justify-between py-3 ${i < passengers.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
                             >
                                 <div className="flex flex-col gap-0.5">
-                                    <span className="text-[13px] font-medium text-text">{p.full_name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[13px] font-medium text-text">{p.full_name}</span>
+                                        {p.is_minor && (
+                                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                                Menor de edad
+                                            </span>
+                                        )}
+                                    </div>
                                     {p.document_type && (
                                         <span className="text-[11px] text-muted">{p.document_type}</span>
                                     )}
@@ -190,6 +197,15 @@ export const AdminControlCard: React.FC<AdminControlCardProps> = ({
                         ))
                     )}
                 </div>
+
+                {passengers.some((p) => p.is_minor) && (
+                    <div className="flex items-start gap-2 mt-3 mb-1 bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                            <span className="font-semibold">Importante:</span> Este vuelo incluye menores de edad. Es indispensable contactar al responsable de la compra y a los tutores para obtener las cartas de autorización de viaje correspondientes antes del despegue.
+                        </p>
+                    </div>
+                )}
 
                 <Button
                     onClick={() => {}}

@@ -1,0 +1,468 @@
+"use client";
+
+import * as React from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, AlertTriangle, Info } from "lucide-react";
+import { LazyMotion, domAnimation, m } from "framer-motion";
+import { Navbar } from "@/components/organisms/Navbar";
+import { PassengerNavigationCard } from "@/components/organisms/PassengerNavigationCard";
+import {
+    PassengerForm,
+    type PassengerFormData,
+    type PassengerFormHandle,
+} from "@/components/molecules/PassengerForm";
+import { SectionHeader } from "@/components/molecules/SectionHeader";
+import { Button } from "@/components/atoms/Button";
+import { IconButton } from "@/components/atoms/IconButton";
+import { TypeBadge } from "@/components/atoms/TypeBadge";
+import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { toast } from "@/components/atoms/Toast";
+import { useBookingStore, type StoredPassenger } from "@/store/useBookingStore";
+import type { UploadedDocument } from "@/components/molecules/DocumentUpload";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MONTHS_FULL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+function fmtDayDate(iso: string): string {
+    const d = new Date(iso);
+    return `${DAYS[d.getUTCDay()]}, ${d.getUTCDate()} de ${MONTHS_FULL[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
+}
+
+function fmtTime(iso: string): string {
+    const d = new Date(iso);
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes().toString().padStart(2, "0");
+    const ampm = h >= 12 ? "PM" : "AM";
+    return `${h % 12 || 12}:${m} ${ampm}`;
+}
+
+function fmtDuration(minutes: number | null): string {
+    if (!minutes) return "";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function fmtPrice(n: number): string {
+    return n.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface PassengersContentProps {
+    flightId: string;
+}
+
+const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
+
+const fadeUp = (delay = 0) => ({
+    initial: { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.4, delay, ease: "easeOut" as const },
+});
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function PassengersContent({ flightId }: PassengersContentProps) {
+    const router = useRouter();
+    const { user, isHydrated: authHydrated, logout } = useLocalAuth();
+    const store = useBookingStore();
+
+    // ─── Redirect if store is empty ───────────────────────────────────────────
+    React.useEffect(() => {
+        if (!store._hasHydrated) return;
+        if (!store.flightDetail) {
+            router.replace(`/flights/${flightId}?passengers=${store.totalPassengers || 1}`);
+        }
+    }, [store._hasHydrated, store.flightDetail, store.totalPassengers, flightId, router]);
+
+    // ─── Form ref — always points to the currently active PassengerForm ───────
+    const formRef = React.useRef<PassengerFormHandle>(null);
+
+    // ─── Passenger state ──────────────────────────────────────────────────────
+    const [activeIndex, setActiveIndex] = React.useState(0);
+    const [documents, setDocuments] = React.useState<Record<number, UploadedDocument>>({});
+    const [isLoadingDocument, setIsLoadingDocument] = React.useState(false);
+    const [erroredPassengers, setErroredPassengers] = React.useState<Set<number>>(new Set());
+    const [isCreatingReservation, setIsCreatingReservation] = React.useState(false);
+    const [reservationError, setReservationError] = React.useState<string | null>(null);
+
+    // ─── Pre-load user's identity document for first passenger ───────────────
+    React.useEffect(() => {
+        if (!user || !store._hasHydrated) return;
+        const first = store.passengers[0];
+        if (!first || first.slotType !== "adult" || first.isCompleted) return;
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsLoadingDocument(true);
+        fetch("/api/auth/my-document")
+            .then((res) => res.json())
+            .then(({ document }) => {
+                if (document) {
+                    setDocuments((prev) => ({ ...prev, 0: document }));
+                }
+            })
+            .catch(() => {})
+            .finally(() => setIsLoadingDocument(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, store._hasHydrated]);
+
+    const activePassenger: StoredPassenger | undefined = store.passengers[activeIndex];
+
+    const handlePassengerSubmit = (data: PassengerFormData) => {
+        const documentUrl = documents[activeIndex]?.url ?? "";
+        store.updatePassenger(activeIndex, { ...data, documentUrl, isCompleted: true });
+        setErroredPassengers((prev) => {
+            const next = new Set(prev);
+            next.delete(activeIndex);
+            return next;
+        });
+        toast.success("Datos guardados", "La información del pasajero ha sido registrada.");
+    };
+
+    const handleDocumentUpload = (index: number, file: File) => {
+        setDocuments((prev) => ({
+            ...prev,
+            [index]: {
+                name: file.name,
+                size: `${(file.size / 1024).toFixed(0)} KB`,
+                url: URL.createObjectURL(file),
+            },
+        }));
+    };
+
+    const handleDocumentRemove = (index: number) => {
+        setDocuments((prev) => {
+            const next = { ...prev };
+            delete next[index];
+            return next;
+        });
+    };
+
+    // ─── Navigate between passengers (saves current first) ───────────────────
+    const handleNavigatePassenger = React.useCallback(async (
+        groupType: "adult" | "minor",
+        index: number,
+    ) => {
+        const adults = store.passengers.map((p, i) => ({ p, i })).filter(({ p }) => p.slotType === "adult");
+        const minors = store.passengers.map((p, i) => ({ p, i })).filter(({ p }) => p.slotType === "minor");
+        const group = groupType === "adult" ? adults : minors;
+        const targetIndex = group[index]?.i;
+
+        if (targetIndex === undefined || targetIndex === activeIndex) return;
+
+        // Try to save the current passenger before switching
+        const saved = await formRef.current?.submit();
+        if (!saved) return; // Validation failed — stay on current, errors are shown in form
+
+        setActiveIndex(targetIndex);
+    }, [store.passengers, activeIndex]);
+
+    // ─── Proceed to payment (saves current, checks all complete) ─────────────
+    const handleProceedToPayment = React.useCallback(async () => {
+        if (!store.flightDetail || !store.purchaseType) return;
+        setReservationError(null);
+
+        // Save the currently active passenger first
+        const saved = await formRef.current?.submit();
+        if (!saved) return;
+
+        // Read the LATEST store state — the submit() above updated it asynchronously
+        // so the captured `store` closure would be stale here.
+        const { passengers, purchaseType, totalPassengers, totalPrice, setReservation } =
+            useBookingStore.getState();
+
+        // Check if any other passengers are still incomplete
+        const firstIncomplete = passengers.findIndex((p) => !p.isCompleted);
+        if (firstIncomplete !== -1) {
+            const incompleteIndexes = new Set(
+                passengers.map((p, i) => (!p.isCompleted ? i : -1)).filter((i) => i !== -1),
+            );
+            setErroredPassengers(incompleteIndexes);
+            setActiveIndex(firstIncomplete);
+            return;
+        }
+
+        // All passengers complete — create reservation
+        setIsCreatingReservation(true);
+        try {
+            const res = await fetch("/api/reservations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    flightId,
+                    purchaseType,
+                    seatsRequested: totalPassengers,
+                    basePrice:      totalPrice,
+                    passengers,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setReservationError(data.error ?? "Error al crear la reserva.");
+                return;
+            }
+            setReservation(data.reservationId, data.bookingReference, data.blockedUntil, data.breakdown);
+            router.push(`/flights/${flightId}/payment?reservation_id=${data.reservationId}`);
+        } catch {
+            setReservationError("Error de conexión. Por favor intenta de nuevo.");
+        } finally {
+            setIsCreatingReservation(false);
+        }
+    }, [store.flightDetail, store.purchaseType, flightId, router]);
+
+    // ─── activeDefaults — must be before any early return (rules of hooks) ────
+    const activeDefaults: Partial<PassengerFormData> = React.useMemo(() => {
+        const p = activePassenger;
+        const base: Partial<PassengerFormData> = {
+            fullName:                p?.fullName,
+            sex:                     p?.sex,
+            dateOfBirth:             p?.dateOfBirth,
+            email:                   p?.email,
+            phone:                   p?.phone,
+            responsibleName:         p?.responsibleName,
+            responsibleRelationship: p?.responsibleRelationship,
+            responsiblePhone:        p?.responsiblePhone,
+        };
+
+        if (activeIndex === 0 && user && p?.slotType === "adult" && !p.isCompleted && !p.fullName) {
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+            const sexMap: Record<string, string> = { MALE: "male", FEMALE: "female", OTHER: "other" };
+            return {
+                ...base,
+                fullName:    fullName           || base.fullName,
+                email:       user.email         || base.email,
+                phone:       user.phone         || base.phone,
+                dateOfBirth: user.date_of_birth || base.dateOfBirth,
+                sex:         sexMap[user.gender] || base.sex,
+            };
+        }
+
+        return base;
+    }, [activeIndex, activePassenger, user]);
+
+    const flight = store.flightDetail;
+    const userInitials = user
+        ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
+        : undefined;
+
+    if (!flight) return null;
+
+    // ─── Build nav groups ─────────────────────────────────────────────────────
+    const adultPassengers = store.passengers.map((p, i) => ({ p, i })).filter(({ p }) => p.slotType === "adult");
+    const minorPassengers = store.passengers.map((p, i) => ({ p, i })).filter(({ p }) => p.slotType === "minor");
+
+    const navAdults = {
+        title: `Adultos (${store.adults})`,
+        passengers: adultPassengers.map(({ p, i }, idx) => ({
+            label: p.fullName ?? `Pasajero ${idx + 1}`,
+            isCompleted: p.isCompleted,
+            isActive: i === activeIndex,
+            hasError: erroredPassengers.has(i),
+        })),
+    };
+    const navMinors = {
+        title: `Menores (${store.minors})`,
+        passengers: minorPassengers.map(({ p, i }, idx) => ({
+            label: p.fullName ?? `Menor ${idx + 1}`,
+            isCompleted: p.isCompleted,
+            isActive: i === activeIndex,
+            hasError: erroredPassengers.has(i),
+        })),
+    };
+
+    const getFormTitle = () => {
+        if (!activePassenger) return "Pasajero";
+        if (activePassenger.slotType === "adult") {
+            const idx = adultPassengers.findIndex(({ i }) => i === activeIndex);
+            return `Adulto – Pasajero ${idx + 1}`;
+        } else {
+            const idx = minorPassengers.findIndex(({ i }) => i === activeIndex);
+            return `Menor – Pasajero ${store.adults + idx + 1}`;
+        }
+    };
+
+    return (
+        <LazyMotion features={domAnimation} strict>
+            <div className="min-h-screen bg-background">
+                <Navbar
+                    isLoggedIn={!!user}
+                    userType={user?.role === "OWNER" ? "owner" : "buyer"}
+                    userInitials={userInitials}
+                    logo={
+                        <Image src="/logo/main-logo.svg" alt="Mobius Fly" width={32} height={32} />
+                    }
+                    backgroundColor="var(--color-background)"
+                    contentPadding={sectionPadding}
+                    navLinks={[]}
+                    onLogoClick={() => router.push("/")}
+                    onNavLinkClick={(href) => router.push(href)}
+                    onLogoutClick={logout}
+                    onMyBookingsClick={() => router.push("/my-trips")}
+                />
+
+                {/* Header */}
+                <m.div {...fadeUp(0)} className={`w-full ${sectionPadding} py-8`}>
+                    <div className="flex items-center gap-4">
+                        <IconButton
+                            icon={<ArrowLeft size={24} />}
+                            variant="ghost"
+                            size="md"
+                            onClick={() => router.back()}
+                            aria-label="Volver"
+                        />
+                        <SectionHeader
+                            title="Información de pasajeros"
+                            subtitle="Completa los datos requeridos para continuar con tu reserva"
+                            size="page"
+                        />
+                    </div>
+                </m.div>
+
+                {/* Minor passenger warning */}
+                {store.minors > 0 && (
+                    <m.div {...fadeUp(0.03)} className={`w-full ${sectionPadding} pb-2`}>
+                        <div className="flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 p-4">
+                            <Info size={18} className="text-warning flex-shrink-0 mt-0.5" />
+                            <p className="text-small text-warning leading-relaxed">
+                                El registro de pasajeros menores de edad requiere validaciones adicionales.
+                                Para continuar con esta reserva, por favor contáctanos directamente en{" "}
+                                <a href="mailto:contacto@mobiusfly.com" className="font-semibold underline underline-offset-2">
+                                    contacto@mobiusfly.com
+                                </a>
+                                . El menor deberá viajar acompañado de un adulto responsable dentro de la misma reservación.
+                            </p>
+                        </div>
+                    </m.div>
+                )}
+
+                {/* Passenger forms */}
+                {store.passengers.length > 0 && (
+                    <div className={`w-full ${sectionPadding} pb-12 flex flex-col gap-6 lg:flex-row lg:gap-8 lg:items-start`}>
+                        {/* Left — navigation */}
+                        <m.div {...fadeUp(0.05)} className="w-full lg:w-[240px] lg:flex-shrink-0">
+                            <PassengerNavigationCard
+                                adults={navAdults}
+                                minors={navMinors}
+                                onPassengerClick={handleNavigatePassenger}
+                            />
+                        </m.div>
+
+                        {/* Center — form */}
+                        <m.div {...fadeUp(0.08)} className="flex-1 min-w-0 flex flex-col gap-4">
+                            <PassengerForm
+                                ref={formRef}
+                                key={`passenger-${activeIndex}-${authHydrated ? 1 : 0}`}
+                                title={getFormTitle()}
+                                passengerType={activePassenger?.slotType ?? "adult"}
+                                defaultValues={activeDefaults}
+                                document={documents[activeIndex]}
+                                isDocumentLoading={activeIndex === 0 && isLoadingDocument}
+                                onSubmit={handlePassengerSubmit}
+                                onDocumentUpload={(file) => handleDocumentUpload(activeIndex, file)}
+                                onDocumentRemove={() => handleDocumentRemove(activeIndex)}
+                            />
+                        </m.div>
+
+                        {/* Right — flight summary */}
+                        <m.div {...fadeUp(0.1)} className="w-full lg:w-[300px] lg:flex-shrink-0 flex flex-col gap-4">
+                            <div className="bg-surface rounded-md border border-border p-5 flex flex-col gap-4">
+                                <h3 className="text-body font-semibold text-text">Resumen de tu vuelo</h3>
+
+                                <div className="flex items-center gap-2">
+                                    <span className="text-h3 font-bold text-text">{flight.departure_airport.iata_code}</span>
+                                    <span className="text-muted text-small">→</span>
+                                    <span className="text-h3 font-bold text-text">{flight.arrival_airport.iata_code}</span>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 text-small">
+                                    <span className="text-text font-medium">{fmtDayDate(flight.departure_datetime)}</span>
+                                    <span className="text-muted">
+                                        {fmtTime(flight.departure_datetime)} – {fmtTime(flight.arrival_datetime)}
+                                        {flight.duration_minutes ? ` (${fmtDuration(flight.duration_minutes)})` : ""}
+                                    </span>
+                                </div>
+
+                                <TypeBadge variant="neutral">
+                                    {flight.flight_type === "ONE_WAY" ? "Sencillo" : "Redondo"}
+                                </TypeBadge>
+
+                                {flight.flight_type === "ROUND_TRIP" && flight.return_departure_datetime && (
+                                    <>
+                                        <div className="w-full h-px bg-border" />
+                                        <span className="text-[10px] font-semibold text-muted uppercase tracking-wide">Regreso</span>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-h3 font-bold text-text">{flight.arrival_airport.iata_code}</span>
+                                            <span className="text-muted text-small">→</span>
+                                            <span className="text-h3 font-bold text-text">{flight.departure_airport.iata_code}</span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1.5 text-small">
+                                            <span className="text-text font-medium">{fmtDayDate(flight.return_departure_datetime)}</span>
+                                            <span className="text-muted">
+                                                {fmtTime(flight.return_departure_datetime)}
+                                                {flight.return_arrival_datetime ? ` – ${fmtTime(flight.return_arrival_datetime)}` : ""}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="w-full h-px bg-border" />
+
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex justify-between text-small">
+                                        <span className="text-muted">Adultos</span>
+                                        <span className="text-text font-medium">{store.adults}</span>
+                                    </div>
+                                    {store.minors > 0 && (
+                                        <div className="flex justify-between text-small">
+                                            <span className="text-muted">Menores</span>
+                                            <span className="text-text font-medium">{store.minors}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="w-full h-px bg-border" />
+
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-h3 font-bold text-text">
+                                        ${fmtPrice(store.totalPrice)}{" "}
+                                        <span className="text-small font-normal text-muted">MXN</span>
+                                    </span>
+                                    {store.purchaseType === "seats" && (
+                                        <span className="text-caption text-muted">
+                                            por {store.totalPassengers}{" "}
+                                            {store.totalPassengers === 1 ? "asiento" : "asientos"}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {reservationError && (
+                                <div className="flex items-start gap-2 bg-error/10 border border-error/30 rounded-md p-3">
+                                    <AlertTriangle size={16} className="text-error flex-shrink-0 mt-0.5" />
+                                    <p className="text-caption text-error">{reservationError}</p>
+                                </div>
+                            )}
+
+                            <Button
+                                variant="secondary"
+                                size="lg"
+                                className="w-full"
+                                disabled={isCreatingReservation}
+                                isLoading={isCreatingReservation}
+                                onClick={handleProceedToPayment}
+                            >
+                                {isCreatingReservation ? "Reservando asientos..." : "Continuar con el pago"}
+                            </Button>
+                        </m.div>
+                    </div>
+                )}
+            </div>
+        </LazyMotion>
+    );
+}

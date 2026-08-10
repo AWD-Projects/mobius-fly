@@ -30,13 +30,13 @@ const ComparisonTable = React.forwardRef<HTMLDivElement, ComparisonTableProps>(
                 Mobius Fly
               </div>
               <div className="text-text/60 text-small font-semibold tracking-tight">
-                Charter Tradicional
+                Charter on-demand
               </div>
               <div className="text-text/60 text-small font-semibold tracking-tight">
-                Tarjeta de Jets
+                Jet Card
               </div>
               <div className="text-text/60 text-small font-semibold tracking-tight">
-                Charter Completo
+                Propiedad fraccionada
               </div>
             </div>
 

@@ -318,6 +318,7 @@ export interface OwnerFlightPassenger {
     id:            string;
     full_name:     string;
     document_type: string | null;
+    is_minor:      boolean;
 }
 
 export interface OwnerFlightCrewMember {
@@ -406,7 +407,7 @@ export async function getOwnerFlightDetail(
             .select(`
                 id,
                 reservation_status:reservation_status!reservations_reservation_status_id_fkey(code),
-                reservation_passengers(id, full_name, document_type)
+                reservation_passengers(id, full_name, document_type, is_minor)
             `)
             .eq("flight_id", flightId),
     ]);
@@ -436,6 +437,7 @@ export async function getOwnerFlightDetail(
                 id:            p.id,
                 full_name:     p.full_name,
                 document_type: p.document_type ?? null,
+                is_minor:      p.is_minor ?? false,
             })),
         );
 

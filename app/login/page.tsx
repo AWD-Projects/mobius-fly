@@ -41,7 +41,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (isHydrated && isLoggedIn) {
-            router.replace(user?.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
+            router.replace(user?.role === "OWNER" ? "/owner/dashboard" : "/");
         }
     }, [isHydrated, isLoggedIn, user, router]);
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
             }
 
             await login(json.user!);
-            router.push(json.user!.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
+            router.push(json.user!.role === "OWNER" ? "/owner/dashboard" : "/");
         } catch {
             setApiError("Error de conexión. Inténtalo de nuevo.");
         }
@@ -122,7 +122,7 @@ export default function LoginPage() {
                         />
 
                         <div className="space-y-2">
-                            <label htmlFor="password" className="block text-small font-medium tracking-[0.01em] text-secondary">
+                            <label htmlFor="password" className="block text-caption font-medium tracking-[0.01em] text-secondary">
                                 Contraseña
                             </label>
                             <div className="relative">

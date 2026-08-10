@@ -122,10 +122,10 @@ export const FooterSection = React.memo<FooterSectionProps>(({
               </h3>
               <nav className="flex flex-col gap-2 sm:gap-3">
                 {[
-                  { label: "Vuelos", href: "/flights" },
-                  { label: "Cómo funciona", href: "/how-it-works" },
-                  { label: "Beneficios", href: "/benefits" },
-                  { label: "Contacto", href: "/contact" },
+                  { label: "Vuelos", href: "vuelos" },
+                  { label: "Cómo funciona", href: "como-funciona" },
+                  { label: "Beneficios", href: "beneficios" },
+                  { label: "Contacto", href: "contacto" },
                 ].map((link) => (
                   <button
                     key={link.href}
@@ -155,8 +155,8 @@ export const FooterSection = React.memo<FooterSectionProps>(({
               </h3>
               <nav className="flex flex-col gap-3">
                 {[
-                  { label: "Preguntas frecuentes", href: "/faq" },
-                  { label: "Comparación", href: "/comparison" },
+                  { label: "Preguntas frecuentes", href: "preguntas-frecuentes" },
+                  { label: "Comparación", href: "comparacion" },
                 ].map((link) => (
                   <button
                     key={link.href}

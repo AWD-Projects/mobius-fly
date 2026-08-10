@@ -22,9 +22,9 @@ interface ComparisonSectionProps {
 type Competitor = "traditional" | "jetCard" | "fullCharter";
 
 const competitors: { key: Competitor; label: string }[] = [
-  { key: "traditional", label: "Charter Trad." },
-  { key: "jetCard", label: "Tarjeta Jets" },
-  { key: "fullCharter", label: "Charter Completo" },
+  { key: "traditional", label: "Charter on-demand" },
+  { key: "jetCard", label: "Jet Card" },
+  { key: "fullCharter", label: "Prop. fraccionada" },
 ];
 
 export const ComparisonSection = React.memo<ComparisonSectionProps>(({

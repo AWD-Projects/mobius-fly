@@ -269,14 +269,13 @@ export default function Home() {
 
   // Comparison table data
   const comparisonFeatures = [
-    { feature: "Modelo de compra", mobius: "Por asiento", traditional: "Avión completo", jetCard: "Horas prepagadas", fullCharter: "Avión completo" },
-    { feature: "Costo de entrada", mobius: "Desde $8,500 MXN/asiento", traditional: "$180,000+ MXN el vuelo", jetCard: "$3.7M MXN (25 hrs mín.)", fullCharter: "$200,000+ MXN el vuelo" },
-    { feature: "Vuelo completo obligatorio", mobius: "No", traditional: "Sí", jetCard: "Sí", fullCharter: "Sí" },
-    { feature: "Transparencia de precios", mobius: "Precio fijo visible", traditional: "Variable, negociable", jetCard: "Tarifa por hora fija", fullCharter: "Precio negociado" },
-    { feature: "Flexibilidad de reserva", mobius: "Muy alta", traditional: "Baja", jetCard: "Moderada", fullCharter: "Alta" },
-    { feature: "Proceso de pago", mobius: "Digital, instantáneo", traditional: "Manual, con depósito", jetCard: "Contrato por bloque", fullCharter: "Manual o depósito" },
-    { feature: "Acceso a vuelos vacíos", mobius: "Sí, especializado", traditional: "No", jetCard: "Ocasionalmente", fullCharter: "No" },
-    { feature: "Ideal para", mobius: "Viajeros ocasionales", traditional: "Grupos y ejecutivos", jetCard: "Usuarios muy frecuentes", fullCharter: "Grupos o eventos" },
+    { feature: "Modelo de acceso", mobius: "Por asiento o vuelo completo en empty legs", traditional: "Avión completo por viaje", jetCard: "Bloque prepago de horas", fullCharter: "Participación en una aeronave o flota" },
+    { feature: "Compromiso inicial", mobius: "Bajo", traditional: "Sin compromiso recurrente, costo alto por viaje", jetCard: "Alto; prepago de horas", fullCharter: "Muy alto; depósito y cargos recurrentes" },
+    { feature: "Precio", mobius: "Precio publicado por asiento o vuelo", traditional: "Cotización variable por viaje", jetCard: "Precio relativamente predecible", fullCharter: "Costos de adquisición y operación" },
+    { feature: "Flexibilidad de ruta y horario", mobius: "Limitada al inventario disponible", traditional: "Muy alta", jetCard: "Alta, sujeta a condiciones", fullCharter: "Alta" },
+    { feature: "Proceso de compra", mobius: "Digital por reserva", traditional: "Cotización, contrato y pago", jetCard: "Prepago y gestión posterior", fullCharter: "Contrato de largo plazo" },
+    { feature: "Empty legs", mobius: "Producto central", traditional: "Disponibles ocasionalmente", jetCard: "Depende del proveedor", fullCharter: "No son el producto principal" },
+    { feature: "Ideal para", mobius: "Viajeros flexibles que buscan menor costo de entrada", traditional: "Grupos con itinerarios específicos", jetCard: "Usuarios frecuentes que buscan predictibilidad", fullCharter: "Usuarios corporativos o de muy alta frecuencia" },
   ];
 
   // FAQ data

@@ -68,7 +68,7 @@ export const FlightsTable: React.FC<FlightsTableProps> = ({ flights, onView, onE
                 <TableHead style={{ flex: 1 }}>Aeronave</TableHead>
                 <TableHead style={{ flex: 1 }}>Tipo</TableHead>
                 <TableHead style={{ flex: 1 }}>Estado</TableHead>
-                <TableHead style={{ flex: 1 }}>Capacidad</TableHead>
+                <TableHead style={{ flex: 1 }}>Ocupación</TableHead>
                 <TableHead style={{ flex: 1 }}>Acciones</TableHead>
             </TableHeader>
             <TableBody>

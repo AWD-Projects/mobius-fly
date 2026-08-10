@@ -60,7 +60,7 @@ export const UpcomingFlightsTable: React.FC<UpcomingFlightsTableProps> = ({
                         <TableHead style={{ flex: 2 }}>Aeronave</TableHead>
                         <TableHead style={{ flex: 1.5 }}>Tipo</TableHead>
                         <TableHead style={{ flex: 1.5 }}>Estado</TableHead>
-                        <TableHead style={{ flex: 1 }}>Capacidad</TableHead>
+                        <TableHead style={{ flex: 1 }}>Ocupación</TableHead>
                     </TableHeader>
                     <TableBody>
                         {flights.map((flight, index) => {
