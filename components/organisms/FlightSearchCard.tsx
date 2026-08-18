@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Pills } from "@/components/atoms/Pills";
 import { Button } from "@/components/atoms/Button";
@@ -82,6 +82,8 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
   ) => {
     const [showOriginSelect, setShowOriginSelect] = React.useState(false);
     const [showDestinationSelect, setShowDestinationSelect] = React.useState(false);
+    const [originQuery, setOriginQuery] = React.useState("");
+    const [destinationQuery, setDestinationQuery] = React.useState("");
     const [internalPassengers, setInternalPassengers] = React.useState(passengers);
 
     // Lock page scroll while any dropdown is open
@@ -183,43 +185,62 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
 
           {showOriginSelect && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowOriginSelect(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => { setShowOriginSelect(false); setOriginQuery(""); }} />
               <div
-                className="absolute z-20 mt-2 rounded-sm overflow-hidden"
+                className="absolute z-20 mt-2 rounded-sm overflow-hidden flex flex-col"
                 style={{
                   backgroundColor: "#FBFAF9",
                   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
                   minWidth: "250px",
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                  overscrollBehavior: "contain",
+                  maxHeight: "320px",
                 }}
               >
-                {airports.filter((a) => a.code !== destinationCode).map((airport) => (
-                  <Button
-                    key={airport.code}
-                    variant="ghost"
-                    onClick={() => {
-                      onOriginChange?.(airport.code);
-                      setShowOriginSelect(false);
-                    }}
-                    className="w-full h-auto px-4 py-3 justify-start text-left rounded-none border-none border-b border-border"
-                  >
-                    <div className="flex flex-col gap-0 text-left">
-                      <span
-                        className="text-body font-semibold"
-                        style={{
-                          color: originCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
+                {/* Search input */}
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+                  <Search size={13} className="text-muted shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={originQuery}
+                    onChange={(e) => setOriginQuery(e.target.value)}
+                    placeholder="Buscar ciudad o código..."
+                    className="flex-1 text-small bg-transparent focus:outline-none text-text placeholder:text-muted"
+                  />
+                </div>
+                <div className="overflow-y-auto overscroll-contain">
+                  {airports
+                    .filter((a) => a.code !== destinationCode)
+                    .filter((a) => {
+                      const q = originQuery.toLowerCase();
+                      return !q || a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+                    })
+                    .map((airport) => (
+                      <Button
+                        key={airport.code}
+                        variant="ghost"
+                        onClick={() => {
+                          onOriginChange?.(airport.code);
+                          setShowOriginSelect(false);
+                          setOriginQuery("");
                         }}
+                        className="w-full h-auto px-4 py-3 justify-start text-left rounded-none border-none border-b border-border"
                       >
-                        {airport.code}
-                      </span>
-                      <span className="text-caption font-normal text-muted">
-                        {airport.city} - {airport.name}
-                      </span>
-                    </div>
-                  </Button>
-                ))}
+                        <div className="flex flex-col gap-0 text-left">
+                          <span
+                            className="text-body font-semibold"
+                            style={{
+                              color: originCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
+                            }}
+                          >
+                            {airport.code}
+                          </span>
+                          <span className="text-caption font-normal text-muted">
+                            {airport.city} - {airport.name}
+                          </span>
+                        </div>
+                      </Button>
+                    ))}
+                </div>
               </div>
             </>
           )}
@@ -258,43 +279,62 @@ const FlightSearchCard = React.forwardRef<HTMLDivElement, FlightSearchCardProps>
 
           {showDestinationSelect && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowDestinationSelect(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => { setShowDestinationSelect(false); setDestinationQuery(""); }} />
               <div
-                className="absolute z-20 mt-2 rounded-sm overflow-hidden"
+                className="absolute z-20 mt-2 rounded-sm overflow-hidden flex flex-col"
                 style={{
                   backgroundColor: "#FBFAF9",
                   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
                   minWidth: "250px",
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                  overscrollBehavior: "contain",
+                  maxHeight: "320px",
                 }}
               >
-                {airports.filter((a) => a.code !== originCode).map((airport) => (
-                  <Button
-                    key={airport.code}
-                    variant="ghost"
-                    onClick={() => {
-                      onDestinationChange?.(airport.code);
-                      setShowDestinationSelect(false);
-                    }}
-                    className="w-full h-auto px-4 py-3 justify-start text-left rounded-none border-none border-b border-border"
-                  >
-                    <div className="flex flex-col gap-0 text-left">
-                      <span
-                        className="text-body font-semibold"
-                        style={{
-                          color: destinationCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
+                {/* Search input */}
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+                  <Search size={13} className="text-muted shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={destinationQuery}
+                    onChange={(e) => setDestinationQuery(e.target.value)}
+                    placeholder="Buscar ciudad o código..."
+                    className="flex-1 text-small bg-transparent focus:outline-none text-text placeholder:text-muted"
+                  />
+                </div>
+                <div className="overflow-y-auto overscroll-contain">
+                  {airports
+                    .filter((a) => a.code !== originCode)
+                    .filter((a) => {
+                      const q = destinationQuery.toLowerCase();
+                      return !q || a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+                    })
+                    .map((airport) => (
+                      <Button
+                        key={airport.code}
+                        variant="ghost"
+                        onClick={() => {
+                          onDestinationChange?.(airport.code);
+                          setShowDestinationSelect(false);
+                          setDestinationQuery("");
                         }}
+                        className="w-full h-auto px-4 py-3 justify-start text-left rounded-none border-none border-b border-border"
                       >
-                        {airport.code}
-                      </span>
-                      <span className="text-caption font-normal text-muted">
-                        {airport.city} - {airport.name}
-                      </span>
-                    </div>
-                  </Button>
-                ))}
+                        <div className="flex flex-col gap-0 text-left">
+                          <span
+                            className="text-body font-semibold"
+                            style={{
+                              color: destinationCode === airport.code ? "var(--color-primary)" : "var(--color-text)",
+                            }}
+                          >
+                            {airport.code}
+                          </span>
+                          <span className="text-caption font-normal text-muted">
+                            {airport.city} - {airport.name}
+                          </span>
+                        </div>
+                      </Button>
+                    ))}
+                </div>
               </div>
             </>
           )}

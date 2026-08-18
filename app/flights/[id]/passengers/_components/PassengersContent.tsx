@@ -142,8 +142,8 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         });
     };
 
-    // ─── Navigate between passengers (saves current first) ───────────────────
-    const handleNavigatePassenger = React.useCallback(async (
+    // ─── Navigate between passengers freely (persists partial data) ──────────
+    const handleNavigatePassenger = React.useCallback((
         groupType: "adult" | "minor",
         index: number,
     ) => {
@@ -154,12 +154,12 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
 
         if (targetIndex === undefined || targetIndex === activeIndex) return;
 
-        // Try to save the current passenger before switching
-        const saved = await formRef.current?.submit();
-        if (!saved) return; // Validation failed — stay on current, errors are shown in form
+        // Persist whatever the user has typed so far (without validating)
+        const partial = formRef.current?.getValues();
+        if (partial) store.updatePassenger(activeIndex, partial);
 
         setActiveIndex(targetIndex);
-    }, [store.passengers, activeIndex]);
+    }, [store, activeIndex]);
 
     // ─── Proceed to payment (saves current, checks all complete) ─────────────
     const handleProceedToPayment = React.useCallback(async () => {
