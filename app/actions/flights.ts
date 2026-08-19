@@ -16,7 +16,7 @@ import type {
 export interface SearchFlightsParams {
     origin: string;
     destination: string;
-    date: string;
+    date?: string;
     returnDate?: string;
     type: "one_way" | "round_trip";
     passengers: number;
@@ -26,7 +26,7 @@ export interface SearchFlightsParams {
 }
 
 export interface SearchFlightsResult {
-    items: FlightListItem[] | RoundTripPair[];
+    items: FlightListItem[];
     totalCount: number;
     totalPages: number;
 }
@@ -107,16 +107,13 @@ export async function searchFlights(
     const {
         origin,
         destination,
-        date,
-        returnDate,
-        type,
         passengers,
         page = 1,
         pageSize = 4,
         sortBy = "price_asc",
     } = params;
 
-    if (!origin || !destination || !date) {
+    if (!origin || !destination) {
         return { items: [], totalCount: 0, totalPages: 0 };
     }
 
@@ -144,85 +141,30 @@ export async function searchFlights(
     const ascending = sortBy === "price_asc";
     const rangeFrom = (page - 1) * pageSize;
     const rangeTo = rangeFrom + pageSize - 1;
-    const dateStart = `${date}T00:00:00-06:00`;
-    const dateEnd   = `${date}T23:59:59-06:00`;
+    const now = new Date().toISOString();
 
-    // ── ONE_WAY ───────────────────────────────────────────────────────────────
-    if (type === "one_way") {
-        const { data, count, error } = await supabase
-            .from("flights")
-            .select(LIST_SELECT, { count: "exact" })
-            .eq("is_visible", true)
-            .eq("flight_type", "ONE_WAY")
-            .eq("departure_airport_id", depAirport.id)
-            .eq("arrival_airport_id", arrAirport.id)
-            .gte("available_seats", passengers)
-            .gte("departure_datetime", dateStart)
-            .lte("departure_datetime", dateEnd)
-            .in("status_id", statusIds)
-            .order("price_per_seat", { ascending })
-            .range(rangeFrom, rangeTo);
-
-        if (error) {
-            console.error("[searchFlights] one_way error:", error.message);
-            return { items: [], totalCount: 0, totalPages: 0 };
-        }
-
-        const totalCount = count ?? 0;
-        return {
-            items: (data ?? []).map(rowToFlightListItem),
-            totalCount,
-            totalPages: Math.ceil(totalCount / pageSize),
-        };
-    }
-
-    // ── ROUND_TRIP ────────────────────────────────────────────────────────────
-    // Single record per round-trip: outbound airports + return_departure_datetime
-    let roundQuery = supabase
+    // ── Query all flights on the route (both ONE_WAY and ROUND_TRIP) ──────────
+    const { data, count, error } = await supabase
         .from("flights")
         .select(LIST_SELECT, { count: "exact" })
         .eq("is_visible", true)
-        .eq("flight_type", "ROUND_TRIP")
         .eq("departure_airport_id", depAirport.id)
         .eq("arrival_airport_id", arrAirport.id)
         .gte("available_seats", passengers)
-        .gte("departure_datetime", dateStart)
-        .lte("departure_datetime", dateEnd)
+        .gte("departure_datetime", now)
         .in("status_id", statusIds)
-        .order("price_per_seat", { ascending });
+        .order("departure_datetime", { ascending: true })
+        .order("price_per_seat", { ascending })
+        .range(rangeFrom, rangeTo);
 
-    if (returnDate) {
-        roundQuery = roundQuery
-            .gte("return_departure_datetime", `${returnDate}T00:00:00-06:00`)
-            .lte("return_departure_datetime", `${returnDate}T23:59:59-06:00`);
-    }
-
-    const { data: roundRows, count: roundCount, error: roundError } =
-        await roundQuery.range(rangeFrom, rangeTo) as { data: any[] | null; count: number | null; error: unknown };
-
-    if (roundError || !roundRows || roundRows.length === 0) {
+    if (error) {
+        console.error("[searchFlights] error:", error.message);
         return { items: [], totalCount: 0, totalPages: 0 };
     }
 
-    // Build synthetic inbound FlightListItem from the same record (reversed airports)
-    const pairs: RoundTripPair[] = roundRows.map((row) => {
-        const outbound = rowToFlightListItem(row);
-        const inbound: FlightListItem = {
-            ...outbound,
-            id: `${row.id}-return`,
-            departure_airport: row.arrival_airport as Airport,
-            arrival_airport: row.departure_airport as Airport,
-            departure_fbo_name: row.arrival_fbo_name ?? "",
-            arrival_fbo_name: row.departure_fbo_name ?? null,
-            departure_datetime: row.return_departure_datetime ?? row.departure_datetime,
-            arrival_datetime: row.arrival_datetime,
-        };
-        return { id: row.id, outbound, inbound, currency: "MXN" };
-    });
-
-    const totalCount = roundCount ?? pairs.length;
+    const totalCount = count ?? 0;
     return {
-        items: pairs,
+        items: (data ?? []).map(rowToFlightListItem),
         totalCount,
         totalPages: Math.ceil(totalCount / pageSize),
     };
@@ -318,6 +260,7 @@ export interface OwnerFlightPassenger {
     id:            string;
     full_name:     string;
     document_type: string | null;
+    is_minor:      boolean;
 }
 
 export interface OwnerFlightCrewMember {
@@ -406,7 +349,7 @@ export async function getOwnerFlightDetail(
             .select(`
                 id,
                 reservation_status:reservation_status!reservations_reservation_status_id_fkey(code),
-                reservation_passengers(id, full_name, document_type)
+                reservation_passengers(id, full_name, document_type, is_minor)
             `)
             .eq("flight_id", flightId),
     ]);
@@ -436,6 +379,7 @@ export async function getOwnerFlightDetail(
                 id:            p.id,
                 full_name:     p.full_name,
                 document_type: p.document_type ?? null,
+                is_minor:      p.is_minor ?? false,
             })),
         );
 

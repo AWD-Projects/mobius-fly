@@ -18,6 +18,19 @@
 *.pem
 *.pdf
 
+# iCloud Drive duplicates
+*.icloud
+*[0-9] 2.*
+*[0-9] 3.*
+* 2.ts
+* 2.tsx
+* 2.sql
+* 2.mjs
+* 3.ts
+* 3.tsx
+* 3.sql
+* 3.mjs
+
 # docs internos
 /docs
 

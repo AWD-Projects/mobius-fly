@@ -9,13 +9,12 @@ import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Navbar } from "@/components/organisms/Navbar";
 import { IconButton } from "@/components/atoms/IconButton";
 import { FlightListCardSimple } from "@/components/organisms/FlightListCardSimple";
-import { FlightListCardRound } from "@/components/organisms/FlightListCardRound";
 import { SearchSummaryCard } from "@/components/organisms/SearchSummaryCard";
 import { ModifySearchModal, type ModifySearchValues } from "@/components/organisms/ModifySearchModal";
 import { Pagination } from "@/components/molecules/Pagination";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { useBookingStore } from "@/store/useBookingStore";
-import type { FlightListItem, RoundTripPair } from "@/types/app.types";
+import type { FlightListItem } from "@/types/app.types";
 import type { SearchFlightsParams, SearchFlightsResult } from "@/app/actions/flights";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -129,12 +128,6 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
         setLastSearch({ origin, destination, date, returnDate, type, passengers });
         const qp = new URLSearchParams({ passengers: String(passengers) });
         router.push(`/flights/${flight.id}?${qp.toString()}`);
-    };
-
-    const handleSelectPair = (pair: RoundTripPair) => {
-        setLastSearch({ origin, destination, date, returnDate, type, passengers });
-        const qp = new URLSearchParams({ passengers: String(passengers) });
-        router.push(`/flights/${pair.outbound.id}?${qp.toString()}`);
     };
 
     const handleModifySearch = (values: ModifySearchValues) => {
@@ -270,28 +263,14 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
 
                                 {/* Cards */}
                                 <div className="flex flex-col gap-4">
-                                    {items.map((item, i) => {
-                                        if (type === "round_trip") {
-                                            const pair = item as RoundTripPair;
-                                            return (
-                                                <m.div key={pair.id} {...fadeUp(0.08 + i * 0.06)}>
-                                                    <FlightListCardRound
-                                                        pair={pair}
-                                                        onSelect={handleSelectPair}
-                                                    />
-                                                </m.div>
-                                            );
-                                        }
-                                        const flight = item as FlightListItem;
-                                        return (
-                                            <m.div key={flight.id} {...fadeUp(0.08 + i * 0.06)}>
-                                                <FlightListCardSimple
-                                                    flight={flight}
-                                                    onSelect={handleSelectFlight}
-                                                />
-                                            </m.div>
-                                        );
-                                    })}
+                                    {(items as FlightListItem[]).map((flight, i) => (
+                                        <m.div key={flight.id} {...fadeUp(0.08 + i * 0.06)}>
+                                            <FlightListCardSimple
+                                                flight={flight}
+                                                onSelect={handleSelectFlight}
+                                            />
+                                        </m.div>
+                                    ))}
                                 </div>
 
                                 {/* Pagination */}
@@ -322,7 +301,7 @@ export function FlightsContent({ searchState, initialData }: FlightsContentProps
                         <SearchSummaryCard
                             origin={origin || "—"}
                             destination={destination || "—"}
-                            date={date}
+                            date={date ?? ""}
                             returnDate={returnDate}
                             type={type}
                             passengers={passengers}

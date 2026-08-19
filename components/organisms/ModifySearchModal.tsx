@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -88,6 +88,10 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
     });
 
     const [isSearching, setIsSearching] = React.useState(false);
+    const [originQuery, setOriginQuery] = React.useState("");
+    const [destinationQuery, setDestinationQuery] = React.useState("");
+    const [showOriginDropdown, setShowOriginDropdown] = React.useState(false);
+    const [showDestinationDropdown, setShowDestinationDropdown] = React.useState(false);
 
     const watchedType = watch("type");
     const watchedDate = watch("date");
@@ -149,34 +153,131 @@ export const ModifySearchModal: React.FC<ModifySearchModalProps> = ({
                 >
                     {/* Origen + Destino */}
                     <div className="flex gap-4">
-                        <SelectGroup
-                            label="Origen"
-                            required
-                            className="flex-1"
-                            error={errors.origin?.message}
-                            {...register("origin")}
-                        >
-                            <option value="">Selecciona origen</option>
-                            {originOptions.map((a) => (
-                                <option key={a.id} value={a.iata_code}>
-                                    {a.iata_code} — {a.city}
-                                </option>
-                            ))}
-                        </SelectGroup>
-                        <SelectGroup
-                            label="Destino"
-                            required
-                            className="flex-1"
-                            error={errors.destination?.message}
-                            {...register("destination")}
-                        >
-                            <option value="">Selecciona destino</option>
-                            {destinationOptions.map((a) => (
-                                <option key={a.id} value={a.iata_code}>
-                                    {a.iata_code} — {a.city}
-                                </option>
-                            ))}
-                        </SelectGroup>
+                        {/* Origen combobox */}
+                        <Controller
+                            name="origin"
+                            control={control}
+                            render={({ field }) => {
+                                const selected = originOptions.find((a) => a.iata_code === field.value);
+                                const filtered = originOptions.filter((a) => {
+                                    const q = originQuery.toLowerCase();
+                                    return !q || a.iata_code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+                                });
+                                return (
+                                    <div className="flex-1 flex flex-col gap-2">
+                                        <label className="text-caption font-medium text-secondary">
+                                            Origen <span className="text-error">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowOriginDropdown((v) => !v); setShowDestinationDropdown(false); }}
+                                                className="flex h-10 w-full items-center justify-between rounded-sm border border-border bg-transparent px-3 text-caption text-text transition-all focus-visible:outline-none focus-visible:border-text focus-visible:border-2"
+                                                style={{ color: selected ? "var(--color-text)" : "var(--color-muted)" }}
+                                            >
+                                                <span>{selected ? `${selected.iata_code} — ${selected.city}` : "Selecciona origen"}</span>
+                                                <ChevronDown size={14} className="text-muted shrink-0" />
+                                            </button>
+                                            {showOriginDropdown && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => { setShowOriginDropdown(false); setOriginQuery(""); }} />
+                                                    <div className="absolute left-0 top-full z-20 mt-1 w-full rounded-sm border border-border flex flex-col overflow-hidden" style={{ backgroundColor: "#FBFAF9", boxShadow: "0px 4px 12px rgba(0,0,0,0.12)", maxHeight: "220px" }}>
+                                                        <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+                                                            <Search size={13} className="text-muted shrink-0" />
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={originQuery}
+                                                                onChange={(e) => setOriginQuery(e.target.value)}
+                                                                placeholder="Buscar ciudad o código..."
+                                                                className="flex-1 text-small bg-transparent focus:outline-none text-text placeholder:text-muted"
+                                                            />
+                                                        </div>
+                                                        <div className="overflow-y-auto overscroll-contain">
+                                                            {filtered.map((a) => (
+                                                                <button
+                                                                    key={a.id}
+                                                                    type="button"
+                                                                    onClick={() => { field.onChange(a.iata_code); setShowOriginDropdown(false); setOriginQuery(""); }}
+                                                                    className="w-full text-left px-3 py-2 text-small hover:bg-neutral/40 transition-colors border-b border-border last:border-0"
+                                                                    style={{ color: field.value === a.iata_code ? "var(--color-primary)" : "var(--color-text)", fontWeight: field.value === a.iata_code ? 600 : 400 }}
+                                                                >
+                                                                    {a.iata_code} — {a.city}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        {errors.origin && <p className="text-small text-error">{errors.origin.message}</p>}
+                                    </div>
+                                );
+                            }}
+                        />
+
+                        {/* Destino combobox */}
+                        <Controller
+                            name="destination"
+                            control={control}
+                            render={({ field }) => {
+                                const selected = destinationOptions.find((a) => a.iata_code === field.value);
+                                const filtered = destinationOptions.filter((a) => {
+                                    const q = destinationQuery.toLowerCase();
+                                    return !q || a.iata_code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+                                });
+                                return (
+                                    <div className="flex-1 flex flex-col gap-2">
+                                        <label className="text-caption font-medium text-secondary">
+                                            Destino <span className="text-error">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowDestinationDropdown((v) => !v); setShowOriginDropdown(false); }}
+                                                className="flex h-10 w-full items-center justify-between rounded-sm border border-border bg-transparent px-3 text-caption text-text transition-all focus-visible:outline-none focus-visible:border-text focus-visible:border-2"
+                                                style={{ color: selected ? "var(--color-text)" : "var(--color-muted)" }}
+                                            >
+                                                <span>{selected ? `${selected.iata_code} — ${selected.city}` : "Selecciona destino"}</span>
+                                                <ChevronDown size={14} className="text-muted shrink-0" />
+                                            </button>
+                                            {showDestinationDropdown && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => { setShowDestinationDropdown(false); setDestinationQuery(""); }} />
+                                                    <div className="absolute left-0 top-full z-20 mt-1 w-full rounded-sm border border-border flex flex-col overflow-hidden" style={{ backgroundColor: "#FBFAF9", boxShadow: "0px 4px 12px rgba(0,0,0,0.12)", maxHeight: "220px" }}>
+                                                        <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+                                                            <Search size={13} className="text-muted shrink-0" />
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={destinationQuery}
+                                                                onChange={(e) => setDestinationQuery(e.target.value)}
+                                                                placeholder="Buscar ciudad o código..."
+                                                                className="flex-1 text-small bg-transparent focus:outline-none text-text placeholder:text-muted"
+                                                            />
+                                                        </div>
+                                                        <div className="overflow-y-auto overscroll-contain">
+                                                            {filtered.map((a) => (
+                                                                <button
+                                                                    key={a.id}
+                                                                    type="button"
+                                                                    onClick={() => { field.onChange(a.iata_code); setShowDestinationDropdown(false); setDestinationQuery(""); }}
+                                                                    className="w-full text-left px-3 py-2 text-small hover:bg-neutral/40 transition-colors border-b border-border last:border-0"
+                                                                    style={{ color: field.value === a.iata_code ? "var(--color-primary)" : "var(--color-text)", fontWeight: field.value === a.iata_code ? 600 : 400 }}
+                                                                >
+                                                                    {a.iata_code} — {a.city}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        {errors.destination && <p className="text-small text-error">{errors.destination.message}</p>}
+                                    </div>
+                                );
+                            }}
+                        />
                     </div>
 
                     {/* Fechas */}

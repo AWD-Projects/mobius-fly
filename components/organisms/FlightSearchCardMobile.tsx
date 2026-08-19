@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Pills } from "@/components/atoms/Pills";
 import { Button } from "@/components/atoms/Button";
@@ -45,6 +45,8 @@ const FlightSearchCardMobile = React.forwardRef<HTMLDivElement, FlightSearchCard
   ) => {
     const [showOriginSelect, setShowOriginSelect] = React.useState(false);
     const [showDestinationSelect, setShowDestinationSelect] = React.useState(false);
+    const [originQuery, setOriginQuery] = React.useState("");
+    const [destinationQuery, setDestinationQuery] = React.useState("");
     const [internalPassengers, setInternalPassengers] = React.useState(passengers);
 
     const departureDateRef = React.useRef<HTMLInputElement>(null);
@@ -89,31 +91,50 @@ const FlightSearchCardMobile = React.forwardRef<HTMLDivElement, FlightSearchCard
       selected,
       exclude,
       onSelect,
+      query,
+      onQueryChange,
     }: {
       show: boolean;
       onClose: () => void;
       selected: string;
       exclude: string;
       onSelect: (code: string) => void;
+      query: string;
+      onQueryChange: (q: string) => void;
     }) => {
       if (!show) return null;
+      const filtered = airports
+        .filter((a) => a.code !== exclude)
+        .filter((a) => {
+          const q = query.toLowerCase();
+          return !q || a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+        });
       return (
         <>
           <div className="fixed inset-0 z-10" onClick={onClose} />
           <div
-            className="absolute left-0 z-20 mt-1 rounded-sm overflow-hidden"
+            className="absolute left-0 z-20 mt-1 rounded-sm overflow-hidden flex flex-col"
             style={{
               backgroundColor: "#FBFAF9",
               boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
               minWidth: "220px",
-              maxHeight: "280px",
-              overflowY: "auto",
-              overscrollBehavior: "contain",
+              maxHeight: "300px",
             }}
           >
-            {airports
-              .filter((a) => a.code !== exclude)
-              .map((airport) => (
+            {/* Search input */}
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+              <Search size={13} className="text-muted shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder="Buscar ciudad o código..."
+                className="flex-1 text-small bg-transparent focus:outline-none text-text placeholder:text-muted"
+              />
+            </div>
+            <div className="overflow-y-auto overscroll-contain">
+              {filtered.map((airport) => (
                 <Button
                   key={airport.code}
                   variant="ghost"
@@ -133,6 +154,7 @@ const FlightSearchCardMobile = React.forwardRef<HTMLDivElement, FlightSearchCard
                   </div>
                 </Button>
               ))}
+            </div>
           </div>
         </>
       );
@@ -179,10 +201,12 @@ const FlightSearchCardMobile = React.forwardRef<HTMLDivElement, FlightSearchCard
             </button>
             <AirportDropdown
               show={showOriginSelect}
-              onClose={() => setShowOriginSelect(false)}
+              onClose={() => { setShowOriginSelect(false); setOriginQuery(""); }}
               selected={originCode}
               exclude={destinationCode}
-              onSelect={(code) => onOriginChange?.(code)}
+              onSelect={(code) => { onOriginChange?.(code); setOriginQuery(""); }}
+              query={originQuery}
+              onQueryChange={setOriginQuery}
             />
           </div>
 
@@ -209,10 +233,12 @@ const FlightSearchCardMobile = React.forwardRef<HTMLDivElement, FlightSearchCard
             <div className="relative">
               <AirportDropdown
                 show={showDestinationSelect}
-                onClose={() => setShowDestinationSelect(false)}
+                onClose={() => { setShowDestinationSelect(false); setDestinationQuery(""); }}
                 selected={destinationCode}
                 exclude={originCode}
-                onSelect={(code) => onDestinationChange?.(code)}
+                onSelect={(code) => { onDestinationChange?.(code); setDestinationQuery(""); }}
+                query={destinationQuery}
+                onQueryChange={setDestinationQuery}
               />
             </div>
           </div>

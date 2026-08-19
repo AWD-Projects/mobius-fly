@@ -77,6 +77,7 @@ export type PassengerFormData = z.infer<ReturnType<typeof createSchema>>;
 
 export interface PassengerFormHandle {
   submit: () => Promise<boolean>;
+  getValues: () => Partial<PassengerFormData>;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -154,6 +155,7 @@ const PassengerForm = React.forwardRef<PassengerFormHandle, PassengerFormProps>(
       register,
       handleSubmit,
       control,
+      getValues: rhfGetValues,
       formState: { errors },
     } = useForm<PassengerFormData>({
       resolver: zodResolver(schema),
@@ -174,6 +176,7 @@ const PassengerForm = React.forwardRef<PassengerFormHandle, PassengerFormProps>(
     };
 
     React.useImperativeHandle(ref, () => ({
+      getValues: () => rhfGetValues(),
       submit: () =>
         new Promise<boolean>((resolve) => {
           handleSubmit(
