@@ -15,6 +15,7 @@ import { baseMetadata } from "@/lib/seo/metadata";
 import { JsonLdMultiple } from "@/components/seo/JsonLd";
 import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo/json-ld";
 import { ToastProvider } from "@/components/atoms/Toast";
+import { AutoSignOutProvider } from "@/components/providers/AutoSignOutProvider";
 
 // ============================================================================
 // METADATA
@@ -48,6 +49,7 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
         <ToastProvider position="top-right" />
+        <AutoSignOutProvider />
       </body>
     </html>
   );
