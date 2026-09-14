@@ -53,8 +53,8 @@ function SuspendedScreen() {
                 <h1 className="text-[22px] font-semibold text-text">Cuenta suspendida</h1>
                 <p className="text-[13px] text-muted leading-relaxed">
                     Tu cuenta ha sido suspendida. Para más información o para apelar esta decisión, contáctanos en{" "}
-                    <a href="mailto:soporte@mobiusfly.com" className="font-medium text-text underline underline-offset-2">
-                        soporte@mobiusfly.com
+                    <a href="mailto:contacto@mobiusfly.com" className="font-medium text-text underline underline-offset-2">
+                        contacto@mobiusfly.com
                     </a>
                     .
                 </p>

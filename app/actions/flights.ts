@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { buildFlightCancellationEmail } from "@/lib/emails/booking-templates";
 import type {
     FlightListItem,
     FlightDetail,
@@ -870,7 +871,12 @@ export async function cancelFlight(
 
     const { data: flight } = await supabase
         .from("flights")
-        .select("flight_status:flight_status!flights_status_id_fkey(code)")
+        .select(`
+            flight_code, departure_datetime,
+            departure_airport:airports!flights_departure_airport_id_fkey(iata_code, city),
+            arrival_airport:airports!flights_arrival_airport_id_fkey(iata_code, city),
+            flight_status:flight_status!flights_status_id_fkey(code)
+        `)
         .eq("id", flightId)
         .eq("owner_id", ownerId)
         .single();
@@ -897,17 +903,19 @@ export async function cancelFlight(
         .eq("code", "CONFIRMED")
         .single();
 
-    const passengers: { name: string; email: string }[] = [];
+    const passengers: { name: string; email: string; bookingReference: string }[] = [];
     if (confirmedResStatus) {
         const { data: reservations } = await supabase
             .from("reservations")
-            .select("id, contact_full_name, contact_email")
+            .select("id, contact_full_name, contact_email, booking_reference")
             .eq("flight_id", flightId)
             .eq("reservation_status_id", confirmedResStatus.id);
 
         for (const res of reservations ?? []) {
             const r = res as any;
-            if (r.contact_email) passengers.push({ name: r.contact_full_name ?? "", email: r.contact_email });
+            if (r.contact_email) {
+                passengers.push({ name: r.contact_full_name ?? "", email: r.contact_email, bookingReference: r.booking_reference ?? "" });
+            }
         }
     }
 
@@ -926,50 +934,34 @@ export async function cancelFlight(
     const resend = new Resend(resendKey);
     let notified = 0;
 
+    const f = flight as any;
+    const depAirport = f.departure_airport as { iata_code: string; city: string } | null;
+    const arrAirport = f.arrival_airport as { iata_code: string; city: string } | null;
+    const origin = depAirport ? `${depAirport.city} (${depAirport.iata_code})` : undefined;
+    const destination = arrAirport ? `${arrAirport.city} (${arrAirport.iata_code})` : undefined;
+    const departure = f.departure_datetime ? new Date(f.departure_datetime) : null;
+    const departureDate = departure
+        ? departure.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" })
+        : undefined;
+    const departureTime = departure
+        ? departure.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false })
+        : undefined;
+
     for (const p of passengers) {
         const { error: emailError } = await resend.emails.send({
             from: process.env.RESEND_FROM_EMAIL ?? "noreply@amoxtli.tech",
             to:   p.email,
             subject: "Tu vuelo ha sido cancelado — Mobius Fly",
-            html: `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#F6F6F4;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#F6F6F4;padding:40px 20px;">
-    <tr><td align="center">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="520"
-             style="background:#fff;border-radius:12px;overflow:hidden;">
-        <tr>
-          <td style="background:#C4A77D;padding:28px 32px;text-align:center;">
-            <h1 style="margin:0;color:#fff;font-size:24px;font-weight:600;letter-spacing:-0.02em;">Mobius Fly</h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px 32px;">
-            <p style="margin:0 0 16px;color:#39424E;font-size:16px;font-weight:600;">Hola${p.name ? `, ${p.name.split(" ")[0]}` : ""},</p>
-            <p style="margin:0 0 16px;color:#39424E;font-size:14px;line-height:1.6;">
-              Lamentamos informarte que tu vuelo ha sido <strong>cancelado</strong> por el propietario de la aeronave.
-            </p>
-            <p style="margin:0 0 24px;color:#39424E;font-size:14px;line-height:1.6;">
-              El equipo de Mobius Fly se pondrá en contacto contigo a la brevedad para procesar tu reembolso o compensación correspondiente.
-            </p>
-            <p style="margin:0;color:#39424E;font-size:14px;">
-              Si tienes dudas, escríbenos a
-              <a href="mailto:contacto@mobiusfly.com" style="color:#C4A77D;">contacto@mobiusfly.com</a>
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:20px 32px;background:#F6F6F4;text-align:center;">
-            <p style="margin:0;color:#39424E;font-size:12px;opacity:0.6;">© Mobius Fly — Vuelos privados</p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`,
+            html: buildFlightCancellationEmail({
+                passengerName:    p.name,
+                bookingReference: p.bookingReference || null,
+                flightCode:       f.flight_code ?? null,
+                origin,
+                destination,
+                departureDate,
+                departureTime,
+                appUrl:           process.env.NEXT_PUBLIC_APP_URL ?? "https://mobiusfly.com",
+            }),
         });
         if (emailError) {
             console.error("[cancelFlight] email error:", emailError);

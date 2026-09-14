@@ -3,6 +3,7 @@
 // Pure Node.js (pdfkit) — no React dependency, works in Next.js route handlers.
 
 import PDFDocument from "pdfkit";
+import { fetchLogoBuffer } from "@/lib/emails/brand-kit";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,15 +41,15 @@ export interface ManifestData {
 
 // ─── Design tokens (from manifiesto.html) ────────────────────────────────────
 
-const BG     = "#f6f4f1";
+const BG     = "#F6F6F4";
 const CARD   = "#FFFFFF";
-const INK    = "#243a57";
-const MUTED  = "#7c8796";
-const LINE   = "#e8e2d8";
-const ACCENT = "#c8a46a";
-// const ASOFT  = "#efe6d7";  // reserved for future use
-const SUCCESS_BG   = "#e8f2ee";
-const SUCCESS_TEXT = "#2f6b56";
+const INK    = "#39424E";
+const MUTED  = "#6B6B6B";
+const LINE   = "#E0E0DE";
+const ACCENT = "#C4A77D";
+// const ASOFT  = "#F1E8D9";  // reserved for future use
+const SUCCESS_BG   = "#E9F6EA";
+const SUCCESS_TEXT = "#4CAF50";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ function tableRow(
 
 // ─── Main builder ─────────────────────────────────────────────────────────────
 
-function buildManifest(doc: InstanceType<typeof PDFDocument>, data: ManifestData) {
+function buildManifest(doc: InstanceType<typeof PDFDocument>, data: ManifestData, logoBuffer: Buffer) {
     let y = MT;
 
     const depIata = iata(data.origin);
@@ -203,10 +204,7 @@ function buildManifest(doc: InstanceType<typeof PDFDocument>, data: ManifestData
     const issuedDate = new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
 
     // ── 1. Brand bar ──────────────────────────────────────────────────────────
-    // "M" logotype box
-    strokeRoundRect(doc, ML, y, 26, 26, 5, INK, 1.5);
-    doc.font("Helvetica-Bold").fontSize(14).fillColor(INK)
-       .text("M", ML, y + 5, { width: 26, align: "center", lineBreak: false });
+    doc.image(logoBuffer, ML, y, { width: 24, height: 25 });
 
     doc.font("Helvetica-Bold").fontSize(14).fillColor(INK)
        .text("Mobius Fly", ML + 32, y + 5, { lineBreak: false });
@@ -449,13 +447,14 @@ function buildManifest(doc: InstanceType<typeof PDFDocument>, data: ManifestData
        .text(`Generado el ${data.generatedAt}`, ML, footerY, { width: CW / 2, lineBreak: false });
 
     doc.font("Helvetica").fontSize(7).fillColor(MUTED)
-       .text("Mobius Fly · Documento operativo de vuelo  |  soporte@mobiusfly.com · Generado digitalmente",
+       .text("Mobius Fly · Documento operativo de vuelo  |  contacto@mobiusfly.com · Generado digitalmente",
             ML, footerY, { width: CW, align: "right", lineBreak: false });
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function generateManifestPDF(data: ManifestData): Promise<Buffer> {
+    const logoBuffer = await fetchLogoBuffer();
     return new Promise((resolve, reject) => {
         try {
             const doc = new PDFDocument({
@@ -473,7 +472,7 @@ export async function generateManifestPDF(data: ManifestData): Promise<Buffer> {
             doc.on("end",   () => resolve(Buffer.concat(chunks)));
             doc.on("error", reject);
 
-            buildManifest(doc, data);
+            buildManifest(doc, data, logoBuffer);
             doc.end();
         } catch (err) {
             reject(err);

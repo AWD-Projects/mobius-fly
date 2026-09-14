@@ -19,6 +19,7 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateOTP, hashOTP, OTP_TTL_MINUTES } from "@/lib/otp";
 import { rateLimit } from "@/lib/rate-limit";
+import { buildOtpEmail } from "@/lib/emails/otp-templates";
 
 const limiter = rateLimit({ limit: 5, windowMs: 60_000 });
 
@@ -200,46 +201,13 @@ export async function POST(request: NextRequest) {
         from: process.env.RESEND_FROM_EMAIL ?? "noreply@amoxtli.tech",
         to: email,
         subject: "Tu código de verificación — Mobius Fly",
-        html: `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#F6F6F4;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#F6F6F4;padding:40px 20px;">
-    <tr><td align="center">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="520"
-             style="background:#fff;border-radius:12px;overflow:hidden;">
-        <tr>
-          <td style="background:#C4A77D;padding:28px 32px;text-align:center;">
-            <h1 style="margin:0;color:#fff;font-size:24px;font-weight:600;letter-spacing:-0.02em;">
-              Mobius Fly
-            </h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px 32px;text-align:center;">
-            <p style="margin:0 0 8px;color:#39424E;font-size:16px;">Tu código de verificación es</p>
-            <p style="margin:0 0 24px;color:#39424E;font-size:48px;font-weight:700;letter-spacing:0.15em;">
-              ${otp}
-            </p>
-            <p style="margin:0;color:#39424E;font-size:14px;opacity:0.7;">
-              Este código expira en ${OTP_TTL_MINUTES} minutos.<br>
-              Si no solicitaste este código, ignora este mensaje.
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:20px 32px;background:#F6F6F4;text-align:center;">
-            <p style="margin:0;color:#39424E;font-size:12px;opacity:0.6;">
-              © Mobius Fly — Vuelos privados
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`,
+        html: buildOtpEmail({
+            eyebrow:     "Verificación de cuenta",
+            heading:     "Confirma tu correo",
+            description: "Tu código de verificación es",
+            code:        otp,
+            ttlMinutes:  OTP_TTL_MINUTES,
+        }),
     });
 
     if (emailError) {
