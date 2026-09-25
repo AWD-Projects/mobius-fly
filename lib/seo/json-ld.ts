@@ -1,219 +1,120 @@
 /**
- * JSON-LD Structured Data Schemas
+ * JSON-LD Structured Data
  * Mobius Fly - Empty Leg Marketplace
  *
- * Type-safe JSON-LD generators for SEO
- * Follows schema.org standards
+ * Entities are linked through stable @id values so search engines resolve one
+ * Organization / WebSite across every page.
  */
 
-import { SITE_CONFIG } from "./metadata";
+import { SITE_CONFIG, absoluteUrl } from "./config";
+
+type Schema = Record<string, unknown>;
+
+export const ORG_ID = `${SITE_CONFIG.url}/#organization`;
+export const WEBSITE_ID = `${SITE_CONFIG.url}/#website`;
 
 // ============================================================================
-// TYPES
+// SITE-WIDE
 // ============================================================================
 
-interface Airport {
-  code: string;
-  name: string;
-  city: string;
-  country?: string;
-}
-
-interface Flight {
-  id: string;
-  origin: Airport;
-  destination: Airport;
-  departureTime: string;
-  arrivalTime?: string;
-  aircraft?: string;
-  price?: {
-    amount: number;
-    currency: string;
+export function getOrganizationSchema(): Schema {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": ORG_ID,
+    name: SITE_CONFIG.name,
+    legalName: SITE_CONFIG.legalName,
+    url: SITE_CONFIG.url,
+    logo: {
+      "@type": "ImageObject",
+      url: absoluteUrl("/logo/icon-512.png"),
+      width: 512,
+      height: 512,
+    },
+    image: absoluteUrl("/opengraph-image"),
+    description: SITE_CONFIG.description,
+    slogan: SITE_CONFIG.tagline,
+    email: SITE_CONFIG.email,
+    address: { "@type": "PostalAddress", ...SITE_CONFIG.address },
+    areaServed: { "@type": "Country", name: "México" },
+    knowsLanguage: ["es", "en"],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: SITE_CONFIG.email,
+      availableLanguage: ["Spanish", "English"],
+      areaServed: "MX",
+    },
+    ...(SITE_CONFIG.social.length > 0 && { sameAs: [...SITE_CONFIG.social] }),
   };
-  seats?: number;
-  operator?: string;
 }
 
-interface FAQItem {
+export function getWebSiteSchema(): Schema {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": WEBSITE_ID,
+    name: SITE_CONFIG.name,
+    url: SITE_CONFIG.url,
+    description: SITE_CONFIG.description,
+    inLanguage: SITE_CONFIG.language,
+    publisher: { "@id": ORG_ID },
+  };
+}
+
+export function getServiceSchema(): Schema {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": `${SITE_CONFIG.url}/#service`,
+    name: "Reserva de vuelos empty leg en jet privado",
+    serviceType: "Marketplace de vuelos empty leg",
+    description:
+      "Compra asientos individuales o la aeronave completa en vuelos empty leg de jets privados operados por proveedores verificados.",
+    provider: { "@id": ORG_ID },
+    areaServed: { "@type": "Country", name: "México" },
+    audience: { "@type": "Audience", audienceType: "Viajeros y propietarios de aeronaves" },
+    url: absoluteUrl("/flights"),
+  };
+}
+
+export function getWebPageSchema(opts: { path: string; name: string; description: string }): Schema {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${absoluteUrl(opts.path)}#webpage`,
+    url: absoluteUrl(opts.path),
+    name: opts.name,
+    description: opts.description,
+    inLanguage: SITE_CONFIG.language,
+    isPartOf: { "@id": WEBSITE_ID },
+    about: { "@id": ORG_ID },
+  };
+}
+
+// ============================================================================
+// FAQ / BREADCRUMBS
+// ============================================================================
+
+export interface FAQItem {
   question: string;
   answer: string;
 }
 
-// ============================================================================
-// ORGANIZATION SCHEMA
-// ============================================================================
-
-export function getOrganizationSchema() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Mobius Fly",
-    url: SITE_CONFIG.url,
-    logo: `${SITE_CONFIG.url}/logo/main-logo.svg`,
-    description: SITE_CONFIG.description,
-    sameAs: [
-      "https://twitter.com/mobiusfly",
-      "https://linkedin.com/company/mobiusfly",
-      "https://instagram.com/mobiusfly",
-    ],
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "Customer Service",
-      email: "contact@mobiusfly.com",
-      availableLanguage: ["English", "Spanish"],
-    },
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "US",
-    },
-  };
-}
-
-// ============================================================================
-// WEBSITE + SEARCH ACTION SCHEMA
-// ============================================================================
-
-export function getWebSiteSchema() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Mobius Fly",
-    url: SITE_CONFIG.url,
-    description: SITE_CONFIG.description,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${SITE_CONFIG.url}/search?q={search_term_string}&origin={origin}&destination={destination}`,
-      },
-      "query-input": [
-        {
-          "@type": "PropertyValueSpecification",
-          valueRequired: false,
-          valueName: "search_term_string",
-        },
-        {
-          "@type": "PropertyValueSpecification",
-          valueRequired: false,
-          valueName: "origin",
-        },
-        {
-          "@type": "PropertyValueSpecification",
-          valueRequired: false,
-          valueName: "destination",
-        },
-      ],
-    },
-  };
-}
-
-// ============================================================================
-// FLIGHT SCHEMA
-// ============================================================================
-
-export function getFlightSchema(flight: Flight) {
-  const schema: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Flight",
-    flightNumber: flight.id,
-    departureAirport: {
-      "@type": "Airport",
-      iataCode: flight.origin.code,
-      name: flight.origin.name,
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: flight.origin.city,
-        addressCountry: flight.origin.country || "Unknown",
-      },
-    },
-    arrivalAirport: {
-      "@type": "Airport",
-      iataCode: flight.destination.code,
-      name: flight.destination.name,
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: flight.destination.city,
-        addressCountry: flight.destination.country || "Unknown",
-      },
-    },
-    departureTime: flight.departureTime,
-    provider: {
-      "@type": "Organization",
-      name: flight.operator || "Mobius Fly",
-    },
-  };
-
-  if (flight.arrivalTime) {
-    schema.arrivalTime = flight.arrivalTime;
-  }
-
-  if (flight.aircraft) {
-    schema.aircraft = {
-      "@type": "Vehicle",
-      name: flight.aircraft,
-    };
-  }
-
-  return schema;
-}
-
-// ============================================================================
-// PRODUCT/OFFER SCHEMA (For Flight as Product)
-// ============================================================================
-
-export function getFlightOfferSchema(flight: Flight) {
-  if (!flight.price) return null;
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: `Private Jet Flight from ${flight.origin.code} to ${flight.destination.code}`,
-    description: `Empty leg flight from ${flight.origin.city} to ${flight.destination.city}. ${flight.seats ? `${flight.seats} seats available.` : ""} ${flight.aircraft ? `Aircraft: ${flight.aircraft}.` : ""}`,
-    offers: {
-      "@type": "Offer",
-      price: flight.price.amount,
-      priceCurrency: flight.price.currency,
-      availability: flight.seats && flight.seats > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      url: `${SITE_CONFIG.url}/flights/${flight.id}`,
-      seller: {
-        "@type": "Organization",
-        name: "Mobius Fly",
-      },
-      priceValidUntil: flight.departureTime,
-    },
-    category: "Private Aviation",
-  };
-}
-
-// ============================================================================
-// FAQ SCHEMA
-// ============================================================================
-
-export function getFAQSchema(faqs: FAQItem[]) {
+export function getFAQSchema(faqs: FAQItem[]): Schema {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    inLanguage: SITE_CONFIG.language,
     mainEntity: faqs.map((faq) => ({
       "@type": "Question",
       name: faq.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.answer,
-      },
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
     })),
   };
 }
 
-// ============================================================================
-// BREADCRUMB SCHEMA
-// ============================================================================
-
-interface BreadcrumbItem {
-  name: string;
-  url: string;
-}
-
-export function getBreadcrumbSchema(items: BreadcrumbItem[]) {
+export function getBreadcrumbSchema(items: { name: string; url: string }[]): Schema {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -221,81 +122,110 @@ export function getBreadcrumbSchema(items: BreadcrumbItem[]) {
       "@type": "ListItem",
       position: index + 1,
       name: item.name,
-      item: `${SITE_CONFIG.url}${item.url}`,
+      item: absoluteUrl(item.url),
     })),
   };
 }
 
 // ============================================================================
-// SERVICE SCHEMA
+// FLIGHT
 // ============================================================================
 
-export function getServiceSchema() {
+export interface FlightSchemaInput {
+  id: string;
+  flightCode: string;
+  origin: { code: string; name: string; city: string; state?: string; country?: string };
+  destination: { code: string; name: string; city: string; state?: string; country?: string };
+  departureISO: string;
+  arrivalISO?: string;
+  durationMinutes?: number | null;
+  aircraft?: string;
+  pricePerSeat: number;
+  currency: string;
+  availableSeats: number;
+  photos?: string[];
+}
+
+function airportSchema(a: FlightSchemaInput["origin"]): Schema {
   return {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    serviceType: "Empty Leg Flight Booking",
-    provider: {
-      "@type": "Organization",
-      name: "Mobius Fly",
-      url: SITE_CONFIG.url,
-    },
-    areaServed: {
-      "@type": "Place",
-      name: "Worldwide",
-    },
-    hasOfferCatalog: {
-      "@type": "OfferCatalog",
-      name: "Empty Leg Flights",
-      itemListElement: [
-        {
-          "@type": "OfferCatalog",
-          name: "Private Jet Empty Legs",
-          itemListElement: [
-            {
-              "@type": "Offer",
-              itemOffered: {
-                "@type": "Service",
-                name: "Empty Leg Flight Booking",
-                description: "Book individual seats on private jet empty leg flights",
-              },
-            },
-          ],
-        },
-      ],
-    },
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "USD",
-      lowPrice: "500",
-      highPrice: "5000",
+    "@type": "Airport",
+    iataCode: a.code,
+    name: a.name,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: a.city,
+      ...(a.state && { addressRegion: a.state }),
+      ...(a.country && { addressCountry: a.country }),
     },
   };
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
 /**
- * Safely stringify JSON-LD for use in script tags
+ * Flight + Product/Offer graph for a flight detail page.
+ * Offer availability reflects real seat inventory and departure date.
  */
-export function jsonLdToString(data: Record<string, unknown> | null): string {
-  if (!data) return "";
-  return JSON.stringify(data, null, 0);
+export function getFlightGraphSchema(f: FlightSchemaInput): Schema {
+  const url = absoluteUrl(`/flights/${f.id}`);
+  const departed = new Date(f.departureISO).getTime() < Date.now();
+  const inStock = f.availableSeats > 0 && !departed;
+  const routeName = `${f.origin.city} (${f.origin.code}) → ${f.destination.city} (${f.destination.code})`;
+
+  const offer: Schema = {
+    "@type": "Offer",
+    url,
+    price: f.pricePerSeat.toFixed(2),
+    priceCurrency: f.currency,
+    availability: inStock ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
+    priceValidUntil: f.departureISO.slice(0, 10),
+    seller: { "@id": ORG_ID },
+    itemCondition: "https://schema.org/NewCondition",
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Flight",
+        "@id": `${url}#flight`,
+        flightNumber: f.flightCode,
+        name: `Vuelo privado ${routeName}`,
+        url,
+        departureAirport: airportSchema(f.origin),
+        arrivalAirport: airportSchema(f.destination),
+        departureTime: f.departureISO,
+        ...(f.arrivalISO && { arrivalTime: f.arrivalISO }),
+        ...(f.durationMinutes && { estimatedFlightDuration: `PT${f.durationMinutes}M` }),
+        ...(f.aircraft && { aircraft: { "@type": "Vehicle", name: f.aircraft } }),
+        provider: { "@id": ORG_ID },
+        seller: { "@id": ORG_ID },
+        offers: offer,
+      },
+      {
+        "@type": "Product",
+        "@id": `${url}#product`,
+        name: `Asiento en vuelo empty leg ${routeName}`,
+        description: `Asiento en jet privado de ${f.origin.city} a ${f.destination.city} el ${f.departureISO.slice(0, 10)}.`,
+        category: "Aviación privada",
+        sku: f.flightCode,
+        brand: { "@id": ORG_ID },
+        ...(f.photos && f.photos.length > 0 && { image: f.photos }),
+        offers: offer,
+      },
+    ],
+  };
 }
 
-/**
- * Generate multiple schemas for a page
- */
-export function combineSchemas(...schemas: (Record<string, unknown> | null)[]): string {
-  const validSchemas = schemas.filter((s) => s !== null);
-  if (validSchemas.length === 0) return "";
-  if (validSchemas.length === 1) return jsonLdToString(validSchemas[0]);
+// ============================================================================
+// SERIALIZATION
+// ============================================================================
 
-  // Multiple schemas: use @graph
-  return jsonLdToString({
-    "@context": "https://schema.org",
-    "@graph": validSchemas,
-  });
+/**
+ * Serialize for a <script type="application/ld+json"> tag.
+ * Escapes `<` (prevents `</script>` breakouts) and U+2028/2029.
+ */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }

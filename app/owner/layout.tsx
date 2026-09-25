@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
+import { privateMetadata } from "@/lib/seo/metadata";
 import { createClient } from "@/lib/supabase/server";
 import { OwnerLayoutClient } from "./_components/OwnerLayoutClient";
+
+export const metadata: Metadata = privateMetadata("Panel de propietario");
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient();

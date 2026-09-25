@@ -1,87 +1,32 @@
 /**
- * JSON-LD Component
- * Mobius Fly - Empty Leg Marketplace
- *
- * Safe rendering of JSON-LD structured data
- * Prevents XSS and ensures valid schema output
+ * JSON-LD component — safe rendering of structured data.
  */
 
-import React from "react";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
 
-interface JsonLdProps {
-  data: Record<string, unknown> | Record<string, unknown>[] | null;
-}
+type Schema = Record<string, unknown>;
 
-/**
- * JsonLd Component
- *
- * Renders JSON-LD structured data in a script tag
- * Handles both single schemas and arrays of schemas
- *
- * @example
- * ```tsx
- * import { JsonLd } from '@/components/seo/JsonLd';
- * import { getOrganizationSchema } from '@/lib/seo/json-ld';
- *
- * export default function Page() {
- *   return (
- *     <>
- *       <JsonLd data={getOrganizationSchema()} />
- *       <main>...</main>
- *     </>
- *   );
- * }
- * ```
- */
-export function JsonLd({ data }: JsonLdProps) {
+export function JsonLd({ data }: { data: Schema | null }) {
   if (!data) return null;
-
-  // Safely serialize data
-  const jsonString = JSON.stringify(data, null, 0);
-
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: jsonString }}
-      // Suppress hydration warning since this is static data
-      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
 }
 
-/**
- * Multiple JSON-LD schemas component
- *
- * @example
- * ```tsx
- * <JsonLdMultiple
- *   schemas={[
- *     getOrganizationSchema(),
- *     getWebSiteSchema(),
- *     getFlightSchema(flight)
- *   ]}
- * />
- * ```
- */
-export function JsonLdMultiple({
-  schemas,
-}: {
-  schemas: (Record<string, unknown> | null)[];
-}) {
-  const validSchemas = schemas.filter((s) => s !== null);
+/** Several schemas in one @graph (their own @context is stripped). */
+export function JsonLdMultiple({ schemas }: { schemas: (Schema | null)[] }) {
+  const valid = schemas.filter((s): s is Schema => s !== null);
+  if (valid.length === 0) return null;
+  if (valid.length === 1) return <JsonLd data={valid[0]} />;
 
-  if (validSchemas.length === 0) return null;
+  const graph = valid.flatMap((s) => {
+    if (Array.isArray(s["@graph"])) return s["@graph"] as Schema[];
+    const { "@context": _ctx, ...rest } = s;
+    return [rest];
+  });
 
-  // If single schema, render directly
-  if (validSchemas.length === 1) {
-    return <JsonLd data={validSchemas[0]} />;
-  }
-
-  // Multiple schemas: wrap in @graph
-  const graphData = {
-    "@context": "https://schema.org",
-    "@graph": validSchemas,
-  };
-
-  return <JsonLd data={graphData} />;
+  return <JsonLd data={{ "@context": "https://schema.org", "@graph": graph }} />;
 }

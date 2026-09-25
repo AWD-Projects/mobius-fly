@@ -1,143 +1,57 @@
 /**
- * Dynamic Sitemap Generator
- * Mobius Fly - Empty Leg Marketplace
+ * sitemap.xml
  *
- * Generates sitemap with:
- * - Static pages
- * - Active flights (dynamic)
- * - Proper priority and changefreq
- * - Automatic splitting for large datasets
+ * Static public pages + every visible, upcoming flight (with aircraft photos).
+ * Revalidated hourly. Lists only URLs that return 200 and are indexable.
  */
+import type { MetadataRoute } from "next";
+import { absoluteUrl } from "@/lib/seo/config";
+import { createPublicClient } from "@/lib/supabase/server";
 
-import { MetadataRoute } from "next";
-import { SITE_CONFIG } from "@/lib/seo/metadata";
+export const revalidate = 3600;
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface Flight {
-  id: string;
-  origin: string;
-  destination: string;
-  departureTime: string;
-  status: "active" | "cancelled" | "completed";
-  updatedAt: string;
-}
-
-// ============================================================================
-// DATA FETCHING (Replace with real DB queries)
-// ============================================================================
-
-/**
- * Fetch active flights for sitemap
- * TODO: Replace with actual database query
- */
-async function getActiveFlights(): Promise<Flight[]> {
-  // In production, this would be:
-  // const flights = await db.flights.findMany({
-  //   where: { status: 'active' },
-  //   select: { id: true, origin: true, destination: true, departureTime: true, updatedAt: true }
-  // });
-
-  // Mock data for now
-  return [];
-}
-
-// ============================================================================
-// SITEMAP CONFIGURATION
-// ============================================================================
+// Bump when the page content materially changes (a stable lastmod is a trust
+// signal; `new Date()` on every request teaches Google to ignore it).
+const CONTENT_UPDATED = new Date("2026-03-17");
 
 const STATIC_PAGES: MetadataRoute.Sitemap = [
-  {
-    url: `${SITE_CONFIG.url}`,
-    lastModified: new Date(),
-    changeFrequency: "daily",
-    priority: 1.0,
-  },
-  {
-    url: `${SITE_CONFIG.url}/search`,
-    lastModified: new Date(),
-    changeFrequency: "hourly",
-    priority: 0.9,
-  },
-  {
-    url: `${SITE_CONFIG.url}/how-it-works`,
-    lastModified: new Date(),
-    changeFrequency: "monthly",
-    priority: 0.8,
-  },
-  {
-    url: `${SITE_CONFIG.url}/benefits`,
-    lastModified: new Date(),
-    changeFrequency: "monthly",
-    priority: 0.8,
-  },
-  {
-    url: `${SITE_CONFIG.url}/faq`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.7,
-  },
-  {
-    url: `${SITE_CONFIG.url}/contact`,
-    lastModified: new Date(),
-    changeFrequency: "monthly",
-    priority: 0.6,
-  },
-  {
-    url: `${SITE_CONFIG.url}/terms`,
-    lastModified: new Date(),
-    changeFrequency: "yearly",
-    priority: 0.3,
-  },
-  {
-    url: `${SITE_CONFIG.url}/privacy`,
-    lastModified: new Date(),
-    changeFrequency: "yearly",
-    priority: 0.3,
-  },
+  { url: absoluteUrl("/"), lastModified: CONTENT_UPDATED, changeFrequency: "weekly", priority: 1 },
+  { url: absoluteUrl("/flights"), lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: absoluteUrl("/terms"), lastModified: CONTENT_UPDATED, changeFrequency: "yearly", priority: 0.3 },
+  { url: absoluteUrl("/privacy"), lastModified: CONTENT_UPDATED, changeFrequency: "yearly", priority: 0.3 },
 ];
 
-// ============================================================================
-// SITEMAP GENERATOR
-// ============================================================================
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+async function getFlightEntries(): Promise<MetadataRoute.Sitemap> {
   try {
-    // Fetch active flights
-    const flights = await getActiveFlights();
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("flights")
+      .select("id, departure_datetime, updated_at, aircraft:aircrafts!flights_aircraft_id_fkey (photos)")
+      .eq("is_visible", true)
+      .gte("departure_datetime", new Date().toISOString())
+      .gt("available_seats", 0)
+      .order("departure_datetime", { ascending: true })
+      .limit(5000);
 
-    // Generate flight URLs
-    const flightUrls: MetadataRoute.Sitemap = flights.map((flight) => ({
-      url: `${SITE_CONFIG.url}/flights/${flight.id}`,
-      lastModified: new Date(flight.updatedAt),
-      changeFrequency: "daily",
+    if (error || !data) {
+      if (error) console.error("[sitemap] flights query:", error.message);
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      url: absoluteUrl(`/flights/${row.id}`),
+      lastModified: new Date(row.updated_at ?? row.departure_datetime),
+      changeFrequency: "daily" as const,
       priority: 0.8,
-      // Optional: Add alternate languages
-      // alternates: {
-      //   languages: {
-      //     es: `${SITE_CONFIG.url}/es/flights/${flight.id}`,
-      //   },
-      // },
+      images: ((row.aircraft?.photos as string[] | null) ?? []).slice(0, 3),
     }));
-
-    // Combine static and dynamic URLs
-    const allUrls = [...STATIC_PAGES, ...flightUrls];
-
-    // If more than 50,000 URLs, consider implementing sitemap index
-    // See: app/sitemap-[index].ts pattern
-
-    return allUrls;
-  } catch (error) {
-    console.error("Error generating sitemap:", error);
-    // Fallback to static pages only
-    return STATIC_PAGES;
+  } catch (err) {
+    console.error("[sitemap] failed:", err);
+    return [];
   }
 }
 
-// ============================================================================
-// SITEMAP CONFIGURATION
-// ============================================================================
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  return [...STATIC_PAGES, ...(await getFlightEntries())];
+}
 
-export const revalidate = 3600; // Revalidate every hour

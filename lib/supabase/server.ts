@@ -35,3 +35,15 @@ export function createAdminClient() {
         { auth: { autoRefreshToken: false, persistSession: false } },
     );
 }
+
+/**
+ * Cookie-less anon client for public, cacheable reads (sitemap, OG images).
+ * Subject to RLS exactly like an anonymous visitor.
+ */
+export function createPublicClient() {
+    return createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+}

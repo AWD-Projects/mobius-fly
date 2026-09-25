@@ -1,0 +1,426 @@
+"use client";
+
+import { Navbar } from "@/components/organisms/Navbar";
+import { LazyMotion, domAnimation, AnimatePresence, m } from "framer-motion";
+import Image from "next/image";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useLocalAuth } from "@/hooks/useLocalAuth";
+import { useRouter } from "next/navigation";
+import { Compass, Calendar, Lock, Star, TrendingUp, Users, LayoutDashboard, Wallet } from "lucide-react";
+import { HeroSection } from "./sections/HeroSection";
+import { FlightSearchSection } from "./sections/FlightSearchSection";
+import type { FlightSearchParams } from "@/components/organisms/FlightSearchCard";
+import { FeaturesSection } from "./sections/FeaturesSection";
+import { ComparisonSection } from "./sections/ComparisonSection";
+import { BenefitsSection } from "./sections/BenefitsSection";
+import { ExperienceSection } from "./sections/ExperienceSection";
+import { FAQSection } from "./sections/FAQSection";
+import { ContactSection } from "./sections/ContactSection";
+import { FooterSection } from "./sections/FooterSection";
+import { faqCompradores, faqPropietarios } from "@/lib/content/faq";
+
+// Mapa de hrefs a section IDs
+const sectionMap: Record<string, string> = {
+  "/flights": "vuelos",
+  "/how-it-works": "como-funciona",
+  "/benefits": "beneficios",
+  "/comparison": "comparacion",
+  "/faq": "preguntas-frecuentes",
+  "/contact": "contacto",
+};
+
+export default function HomeClient() {
+  const router = useRouter();
+  const { user, isLoggedIn, isHydrated, logout } = useLocalAuth();
+
+  // Padding consistente para toda la landing
+  const sectionPadding = "px-4 sm:px-6 md:px-12 lg:px-16 xl:px-24 2xl:px-48";
+
+  // Auth-derived values — swap these out when Supabase auth is integrated
+  const userInitials = useMemo(() => {
+    if (!user) return undefined;
+    return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+  }, [user]);
+
+  const navUserType = useMemo((): "buyer" | "owner" => {
+    return user?.role === "OWNER" ? "owner" : "buyer";
+  }, [user]);
+
+  // Toggle independiente para la sección de features (no relacionado con el auth)
+  const [featuresUserType, setFeaturesUserType] = useState<"buyer" | "owner">("buyer");
+
+  // Estado para trackear si hemos scrolleado más allá del hero
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
+  const [isInFooter, setIsInFooter] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Hero rotating words
+  const rotatingWords = ["privada.", "personalizada.", "única.", "exclusiva.", "a medida.", "premium.", "excepcional."];
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+
+  // Flight search state
+
+
+  // Features data por tipo de usuario
+  const featuresData = {
+    buyer: [
+      {
+        icon: Compass,
+        title: "Descubrimiento",
+        subtitle: "Encuentra vuelos disponibles",
+        description: "Explora rutas reales de jets privados que necesitan reposicionarse. Accede a oportunidades que normalmente no están disponibles al público.",
+      },
+      {
+        icon: Calendar,
+        title: "Selección",
+        subtitle: "Elige tu asiento",
+        description: "Selecciona el vuelo que mejor se adapte a tu ruta y horario. Compra por asiento o reserva la aeronave completa.",
+      },
+      {
+        icon: Lock,
+        title: "Pago",
+        subtitle: "Reserva en minutos",
+        description: "Confirma tu vuelo con pago seguro y recibe todos los detalles al instante. Sin procesos manuales ni intermediarios.",
+      },
+      {
+        icon: Star,
+        title: "Experiencia",
+        subtitle: "Vuela privado",
+        description: "Accede a la experiencia de la aviación privada sin pagar el costo total del avión. Tu vuelo, sin fricciones.",
+      },
+    ],
+    owner: [
+      {
+        icon: TrendingUp,
+        title: "Publicación",
+        subtitle: "Publica tus empty legs",
+        description: "Convierte vuelos programados en oportunidades de venta. Publica rutas disponibles en minutos.",
+      },
+      {
+        icon: LayoutDashboard,
+        title: "Control",
+        subtitle: "Define condiciones",
+        description: "Tú decides precio, disponibilidad y operación. Mantienes el control total de tu aeronave.",
+      },
+      {
+        icon: Users,
+        title: "Demanda",
+        subtitle: "Recibe reservas",
+        description: "Conectamos tus vuelos con pasajeros listos para comprar. Sin fricción comercial ni procesos manuales.",
+      },
+      {
+        icon: Wallet,
+        title: "Monetización",
+        subtitle: "Genera ingresos adicionales",
+        description: "Aprovecha vuelos vacíos para maximizar la rentabilidad de tu operación.",
+      },
+    ],
+  };
+
+  // Rotating words effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentWordIndex((prevIndex) => (prevIndex + 1) % rotatingWords.length);
+    }, 2500);
+
+    return () => clearInterval(interval);
+    // rotatingWords is a constant array, no need for dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        const scrollPosition = scrollContainerRef.current.scrollTop;
+        const isInHero = scrollPosition <= window.innerHeight * 0.5;
+        setIsScrolled(!isInHero && !isInFooter);
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll, { passive: true });
+      return () => container.removeEventListener("scroll", handleScroll);
+    }
+  }, [isInFooter]);
+
+  // Intersection Observer para detectar la sección activa
+  useEffect(() => {
+    const observerOptions = {
+      root: scrollContainerRef.current,
+      rootMargin: "-50% 0px -50% 0px",
+      threshold: 0,
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.id;
+          const href = Object.keys(sectionMap).find(
+            (key) => sectionMap[key] === sectionId
+          );
+          if (href) {
+            setActiveSection(href);
+          } else if (sectionId === "hero") {
+            setActiveSection("");
+          }
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    const sections = document.querySelectorAll("section[id]");
+    sections.forEach((section) => observer.observe(section));
+
+    return () => {
+      sections.forEach((section) => observer.unobserve(section));
+    };
+  }, []);
+
+  // Intersection Observer para detectar el footer
+  useEffect(() => {
+    const footerObserverOptions = {
+      root: scrollContainerRef.current,
+      rootMargin: "-20% 0px -20% 0px",
+      threshold: 0,
+    };
+
+    const footerObserverCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        setIsInFooter(entry.isIntersecting);
+      });
+    };
+
+    const footerObserver = new IntersectionObserver(
+      footerObserverCallback,
+      footerObserverOptions
+    );
+
+    const footer = document.getElementById("footer");
+    if (footer) {
+      footerObserver.observe(footer);
+    }
+
+    return () => {
+      if (footer) {
+        footerObserver.unobserve(footer);
+      }
+    };
+  }, []);
+
+  // Función para hacer scroll a una sección específica
+  const scrollToSection = useCallback((sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (section && scrollContainerRef.current) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  // Memoized handlers for better performance
+  const handleContactSubmit = useCallback(async (data: import("./sections/ContactSection").ContactFormData) => {
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error("Error al enviar el formulario. Por favor, intenta de nuevo.");
+    }
+  }, []);
+
+  const handleExploreClick = useCallback(() => {
+    scrollToSection("vuelos");
+  }, [scrollToSection]);
+
+  const handleNavLinkClick = useCallback((href: string) => {
+    const sectionId = sectionMap[href];
+    if (sectionId) scrollToSection(sectionId);
+  }, [scrollToSection]);
+
+  const handleLogoClick = useCallback(() => {
+    scrollToSection("hero");
+  }, [scrollToSection]);
+
+  const handleLoginClick = useCallback(() => {
+    router.push("/login");
+  }, [router]);
+
+  const handleSignUpClick = useCallback(() => {
+    router.push("/register");
+  }, [router]);
+
+  const handleSearch = useCallback((params: FlightSearchParams) => {
+    const qp = new URLSearchParams({
+      origin: params.originCode,
+      destination: params.destinationCode,
+      date: params.departureDate,
+      type: params.tripType === "roundtrip" ? "round_trip" : "one_way",
+      passengers: String(params.passengers),
+    });
+    if (params.tripType === "roundtrip" && params.returnDate) {
+      qp.set("returnDate", params.returnDate);
+    }
+    router.push(`/flights?${qp.toString()}`);
+  }, [router]);
+
+  const handleMyBookingsClick = useCallback(() => {
+    router.push(user?.role === "OWNER" ? "/owner/dashboard" : "/my-trips");
+  }, [router, user]);
+
+  // Comparison table data
+  const comparisonFeatures = [
+    { feature: "Modelo de acceso", mobius: "Por asiento o vuelo completo en empty legs", traditional: "Avión completo por viaje", jetCard: "Bloque prepago de horas", fullCharter: "Participación en una aeronave o flota" },
+    { feature: "Compromiso inicial", mobius: "Bajo", traditional: "Sin compromiso recurrente, costo alto por viaje", jetCard: "Alto; prepago de horas", fullCharter: "Muy alto; depósito y cargos recurrentes" },
+    { feature: "Precio", mobius: "Precio publicado por asiento o vuelo", traditional: "Cotización variable por viaje", jetCard: "Precio relativamente predecible", fullCharter: "Costos de adquisición y operación" },
+    { feature: "Flexibilidad de ruta y horario", mobius: "Limitada al inventario disponible", traditional: "Muy alta", jetCard: "Alta, sujeta a condiciones", fullCharter: "Alta" },
+    { feature: "Proceso de compra", mobius: "Digital por reserva", traditional: "Cotización, contrato y pago", jetCard: "Prepago y gestión posterior", fullCharter: "Contrato de largo plazo" },
+    { feature: "Empty legs", mobius: "Producto central", traditional: "Disponibles ocasionalmente", jetCard: "Depende del proveedor", fullCharter: "No son el producto principal" },
+    { feature: "Ideal para", mobius: "Viajeros flexibles que buscan menor costo de entrada", traditional: "Grupos con itinerarios específicos", jetCard: "Usuarios frecuentes que buscan predictibilidad", fullCharter: "Usuarios corporativos o de muy alta frecuencia" },
+  ];
+
+  return (
+    <LazyMotion features={domAnimation} strict>
+    <AnimatePresence>
+      {!isHydrated && (
+        <m.div
+          key="page-loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background"
+        >
+          <m.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Image
+              src="/logo/main-logo.svg"
+              alt="Mobius Fly"
+              width={56}
+              height={56}
+              priority
+            />
+          </m.div>
+        </m.div>
+      )}
+    </AnimatePresence>
+    <div className="overflow-x-hidden h-screen">
+    <div ref={scrollContainerRef} className="lg:snap-y lg:snap-mandatory overflow-y-scroll h-full">
+      {/* Fixed Navbar - Aparece después del scroll */}
+      <div
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+        }`}
+        style={{
+          backgroundColor: "rgba(246, 246, 244, 0.8)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+        }}
+      >
+        <Navbar
+          variant="default"
+          backgroundColor="transparent"
+          logo={
+            <Image
+              src="/logo/main-logo.svg"
+              alt="Mobius Fly"
+              width={32}
+              height={32}
+            />
+          }
+          logoText="Mobius Fly"
+          contentPadding={sectionPadding}
+          navLinks={[
+            { label: "Vuelos", href: "/flights" },
+            { label: "Cómo funciona", href: "/how-it-works" },
+            { label: "Comparación", href: "/comparison" },
+            { label: "Beneficios", href: "/benefits" },
+            { label: "Preguntas frecuentes", href: "/faq" },
+            { label: "Contacto", href: "/contact" },
+          ]}
+          loginButtonText="Iniciar Sesión"
+          signUpButtonText="Crear cuenta"
+          activeHref={activeSection}
+          isLoggedIn={isLoggedIn}
+          userInitials={userInitials}
+          userType={navUserType}
+          onLogoClick={handleLogoClick}
+          onNavLinkClick={handleNavLinkClick}
+          onLoginClick={handleLoginClick}
+          onSignUpClick={handleSignUpClick}
+          onLogoutClick={logout}
+          onMyBookingsClick={handleMyBookingsClick}
+          onMyPlanesClick={handleMyBookingsClick}
+        />
+      </div>
+
+      {/* Hero Section */}
+      <HeroSection
+        sectionPadding={sectionPadding}
+        currentWordIndex={currentWordIndex}
+        rotatingWords={rotatingWords}
+        activeSection={activeSection}
+        isLoggedIn={isLoggedIn}
+        userInitials={userInitials}
+        userType={navUserType}
+        onLogoClick={handleLogoClick}
+        onNavLinkClick={handleNavLinkClick}
+        onLoginClick={handleLoginClick}
+        onSignUpClick={handleSignUpClick}
+        onExploreClick={handleExploreClick}
+        onLogoutClick={logout}
+        onMyBookingsClick={handleMyBookingsClick}
+        onMyPlanesClick={handleMyBookingsClick}
+      />
+
+      {/* Flight Search Section */}
+      <FlightSearchSection
+        sectionPadding={sectionPadding}
+        onSearch={handleSearch}
+      />
+
+      {/* Features Section */}
+      <FeaturesSection
+        sectionPadding={sectionPadding}
+        userType={featuresUserType}
+        featuresData={featuresData}
+        onUserTypeChange={setFeaturesUserType}
+      />
+
+      {/* Comparison Section */}
+      <ComparisonSection
+        sectionPadding={sectionPadding}
+        comparisonFeatures={comparisonFeatures}
+      />
+
+      {/* Benefits Section */}
+      <BenefitsSection sectionPadding={sectionPadding} />
+
+      {/* Experience Section */}
+      <ExperienceSection sectionPadding={sectionPadding} />
+
+      {/* FAQ Section */}
+      <FAQSection
+        sectionPadding={sectionPadding}
+        faqCompradores={faqCompradores}
+        faqPropietarios={faqPropietarios}
+      />
+
+      {/* Contact Section */}
+      <ContactSection
+        sectionPadding={sectionPadding}
+        onSubmit={handleContactSubmit}
+      />
+
+      {/* Footer Section */}
+      <FooterSection
+        sectionPadding={sectionPadding}
+        onScrollToSection={scrollToSection}
+      />
+    </div>
+    </div>
+    </LazyMotion>
+  );
+
+}

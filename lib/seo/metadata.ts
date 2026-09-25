@@ -1,83 +1,58 @@
 /**
- * SEO Metadata Configuration
+ * SEO Metadata
  * Mobius Fly - Empty Leg Marketplace
  *
- * Centralized metadata generation for all public pages
- * Supports dynamic content and multi-language (prepared for i18n)
+ * Central metadata builders. Every page goes through `buildMetadata` so that
+ * canonical, Open Graph, Twitter and robots stay consistent.
  */
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { SITE_CONFIG, absoluteUrl } from "./config";
+
+export { SITE_CONFIG, absoluteUrl };
 
 // ============================================================================
-// CONFIGURATION
+// ROOT (applies to every route unless overridden)
 // ============================================================================
 
-export const SITE_CONFIG = {
-  name: "Mobius Fly",
-  url: "https://mobiusfly.com",
-  ogImage: "/og-image.jpg",
-  description: "Book verified private jet empty legs at exclusive rates. Travel privately with unmatched simplicity and confidence.",
-  keywords: [
-    "empty leg flights",
-    "private jet",
-    "charter flights",
-    "luxury travel",
-    "private aviation",
-    "empty legs",
-    "discounted private jets",
-    "jet charter",
-    "private jet booking",
-    "empty leg marketplace",
-  ],
-  twitterHandle: "@mobiusfly",
-  locale: "en_US",
-  alternateLocales: ["es_ES", "es_MX"],
+export const baseViewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: SITE_CONFIG.themeColor,
+  colorScheme: "light dark",
 };
-
-// ============================================================================
-// BASE METADATA
-// ============================================================================
 
 export const baseMetadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
+  applicationName: SITE_CONFIG.name,
   title: {
-    default: SITE_CONFIG.name,
+    default: `${SITE_CONFIG.name} | Vuelos Empty Leg en Jet Privado en México`,
     template: `%s | ${SITE_CONFIG.name}`,
   },
   description: SITE_CONFIG.description,
-  keywords: SITE_CONFIG.keywords,
-  authors: [{ name: "Mobius Fly Team" }],
-  creator: "Mobius Fly",
-  publisher: "Mobius Fly",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
+  keywords: [...SITE_CONFIG.keywords],
+  authors: [{ name: SITE_CONFIG.name, url: SITE_CONFIG.url }],
+  creator: SITE_CONFIG.name,
+  publisher: SITE_CONFIG.legalName,
+  category: "travel",
+  formatDetection: { email: false, address: false, telephone: false },
   openGraph: {
     type: "website",
     locale: SITE_CONFIG.locale,
-    alternateLocale: SITE_CONFIG.alternateLocales,
-    url: SITE_CONFIG.url,
     siteName: SITE_CONFIG.name,
-    title: SITE_CONFIG.name,
+    url: SITE_CONFIG.url,
+    title: `${SITE_CONFIG.name} | Vuelos Empty Leg en Jet Privado en México`,
     description: SITE_CONFIG.description,
-    images: [
-      {
-        url: SITE_CONFIG.ogImage,
-        width: 1200,
-        height: 630,
-        alt: `${SITE_CONFIG.name} - Empty Leg Flights`,
-      },
-    ],
+    // images: injected automatically by app/opengraph-image.tsx
   },
   twitter: {
     card: "summary_large_image",
-    site: SITE_CONFIG.twitterHandle,
-    creator: SITE_CONFIG.twitterHandle,
-    title: SITE_CONFIG.name,
+    title: `${SITE_CONFIG.name} | Vuelos Empty Leg en Jet Privado`,
     description: SITE_CONFIG.description,
-    images: [SITE_CONFIG.ogImage],
+    ...(SITE_CONFIG.twitterHandle && {
+      site: SITE_CONFIG.twitterHandle,
+      creator: SITE_CONFIG.twitterHandle,
+    }),
   },
   robots: {
     index: true,
@@ -90,19 +65,79 @@ export const baseMetadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/logo/main-logo.svg", sizes: "32x32", type: "image/svg+xml" },
-    ],
-    shortcut: "/favicon.svg",
-    apple: "/logo/main-logo.svg",
+  verification: {
+    ...(SITE_CONFIG.googleVerification && { google: SITE_CONFIG.googleVerification }),
+    ...(SITE_CONFIG.bingVerification && { other: { "msvalidate.01": SITE_CONFIG.bingVerification } }),
   },
-  manifest: "/site.webmanifest",
+  // Icons come from the app/icon + app/apple-icon file conventions.
+  // Manifest comes from app/manifest.ts.
 };
 
 // ============================================================================
-// NOINDEX METADATA (Private Routes)
+// GENERIC BUILDER
+// ============================================================================
+
+interface BuildMetadataInput {
+  title: string;
+  description: string;
+  /** Site-relative path used for canonical + og:url, e.g. "/flights". */
+  path: string;
+  /** Absolute image URL. Defaults to the site-wide /opengraph-image. */
+  image?: string;
+  imageAlt?: string;
+  noIndex?: boolean;
+  /** index=false but keep following links (filtered/paginated views). */
+  noIndexFollow?: boolean;
+  keywords?: string[];
+  type?: "website" | "article";
+}
+
+export function buildMetadata({
+  title,
+  description,
+  path,
+  image,
+  imageAlt,
+  noIndex,
+  noIndexFollow,
+  keywords,
+  type = "website",
+}: BuildMetadataInput): Metadata {
+  const url = absoluteUrl(path);
+  // Explicit image on every page: generateMetadata results don't reliably
+  // inherit the root opengraph-image file convention.
+  image = image ?? absoluteUrl("/opengraph-image");
+  const images = [{ url: image, width: 1200, height: 630, alt: imageAlt ?? title }];
+
+  return {
+    title,
+    description,
+    ...(keywords && { keywords }),
+    alternates: { canonical: url },
+    openGraph: {
+      type,
+      url,
+      title,
+      description,
+      siteName: SITE_CONFIG.name,
+      locale: SITE_CONFIG.locale,
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+    ...(noIndex && { robots: noIndexMetadata.robots }),
+    ...(noIndexFollow && {
+      robots: { index: false, follow: true, googleBot: { index: false, follow: true } },
+    }),
+  };
+}
+
+// ============================================================================
+// NOINDEX (private / transactional / system routes)
 // ============================================================================
 
 export const noIndexMetadata: Metadata = {
@@ -110,252 +145,115 @@ export const noIndexMetadata: Metadata = {
     index: false,
     follow: false,
     nocache: true,
-    googleBot: {
-      index: false,
-      follow: false,
-    },
+    noarchive: true,
+    googleBot: { index: false, follow: false, noarchive: true, nosnippet: true },
   },
 };
 
-// ============================================================================
-// PAGE-SPECIFIC METADATA GENERATORS
-// ============================================================================
-
-/**
- * Landing Page Metadata
- */
-export function getLandingMetadata(): Metadata {
-  return {
-    title: "Empty Leg Flights | Private Jet Seats at Reduced Rates",
-    description: "Book verified private jet empty legs at exclusive rates. Travel privately with unmatched simplicity and confidence.",
-    openGraph: {
-      title: "Empty Leg Flights | Private Jet Seats at Reduced Rates | Mobius Fly",
-      description: "Book verified private jet empty legs at exclusive rates. Travel privately with unmatched simplicity and confidence.",
-      url: SITE_CONFIG.url,
-      type: "website",
-      images: [
-        {
-          url: `${SITE_CONFIG.url}/og-image.jpg`,
-          width: 1200,
-          height: 630,
-          alt: "Mobius Fly - Empty Leg Flights",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "Empty Leg Flights | Private Jet Seats at Reduced Rates",
-      description: "Book verified private jet empty legs at exclusive rates.",
-      images: [`${SITE_CONFIG.url}/og-image.jpg`],
-    },
-    alternates: {
-      canonical: SITE_CONFIG.url,
-      languages: {
-        "en-US": `${SITE_CONFIG.url}`,
-        "es-ES": `${SITE_CONFIG.url}/es`,
-        "es-MX": `${SITE_CONFIG.url}/es-mx`,
-      },
-    },
-  };
+/** Title-only helper for private pages: `noIndex("Mis viajes")`. */
+export function privateMetadata(title: string): Metadata {
+  return { title, ...noIndexMetadata };
 }
 
-/**
- * Flight Detail Page Metadata
- */
-export function getFlightMetadata(params: {
-  origin: string;
-  destination: string;
-  date: string;
-  flightId: string;
-  price?: string;
+// ============================================================================
+// PAGE-SPECIFIC METADATA
+// ============================================================================
+
+export function getHomeMetadata(): Metadata {
+  return buildMetadata({
+    title: `${SITE_CONFIG.name} | Vuelos Empty Leg en Jet Privado en México`,
+    description:
+      "Reserva asientos o la aeronave completa en vuelos empty leg de jets privados verificados. Precios hasta una fracción de un chárter, pago seguro y confirmación inmediata.",
+    path: "/",
+    keywords: [...SITE_CONFIG.keywords],
+  });
+}
+
+const MONTH_FORMAT = new Intl.DateTimeFormat("es-MX", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "America/Mexico_City",
+});
+
+export function formatFlightDate(iso: string): string {
+  return MONTH_FORMAT.format(new Date(iso));
+}
+
+export function formatMXN(amount: number): string {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export interface FlightMetaInput {
+  id: string;
+  originCity: string;
+  originCode: string;
+  destinationCity: string;
+  destinationCode: string;
+  departureISO: string;
+  pricePerSeat?: number;
+  availableSeats?: number;
   aircraft?: string;
-  seats?: number;
-}): Metadata {
-  const { origin, destination, date, flightId, price, aircraft, seats } = params;
+  /** Past or unavailable flights are dropped from the index. */
+  indexable: boolean;
+}
 
-  const title = `Private Flight ${origin} to ${destination} | Empty Leg`;
-  const description = `Reserve a seat on a private jet from ${origin} to ${destination} on ${date}. ${seats ? `${seats} seats available.` : ""} ${price ? `From ${price}.` : ""} Verified operator.`;
-  const ogImageUrl = `${SITE_CONFIG.url}/api/og?origin=${origin}&destination=${destination}&date=${date}`;
+export function getFlightMetadata(f: FlightMetaInput): Metadata {
+  const date = formatFlightDate(f.departureISO);
+  const title = `Vuelo privado ${f.originCity} (${f.originCode}) a ${f.destinationCity} (${f.destinationCode}) · ${date}`;
+  const description = [
+    `Vuelo empty leg en jet privado de ${f.originCity} a ${f.destinationCity} el ${date}.`,
+    f.aircraft && `Aeronave: ${f.aircraft}.`,
+    f.availableSeats && `${f.availableSeats} asientos disponibles.`,
+    f.pricePerSeat && `Desde ${formatMXN(f.pricePerSeat)} por asiento.`,
+    "Operador verificado y pago seguro.",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  return {
+  return buildMetadata({
     title,
     description,
-    openGraph: {
-      title: `${title} | Mobius Fly`,
-      description,
-      url: `${SITE_CONFIG.url}/flights/${flightId}`,
-      type: "website",
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: `Flight ${origin} to ${destination}`,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImageUrl],
-    },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/flights/${flightId}`,
-    },
-  };
+    path: `/flights/${f.id}`,
+    image: absoluteUrl(`/flights/${f.id}/opengraph-image`),
+    imageAlt: `Vuelo privado ${f.originCode} a ${f.destinationCode}`,
+    noIndexFollow: !f.indexable,
+    // OG image: app/flights/[id]/opengraph-image.tsx
+  });
 }
 
-/**
- * Search Results Metadata
- */
-export function getSearchMetadata(params?: {
-  origin?: string;
-  destination?: string;
-  date?: string;
-}): Metadata {
-  const { origin, destination, date } = params || {};
-
-  let title = "Available Private Flights | Empty Legs";
-  let description = "Explore available empty leg flights. Filter by origin, destination and date.";
-
-  if (origin && destination) {
-    title = `Private Flights from ${origin} to ${destination} | Empty Legs`;
-    description = `Find available empty leg flights from ${origin} to ${destination}. ${date ? `Departing ${date}.` : ""} Book verified private jets.`;
-  }
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title: `${title} | Mobius Fly`,
-      description,
-      url: `${SITE_CONFIG.url}/search`,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/search`,
-    },
-    robots: {
-      index: true,
-      follow: true,
-      // Prevent indexing of paginated/filtered results to avoid duplicate content
-      noarchive: !!(origin || destination || date),
-    },
-  };
+export function getFlightsListMetadata(hasFilters: boolean, origin?: string, destination?: string): Metadata {
+  const routed = origin && destination;
+  const meta = buildMetadata({
+    title: routed
+      ? `Vuelos empty leg de ${origin} a ${destination}`
+      : "Vuelos Empty Leg disponibles en jet privado",
+    description: routed
+      ? `Encuentra vuelos empty leg en jet privado de ${origin} a ${destination}. Compara precios por asiento y reserva en minutos con operadores verificados.`
+      : "Explora vuelos empty leg en jets privados de todo México. Filtra por origen, destino y fecha, compara precios por asiento y reserva en minutos.",
+    path: "/flights",
+    // Filtered result pages are thin/duplicate: canonical -> /flights, out of the index.
+    noIndexFollow: hasFilters,
+  });
+  return meta;
 }
 
-/**
- * FAQ Page Metadata
- */
-export function getFAQMetadata(): Metadata {
-  return {
-    title: "Frequently Asked Questions | Empty Leg Flights",
-    description: "Get answers about booking empty leg flights, payment process, cancellations, and how Mobius Fly works.",
-    openGraph: {
-      title: "Frequently Asked Questions | Mobius Fly",
-      description: "Get answers about booking empty leg flights, payment process, cancellations, and how Mobius Fly works.",
-      url: `${SITE_CONFIG.url}/faq`,
-      type: "website",
-    },
-    twitter: {
-      card: "summary",
-      title: "FAQ | Mobius Fly",
-      description: "Get answers about booking empty leg flights.",
-    },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/faq`,
-    },
-  };
-}
-
-/**
- * How It Works Page Metadata
- */
-export function getHowItWorksMetadata(): Metadata {
-  return {
-    title: "How It Works | Book Empty Leg Flights",
-    description: "Learn how to book empty leg flights on Mobius Fly. Simple, secure, and transparent private jet booking.",
-    openGraph: {
-      title: "How It Works | Mobius Fly",
-      description: "Learn how to book empty leg flights on Mobius Fly.",
-      url: `${SITE_CONFIG.url}/how-it-works`,
-      type: "website",
-    },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/how-it-works`,
-    },
-  };
-}
-
-/**
- * Benefits Page Metadata
- */
-export function getBenefitsMetadata(): Metadata {
-  return {
-    title: "Benefits | Why Choose Mobius Fly",
-    description: "Discover the benefits of booking empty leg flights. Verified operators, secure payments, no memberships required.",
-    openGraph: {
-      title: "Benefits | Why Choose Mobius Fly",
-      description: "Discover the benefits of booking empty leg flights.",
-      url: `${SITE_CONFIG.url}/benefits`,
-      type: "website",
-    },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/benefits`,
-    },
-  };
-}
-
-/**
- * Contact Page Metadata
- */
-export function getContactMetadata(): Metadata {
-  return {
-    title: "Contact Us | Get in Touch",
-    description: "Contact Mobius Fly for questions about empty leg flights, partnerships, or support.",
-    openGraph: {
-      title: "Contact Us | Mobius Fly",
-      description: "Get in touch with our team.",
-      url: `${SITE_CONFIG.url}/contact`,
-      type: "website",
-    },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/contact`,
-    },
-  };
-}
-
-/**
- * Legal Pages Metadata
- */
 export function getLegalMetadata(type: "terms" | "privacy"): Metadata {
-  const titles = {
-    terms: "Terms of Service",
-    privacy: "Privacy Policy",
-  };
-
-  const descriptions = {
-    terms: "Read the terms of service for using Mobius Fly empty leg marketplace.",
-    privacy: "Learn how Mobius Fly protects your privacy and handles your data.",
-  };
-
-  return {
-    title: titles[type],
-    description: descriptions[type],
-    openGraph: {
-      title: `${titles[type]} | Mobius Fly`,
-      description: descriptions[type],
-      url: `${SITE_CONFIG.url}/${type}`,
-      type: "website",
+  const data = {
+    terms: {
+      title: "Términos y Condiciones",
+      description:
+        "Términos y condiciones generales de uso de Mobius Fly, el marketplace de vuelos empty leg en jets privados.",
     },
-    alternates: {
-      canonical: `${SITE_CONFIG.url}/${type}`,
+    privacy: {
+      title: "Aviso de Privacidad",
+      description:
+        "Aviso de privacidad integral de Mobius Fly: cómo recabamos, usamos y protegemos tus datos personales.",
     },
-  };
+  }[type];
+  return buildMetadata({ ...data, path: `/${type}` });
 }

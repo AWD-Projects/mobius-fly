@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { searchFlights } from "@/app/actions/flights";
+import type { Metadata } from "next";
+import { getFlightsListMetadata } from "@/lib/seo/metadata";
 import { FlightsContent } from "./_components/FlightsContent";
 
 interface Props {
@@ -13,6 +15,16 @@ interface Props {
         page?: string;
         sort?: string;
     }>;
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+    const sp = await searchParams;
+    const hasFilters = Object.values(sp).some(Boolean);
+    return getFlightsListMetadata(
+        hasFilters,
+        sp.origin?.toUpperCase().slice(0, 3),
+        sp.destination?.toUpperCase().slice(0, 3),
+    );
 }
 
 export default async function FlightsPage({ searchParams }: Props) {

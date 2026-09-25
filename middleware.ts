@@ -32,6 +32,9 @@ const PRIVATE_ROUTE_PATTERNS = [
     ...AUTH_ONLY_PATTERNS,
     ...PROTECTED_PATTERNS,
     /^\/forgot-password/,
+    /^\/recover-password/,
+    /^\/thank-you/,
+    /^\/flights\/[^/]+\/(passengers|payment)/,
     /^\/reset-password/,
     /^\/sistema/,
     /^\/expired/,
@@ -78,7 +81,14 @@ export async function middleware(request: NextRequest) {
     );
 
     // Refresh session — must be called before any redirect logic
-    const { data: { user } } = await supabase.auth.getUser();
+    // Skip the network round-trip for anonymous traffic (crawlers, first visits):
+    // without a Supabase auth cookie there is no session to refresh.
+    const hasAuthCookie = request.cookies
+        .getAll()
+        .some((c) => c.name.startsWith("sb-"));
+    const user = hasAuthCookie
+        ? (await supabase.auth.getUser()).data.user
+        : null;
 
     // ── 2. Route protection ───────────────────────────────────────────────────
     const isAuthOnly = AUTH_ONLY_PATTERNS.some((p) => p.test(pathname));
@@ -105,6 +115,7 @@ export async function middleware(request: NextRequest) {
         "X-Robots-Tag",
         isPrivate ? "noindex, nofollow, noarchive, nosnippet" : "index, follow",
     );
+    supabaseResponse.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     supabaseResponse.headers.set("X-Frame-Options", "SAMEORIGIN");
     supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
     supabaseResponse.headers.set(
@@ -121,6 +132,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|opengraph-image|twitter-image|icon|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
     ],
 };
