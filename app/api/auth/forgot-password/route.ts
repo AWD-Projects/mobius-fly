@@ -2,8 +2,8 @@
  * POST /api/auth/forgot-password
  *
  * Generates a 6-digit OTP, stores it in password_reset_otps, and sends
- * it to the user's email via Resend. Returns 404 if the email is not
- * registered in the platform.
+ * it to the user's email via Resend. Always answers 200 for a well-formed
+ * email so the endpoint cannot be used to enumerate registered accounts.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -43,10 +43,8 @@ export async function POST(request: NextRequest) {
     const { data: userId } = await admin.rpc("get_user_id_by_email", { p_email: email });
 
     if (!userId) {
-        return NextResponse.json(
-            { error: "Este correo no está registrado en la plataforma." },
-            { status: 404 },
-        );
+        // Same response as the success path: do not reveal whether the account exists.
+        return NextResponse.json({ ok: true }, { status: 200 });
     }
 
     // ── Generate OTP and upsert into password_reset_otps ─────────────────────

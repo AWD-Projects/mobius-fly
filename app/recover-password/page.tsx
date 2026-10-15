@@ -282,8 +282,9 @@ export default function RecoverPasswordPage() {
                                         Revisa tu correo
                                     </h1>
                                     <p className="text-small text-muted">
-                                        Enviamos un código de 6 dígitos a{" "}
-                                        <span className="font-medium text-text">{pendingEmail}</span>
+                                        Si{" "}
+                                        <span className="font-medium text-text">{pendingEmail}</span>{" "}
+                                        está registrado, te enviamos un código de 6 dígitos.
                                     </p>
                                 </div>
 
