@@ -9,6 +9,8 @@ export interface UploadedDocument {
   name: string;
   size: string;
   url?: string;
+  /** Server-side reference ("bucket:path") once the file has been uploaded. */
+  storagePath?: string;
 }
 
 export interface DocumentUploadProps {

@@ -102,7 +102,10 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             .then((res) => res.json())
             .then(({ document }) => {
                 if (document) {
-                    setDocuments((prev) => ({ ...prev, 0: document }));
+                    setDocuments((prev) => ({
+                        ...prev,
+                        0: { ...document, storagePath: `identity-documents:${document.storagePath}` },
+                    }));
                 }
             })
             .catch(() => {})
@@ -113,7 +116,11 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     const activePassenger: StoredPassenger | undefined = store.passengers[activeIndex];
 
     const handlePassengerSubmit = (data: PassengerFormData) => {
-        const documentUrl = documents[activeIndex]?.url ?? "";
+        const documentUrl = documents[activeIndex]?.storagePath ?? "";
+        if (!documentUrl) {
+            toast.error("Falta el documento", "Sube el documento de identidad de este pasajero para continuar.");
+            return;
+        }
         store.updatePassenger(activeIndex, { ...data, documentUrl, isCompleted: true });
         setErroredPassengers((prev) => {
             const next = new Set(prev);
@@ -123,15 +130,39 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
         toast.success("Datos guardados", "La información del pasajero ha sido registrada.");
     };
 
-    const handleDocumentUpload = (index: number, file: File) => {
+    const handleDocumentUpload = async (index: number, file: File) => {
+        const MAX_BYTES = 10 * 1024 * 1024;
+        if (file.size > MAX_BYTES) {
+            toast.error("Archivo demasiado grande", "El documento no debe pesar más de 10 MB.");
+            return;
+        }
+
+        // Show it immediately (local preview), then upload it to the server.
+        const previewUrl = URL.createObjectURL(file);
         setDocuments((prev) => ({
             ...prev,
-            [index]: {
-                name: file.name,
-                size: `${(file.size / 1024).toFixed(0)} KB`,
-                url: URL.createObjectURL(file),
-            },
+            [index]: { name: file.name, size: `${(file.size / 1024).toFixed(0)} KB`, url: previewUrl },
         }));
+
+        try {
+            const body = new FormData();
+            body.append("file", file);
+            const res = await fetch("/api/reservations/document", { method: "POST", body });
+            const data = await res.json().catch(() => ({})) as { path?: string; error?: string };
+            if (!res.ok || !data.path) throw new Error(data.error ?? "No se pudo subir el documento.");
+
+            setDocuments((prev) => ({
+                ...prev,
+                [index]: { ...(prev[index] ?? { name: file.name, size: "" }), storagePath: data.path },
+            }));
+        } catch (err) {
+            setDocuments((prev) => {
+                const next = { ...prev };
+                delete next[index];
+                return next;
+            });
+            toast.error("No se pudo subir", err instanceof Error ? err.message : "Intenta de nuevo.");
+        }
     };
 
     const handleDocumentRemove = (index: number) => {

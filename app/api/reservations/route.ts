@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createReservation } from "@/lib/reservations/create";
-import { rateLimit } from "@/lib/rate-limit";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 import { z } from "zod";
 
-const limiter = rateLimit({ limit: 5, windowMs: 60_000 });
+const PASSENGER_DOC_RE =
+    /^passenger-documents:(pending|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(pdf|jpg|png)$/i;
 
 const uuidLike = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Invalid UUID");
 
@@ -30,8 +31,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-    const limited = limiter(req);
-    if (limited) return limited;
+    if (!(await allowed(`reservations:ip:${clientIp(req)}`, 10, 60))) {
+        return tooManyRequests(60);
+    }
 
     try {
         // ── Optional auth — guests can purchase without an account ────────────
@@ -61,6 +63,38 @@ export async function POST(req: NextRequest) {
                 { error: "El número de pasajeros no coincide con los asientos solicitados." },
                 { status: 422 },
             );
+        }
+
+        // ── Every passenger must carry a real, server-side identity document ──
+        for (const p of passengers) {
+            const ref = p.documentUrl ?? "";
+            let valid = false;
+
+            const m = PASSENGER_DOC_RE.exec(ref);
+            if (m) {
+                // Uploaded files live under the uploader's own folder.
+                const folder = m[1].toLowerCase();
+                valid = user ? folder === user.id.toLowerCase() : folder === "pending";
+            } else if (user && ref.startsWith("identity-documents:")) {
+                // Passenger #1 may reuse the account's own identity document.
+                const path = ref.slice("identity-documents:".length);
+                const { data: own } = await supabase
+                    .from("user_documents")
+                    .select("id")
+                    .eq("user_id", user.id)
+                    .eq("document_type", "IDENTITY")
+                    .eq("document_url", path)
+                    .limit(1)
+                    .maybeSingle();
+                valid = !!own;
+            }
+
+            if (!valid) {
+                return NextResponse.json(
+                    { error: "Cada pasajero debe adjuntar un documento de identidad válido." },
+                    { status: 422 },
+                );
+            }
         }
 
         // ── Resolve contact info ──────────────────────────────────────────────

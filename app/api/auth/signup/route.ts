@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateOTP, hashOTP, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/otp";
+import { encryptSecret } from "@/lib/secret-box";
 import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 import { buildOtpEmail } from "@/lib/emails/otp-templates";
 
@@ -163,7 +164,8 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString();
 
     const payload = {
-        password,
+        // Never store the plaintext password: it is encrypted (AES-256-GCM) until verification.
+        passwordEnc: encryptSecret(password),
         firstName,
         lastName,
         birthDate,

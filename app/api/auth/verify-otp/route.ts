@@ -20,12 +20,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyOTP, normalizeEmail, MAX_OTP_ATTEMPTS } from "@/lib/otp";
+import { decryptSecret } from "@/lib/secret-box";
 import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 
 const PENDING_REVIEW_STATUS_ID = "d0309d7b-ec5f-4e01-9a40-7801eb265144";
 
 interface SignupPayload {
-    password: string;
+    /** Current format: AES-256-GCM token. */
+    passwordEnc?: string;
+    /** Legacy rows created before encryption was introduced. */
+    password?: string;
     firstName: string;
     lastName: string;
     birthDate: string;
@@ -103,12 +107,28 @@ export async function POST(request: NextRequest) {
 
     // ── 5. OTP is valid — create the auth user ───────────────────────────────
     const pending = otpRow.payload as SignupPayload;
+    let password: string;
+    try {
+        password = pending.passwordEnc ? decryptSecret(pending.passwordEnc) : (pending.password ?? "");
+    } catch (err) {
+        console.error("[verify-otp] decrypt payload:", err instanceof Error ? err.message : err);
+        return NextResponse.json(
+            { error: "Sesión de registro inválida. Por favor, empieza de nuevo." },
+            { status: 422 },
+        );
+    }
+    if (!password) {
+        return NextResponse.json(
+            { error: "Sesión de registro inválida. Por favor, empieza de nuevo." },
+            { status: 422 },
+        );
+    }
     const role = pending.userType === "owner" ? "OWNER" : "PASSENGER";
 
     const { data: authData, error: authError } =
         await admin.auth.admin.createUser({
             email,
-            password: pending.password,
+            password,
             email_confirm: true,
             user_metadata: {
                 first_name: pending.firstName,
