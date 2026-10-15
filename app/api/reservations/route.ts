@@ -12,7 +12,8 @@ const bodySchema = z.object({
     flightId:      uuidLike,
     purchaseType:  z.enum(["seats", "full_aircraft"]),
     seatsRequested:z.number().int().min(1).max(20),
-    basePrice:     z.number().positive(),
+    // basePrice is intentionally NOT accepted: the price is computed server-side
+    // from the flight row. Unknown keys sent by old clients are stripped by Zod.
     passengers:    z.array(z.object({
         slotType:    z.enum(["adult", "minor"]),
         fullName:    z.string().optional(),
@@ -53,7 +54,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { flightId, purchaseType, seatsRequested, basePrice, passengers } = parsed.data;
+        const { flightId, purchaseType, seatsRequested, passengers } = parsed.data;
+
+        if (passengers.length !== seatsRequested) {
+            return NextResponse.json(
+                { error: "El número de pasajeros no coincide con los asientos solicitados." },
+                { status: 422 },
+            );
+        }
 
         // ── Resolve contact info ──────────────────────────────────────────────
         let contactFullName: string;
@@ -99,7 +107,6 @@ export async function POST(req: NextRequest) {
             contactFullName,
             contactEmail,
             contactPhone,
-            basePrice,
         });
 
         return NextResponse.json(result, { status: 201 });
@@ -107,6 +114,27 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
 
+        if (message === "FLIGHT_NOT_FOUND") {
+            return NextResponse.json({ error: "Vuelo no encontrado." }, { status: 404 });
+        }
+        if (message === "FLIGHT_NOT_AVAILABLE") {
+            return NextResponse.json(
+                { error: "Este vuelo no está disponible para reservar." },
+                { status: 409 },
+            );
+        }
+        if (message === "INVALID_PURCHASE_TYPE" || message === "INVALID_SEATS_REQUESTED") {
+            return NextResponse.json(
+                { error: "La solicitud de compra no es válida." },
+                { status: 422 },
+            );
+        }
+        if (message === "PRICE_MISMATCH" || message === "INVALID_FLIGHT_PRICE") {
+            return NextResponse.json(
+                { error: "El precio del vuelo cambió. Recarga la página e intenta de nuevo." },
+                { status: 409 },
+            );
+        }
         if (message === "FLIGHT_DEPARTURE_TOO_SOON") {
             return NextResponse.json(
                 { error: "Este vuelo no puede reservarse con menos de 3 horas de anticipación al despegue." },

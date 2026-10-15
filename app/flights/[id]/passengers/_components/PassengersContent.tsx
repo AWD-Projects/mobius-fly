@@ -172,7 +172,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
 
         // Read the LATEST store state — the submit() above updated it asynchronously
         // so the captured `store` closure would be stale here.
-        const { passengers, purchaseType, totalPassengers, totalPrice, setReservation } =
+        const { passengers, purchaseType, totalPassengers, setReservation } =
             useBookingStore.getState();
 
         // Check if any other passengers are still incomplete
@@ -196,7 +196,6 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
                     flightId,
                     purchaseType,
                     seatsRequested: totalPassengers,
-                    basePrice:      totalPrice,
                     passengers,
                 }),
             });

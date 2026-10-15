@@ -1,4 +1,6 @@
-"use server";
+// Server-only module. NOT a "use server" file on purpose: that directive would
+// expose createReservation as a public Server Action callable with arbitrary
+// arguments (userId, prices, ...). It is only called from POST /api/reservations.
 
 import { createAdminClient } from "@/lib/supabase/server";
 import { calculatePaymentBreakdown } from "@/lib/payments/fees";
@@ -15,7 +17,8 @@ export interface CreateReservationInput {
     contactFullName:   string;
     contactEmail:      string;
     contactPhone:      string | null;
-    basePrice:         number; // price_per_seat × N  OR  price_full_aircraft
+    // No price here: the base price is always computed server-side from the
+    // flight row (price_per_seat × seats, or price_full_aircraft).
 }
 
 export interface CreateReservationResult {
@@ -74,8 +77,28 @@ export async function createReservation(
         contactFullName,
         contactEmail,
         contactPhone,
-        basePrice,
     } = input;
+
+    // ── 0. Authoritative price from the flight row (never from the client) ────
+    const { data: flightPrice, error: flightPriceError } = await supabase
+        .from("flights")
+        .select("price_per_seat, price_full_aircraft")
+        .eq("id", flightId)
+        .maybeSingle();
+
+    if (flightPriceError) {
+        throw new Error(`Reservation creation failed: ${flightPriceError.message}`);
+    }
+    if (!flightPrice) throw new Error("FLIGHT_NOT_FOUND");
+
+    const unitPrice = purchaseType === "full_aircraft"
+        ? Number(flightPrice.price_full_aircraft)
+        : Number(flightPrice.price_per_seat) * seatsRequested;
+    const basePrice = Math.round(unitPrice * 100) / 100;
+
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+        throw new Error("INVALID_FLIGHT_PRICE");
+    }
 
     const breakdown = calculatePaymentBreakdown(basePrice);
 
@@ -112,6 +135,17 @@ export async function createReservation(
 
         const msg  = rpcError.message ?? "";
         const code = (rpcError as { code?: string }).code ?? "";
+
+        for (const known of [
+            "FLIGHT_NOT_FOUND",
+            "FLIGHT_NOT_AVAILABLE",
+            "INVALID_PURCHASE_TYPE",
+            "INVALID_SEATS_REQUESTED",
+            "INVALID_FLIGHT_PRICE",
+            "PRICE_MISMATCH",
+        ]) {
+            if (msg.includes(known)) throw new Error(known);
+        }
 
         if (msg.includes("FLIGHT_DEPARTURE_TOO_SOON"))    throw new Error("FLIGHT_DEPARTURE_TOO_SOON");
         if (msg.includes("NOT_ENOUGH_SEATS"))            throw new Error("NOT_ENOUGH_SEATS");
