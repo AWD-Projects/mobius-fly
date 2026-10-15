@@ -16,24 +16,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
+import { detectFileType } from "@/lib/file-signature";
 
-const MAX_BYTES = 10 * 1024 * 1024;
-
-function detectType(buf: Buffer): { mime: string; ext: string } | null {
-    if (buf.length >= 4 && buf.subarray(0, 4).toString("latin1") === "%PDF") {
-        return { mime: "application/pdf", ext: "pdf" };
-    }
-    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
-        return { mime: "image/jpeg", ext: "jpg" };
-    }
-    if (
-        buf.length >= 8 &&
-        buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-    ) {
-        return { mime: "image/png", ext: "png" };
-    }
-    return null;
-}
+// Vercel rejects request bodies above ~4.5 MB before they reach this route.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
     if (!(await allowed(`pax-doc:ip:${clientIp(req)}`, 30, 900))) {
@@ -41,8 +27,8 @@ export async function POST(req: NextRequest) {
     }
 
     const declared = Number(req.headers.get("content-length") ?? "0");
-    if (declared > MAX_BYTES + 1024 * 1024) {
-        return NextResponse.json({ error: "El archivo excede 10 MB." }, { status: 413 });
+    if (declared > MAX_BYTES + 512 * 1024) {
+        return NextResponse.json({ error: "El archivo excede 4 MB." }, { status: 413 });
     }
 
     let form: FormData;
@@ -57,11 +43,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Archivo requerido." }, { status: 400 });
     }
     if (file.size === 0 || file.size > MAX_BYTES) {
-        return NextResponse.json({ error: "El archivo debe pesar entre 1 byte y 10 MB." }, { status: 422 });
+        return NextResponse.json({ error: "El archivo debe pesar entre 1 byte y 4 MB." }, { status: 422 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const type = detectType(buffer);
+    const type = detectFileType(buffer);
     if (!type) {
         return NextResponse.json(
             { error: "Formato no permitido. Sube un PDF, JPG o PNG." },

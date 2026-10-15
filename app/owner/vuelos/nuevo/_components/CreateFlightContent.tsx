@@ -512,6 +512,12 @@ export function CreateFlightContent({ ownerId, airports, aircraft, crew }: Props
                             </option>
                         ))}
                     </SelectGroup>
+                    {!loadingAircraft && availableAircraft.length === 0 && (
+                        <p className="text-[11px] text-muted">
+                            No hay aeronaves disponibles para este horario. Revisa que la aeronave esté activa con documentos aprobados
+                            y que no tenga otro vuelo que coincida con estas fechas.
+                        </p>
+                    )}
                 </div>
 
                 {/* Crew */}

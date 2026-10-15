@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
-
-const limiter = rateLimit({ limit: 20, windowMs: 60_000 });
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 
 export async function GET(request: NextRequest) {
-    const limited = limiter(request);
-    if (limited) return limited;
+    // Throttle in the database: it is the only limiter shared by every serverless instance.
+    if (!(await allowed(`check-email:ip:${clientIp(request)}`, 10, 900))) {
+        return tooManyRequests();
+    }
 
     const email = request.nextUrl.searchParams.get("email");
     if (!email) return NextResponse.json({ exists: false });

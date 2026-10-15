@@ -580,6 +580,12 @@ export function EditFlightContent({ flightId, ownerId, initial, airports, aircra
                             </option>
                         ))}
                     </SelectGroup>
+                    {!loadingAircraft && seatFilteredAircraft.length === 0 && (
+                        <p className="text-[11px] text-muted">
+                            No hay aeronaves disponibles para este horario. Revisa que la aeronave esté activa con documentos aprobados
+                            y que no tenga otro vuelo que coincida con estas fechas.
+                        </p>
+                    )}
                 </div>
 
                 {/* Crew */}

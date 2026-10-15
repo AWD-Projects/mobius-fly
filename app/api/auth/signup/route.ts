@@ -21,6 +21,7 @@ import { generateOTP, hashOTP, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/otp
 import { encryptSecret } from "@/lib/secret-box";
 import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 import { buildOtpEmail } from "@/lib/emails/otp-templates";
+import { detectFileType } from "@/lib/file-signature";
 
 const GENDER_MAP: Record<string, string> = {
     male: "MALE",
@@ -91,7 +92,8 @@ export async function POST(request: NextRequest) {
     }
 
     const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    // The document travels as base64 in JSON (+33%); Vercel caps bodies at ~4.5 MB.
+    const MAX_FILE_SIZE = 3 * 1024 * 1024;
 
     if (!ALLOWED_MIME_TYPES.includes(documentMimeType)) {
         return NextResponse.json(
@@ -103,7 +105,16 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(documentBase64, "base64");
     if (fileBuffer.length > MAX_FILE_SIZE) {
         return NextResponse.json(
-            { error: "El archivo excede el tamaño máximo permitido de 10 MB." },
+            { error: "El archivo excede el tamaño máximo permitido de 3 MB." },
+            { status: 422 },
+        );
+    }
+
+    // The real type comes from the file's bytes, not from the client-sent MIME/name.
+    const detected = detectFileType(fileBuffer);
+    if (!detected) {
+        return NextResponse.json(
+            { error: "Tipo de archivo no permitido. Solo se aceptan PDF, JPEG o PNG." },
             { status: 422 },
         );
     }
@@ -124,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 3. Upload document to storage (temp path — no auth user yet) ──────────
-    const ext = documentFileName.split(".").pop() ?? "bin";
+    const ext = detected.ext;
 
     const { randomUUID } = await import("crypto");
     const tempId = randomUUID();
@@ -132,7 +143,7 @@ export async function POST(request: NextRequest) {
     const { error: uploadError } = await admin.storage
         .from("identity-documents")
         .upload(storagePath, fileBuffer, {
-            contentType: documentMimeType,
+            contentType: detected.mime,
             upsert: false,
         });
 
@@ -173,7 +184,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         userType,
         storagePath,
-        mimeType: documentMimeType,
+        mimeType: detected.mime,
     };
 
     const { error: otpError } = await admin

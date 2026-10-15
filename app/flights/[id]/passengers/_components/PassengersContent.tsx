@@ -131,9 +131,9 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     };
 
     const handleDocumentUpload = async (index: number, file: File) => {
-        const MAX_BYTES = 10 * 1024 * 1024;
+        const MAX_BYTES = 4 * 1024 * 1024;
         if (file.size > MAX_BYTES) {
-            toast.error("Archivo demasiado grande", "El documento no debe pesar más de 10 MB.");
+            toast.error("Archivo demasiado grande", "El documento no debe pesar más de 4 MB.");
             return;
         }
 

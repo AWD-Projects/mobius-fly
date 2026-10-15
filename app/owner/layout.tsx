@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { privateMetadata } from "@/lib/seo/metadata";
 import { createClient } from "@/lib/supabase/server";
 import { OwnerLayoutClient } from "./_components/OwnerLayoutClient";
@@ -15,11 +16,15 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
     let rejectedReason: string | null = null;
 
     if (user) {
-        const { data: owner } = await supabase
+        const { data: owner, error: ownerError } = await supabase
             .from("owners")
             .select("status, fleet_name")
             .eq("user_id", user.id)
-            .single();
+            .maybeSingle();
+
+        // Signed in but not an owner (e.g. a passenger): deny on the server too,
+        // not only in the client layout. A transient query error is not a denial.
+        if (!owner && !ownerError) redirect("/forbidden");
 
         ownerStatus = owner?.status ?? null;
         onboardingCompleted = !!owner?.fleet_name;
