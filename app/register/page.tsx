@@ -162,15 +162,6 @@ export default function RegisterPage() {
         setIsFinalStepLoading(true);
         setOverlay({ title: "Entrando a Mobius Fly...", description: "Preparando tu cuenta" });
         try {
-            if (fleetName && registeredUserId) {
-                setOverlay({ title: "Guardando nombre de flota...", description: "Un momento" });
-                await fetch("/api/owners/fleet-name", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: registeredUserId, fleetName }),
-                });
-            }
-
             setOverlay({ title: "Iniciando sesión...", description: "Ya casi terminamos" });
             const values = accountForm.getValues();
             const passwordValues = passwordForm.getValues();
@@ -181,6 +172,15 @@ export default function RegisterPage() {
             });
 
             if (loginRes.ok) {
+                // The session cookie now exists; the fleet-name route reads the user from it.
+                if (fleetName) {
+                    setOverlay({ title: "Guardando nombre de flota...", description: "Un momento" });
+                    await fetch("/api/owners/fleet-name", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ fleetName }),
+                    });
+                }
                 await login();
             }
 
@@ -189,7 +189,7 @@ export default function RegisterPage() {
             setIsFinalStepLoading(false);
             setOverlay(null);
         }
-    }, [accountForm, passwordForm, userType, login, router, registeredUserId]);
+    }, [accountForm, passwordForm, userType, login, router]);
 
     const handleNext = useCallback(async () => {
         setApiError(null);

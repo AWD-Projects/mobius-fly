@@ -1,12 +1,15 @@
 /**
  * PATCH /api/owners/fleet-name
  *
- * Sets the fleet_name on the owners row for a given user_id.
- * Called during registration step 6 (FleetNameStep) before navigating to dashboard.
+ * Sets the fleet_name on the CALLER's owners row.
+ * Called at the end of registration (FleetNameStep), after the session exists.
+ *
+ * The user is taken from the session cookie, never from the request body, and
+ * the update goes through the session client so RLS (owners_update) applies too.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: NextRequest) {
     let body: unknown;
@@ -16,21 +19,25 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { userId, fleetName } = body as { userId?: string; fleetName?: string };
+    const { fleetName } = (body ?? {}) as { fleetName?: unknown };
 
-    if (!userId || !fleetName || !fleetName.trim()) {
-        return NextResponse.json(
-            { error: "userId y fleetName son requeridos" },
-            { status: 400 },
-        );
+    if (typeof fleetName !== "string" || !fleetName.trim()) {
+        return NextResponse.json({ error: "fleetName es requerido" }, { status: 400 });
+    }
+    if (fleetName.trim().length > 80) {
+        return NextResponse.json({ error: "El nombre es demasiado largo" }, { status: 422 });
     }
 
-    const admin = createAdminClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
-    const { error } = await admin
+    const { error } = await supabase
         .from("owners")
         .update({ fleet_name: fleetName.trim() })
-        .eq("user_id", userId);
+        .eq("user_id", user.id);
 
     if (error) {
         console.error("[fleet-name] update:", error.message);

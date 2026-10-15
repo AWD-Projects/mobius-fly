@@ -834,11 +834,16 @@ export async function deleteFlight(
             .single();
 
         if (confirmedStatus) {
-            const { count } = await supabase
+            const { count, error: countError } = await supabase
                 .from("reservations")
                 .select("id", { count: "exact", head: true })
                 .eq("flight_id", flightId)
-                .eq("status_id", confirmedStatus.id);
+                .eq("reservation_status_id", confirmedStatus.id);
+
+            if (countError) {
+                console.error("[deleteFlight] count error:", countError.message);
+                return { error: "No se pudo verificar las reservaciones del vuelo." };
+            }
 
             if ((count ?? 0) > 0) {
                 return { error: "No se puede eliminar: el vuelo tiene pasajeros con reservaciones confirmadas. Cancela el vuelo en su lugar." };
