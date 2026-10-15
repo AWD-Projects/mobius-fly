@@ -58,7 +58,13 @@ export async function POST(req: NextRequest) {
 
         const { flightId, purchaseType, seatsRequested, passengers } = parsed.data;
 
-        if (passengers.length !== seatsRequested) {
+        // By seats: one passenger per seat. Full aircraft: the whole plane is bought
+        // (seatsRequested is its capacity) and travelers may be fewer than seats.
+        const passengerCountOk = purchaseType === "full_aircraft"
+            ? passengers.length >= 1 && passengers.length <= seatsRequested
+            : passengers.length === seatsRequested;
+
+        if (!passengerCountOk) {
             return NextResponse.json(
                 { error: "El número de pasajeros no coincide con los asientos solicitados." },
                 { status: 422 },
