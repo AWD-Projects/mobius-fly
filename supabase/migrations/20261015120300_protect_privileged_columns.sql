@@ -241,7 +241,12 @@ CREATE POLICY crew_members_select_scoped ON public.crew_members
     )
   );
 
-REVOKE SELECT (email, phone, license_number) ON public.crew_members FROM anon;
+-- Un REVOKE por columna no sirve si existe un GRANT a nivel tabla: se quita el de
+-- tabla y se concede columna por columna, sin email / phone / license_number.
+REVOKE SELECT ON public.crew_members FROM anon;
+GRANT SELECT (id, owner_id, first_name, last_name, gender, crew_role_id, status,
+              created_at, updated_at, is_approved, rejected_reason)
+  ON public.crew_members TO anon;
 
 -- ── Funciones internas: solo el backend ──────────────────────────────────────
 -- Por defecto Postgres da EXECUTE a PUBLIC; Supabase lo expone en /rest/v1/rpc.
