@@ -10,6 +10,7 @@ import { Button } from "@/components/atoms/Button";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { useLocalAuth } from "@/hooks/useLocalAuth";
 
+import { mxDate } from "@/lib/format/mx-date";
 const MONTHS_FULL = [
   "enero",
   "febrero",
@@ -26,12 +27,12 @@ const MONTHS_FULL = [
 ];
 
 function fmtDate(iso: string): string {
-  const d = new Date(iso);
+  const d = mxDate(iso);
   return `${d.getUTCDate()} de ${MONTHS_FULL[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
 function fmtTime(iso: string): string {
-  const d = new Date(iso);
+  const d = mxDate(iso);
   const h = d.getUTCHours();
   const min = d.getUTCMinutes().toString().padStart(2, "0");
   return `${h % 12 || 12}:${min} ${h >= 12 ? "PM" : "AM"}`;

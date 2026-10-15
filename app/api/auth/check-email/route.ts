@@ -3,8 +3,11 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 
 export async function GET(request: NextRequest) {
-    // Throttle in the database: it is the only limiter shared by every serverless instance.
-    if (!(await allowed(`check-email:ip:${clientIp(request)}`, 10, 900))) {
+    // Throttle in the database: it is the only limiter shared by every serverless
+    // instance. 60 lookups / 15 min per IP (~4/min) is far above a real signup
+    // (one check per attempt, even for several people behind one office IP) yet
+    // makes bulk enumeration of accounts impractical.
+    if (!(await allowed(`check-email:ip:${clientIp(request)}`, 60, 900))) {
         return tooManyRequests();
     }
 

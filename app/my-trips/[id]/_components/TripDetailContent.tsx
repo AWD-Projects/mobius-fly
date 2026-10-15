@@ -16,9 +16,12 @@ import { AirportFBOCard } from "@/components/organisms/AirportFBOCard";
 import { AppNavbar } from "@/components/organisms/AppNavbar";
 import type { ReservationDetail } from "@/types/app.types";
 
+import { mxDate } from "@/lib/format/mx-date";
 interface TripDetailContentProps {
     reservation: ReservationDetail;
 }
+
+const CANCELLATION_EMAIL = "contacto@mobiusfly.com";
 
 const MONTHS_FULL = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -31,17 +34,17 @@ const MONTHS_SHORT = [
 ];
 
 function formatHeaderDate(isoString: string): string {
-    const d = new Date(isoString);
-    return `${d.getDate()} de ${MONTHS_FULL[d.getMonth()]} de ${d.getFullYear()}`;
+    const d = mxDate(isoString);
+    return `${d.getUTCDate()} de ${MONTHS_FULL[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
 function formatDatetime(isoString: string): string {
-    const d = new Date(isoString);
-    const day = d.getDate().toString().padStart(2, "0");
-    const month = MONTHS_SHORT[d.getMonth()];
-    const year = d.getFullYear();
-    const h = d.getHours();
-    const m = d.getMinutes().toString().padStart(2, "0");
+    const d = mxDate(isoString);
+    const day = d.getUTCDate().toString().padStart(2, "0");
+    const month = MONTHS_SHORT[d.getUTCMonth()];
+    const year = d.getUTCFullYear();
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes().toString().padStart(2, "0");
     const ampm = h >= 12 ? "PM" : "AM";
     return `${day} ${month} ${year} • ${h % 12 || 12}:${m} ${ampm}`;
 }
@@ -90,7 +93,7 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
             const url  = URL.createObjectURL(blob);
             const a    = document.createElement("a");
             a.href     = url;
-            a.download = `itinerario-${reservation.booking_reference}.pdf`;
+            a.download = `confirmacion-${reservation.booking_reference}.pdf`;
             a.click();
             URL.revokeObjectURL(url);
         } finally {
@@ -249,6 +252,30 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                             ))}
                         </m.div>
 
+                        <m.div {...fadeUp(0.28)} className="bg-surface rounded-md border border-border p-6 flex flex-col gap-2">
+                            <h2 className="text-body font-semibold text-text">Tu reserva</h2>
+                            <p className="text-small text-muted">
+                                Referencia: <span className="font-medium text-text">{reservation.booking_reference}</span>
+                            </p>
+                            {reservation.reservation_status === "BLOCKED" && (
+                                <p className="text-small text-muted">
+                                    Tu reserva está pendiente de pago. Si el pago no se completa a tiempo, los asientos se liberan automáticamente.
+                                </p>
+                            )}
+                            {(reservation.reservation_status === "BLOCKED" || reservation.reservation_status === "CONFIRMED") && (
+                                <p className="text-small text-muted">
+                                    Para cancelar tu reserva escríbenos a{" "}
+                                    <a
+                                        className="font-medium text-text underline underline-offset-2"
+                                        href={`mailto:${CANCELLATION_EMAIL}?subject=${encodeURIComponent(`Cancelación de reserva ${reservation.booking_reference}`)}`}
+                                    >
+                                        {CANCELLATION_EMAIL}
+                                    </a>{" "}
+                                    indicando tu referencia.
+                                </p>
+                            )}
+                        </m.div>
+
                         {reservation.reservation_status === "CONFIRMED" && (
                             <m.div {...fadeUp(0.3)}>
                                 <Button
@@ -260,7 +287,7 @@ export function TripDetailContent({ reservation }: TripDetailContentProps) {
                                     onClick={handleDownload}
                                     isLoading={downloading}
                                 >
-                                    {downloading ? "Generando PDF..." : "Descargar itinerario"}
+                                    {downloading ? "Generando PDF..." : "Descargar confirmación"}
                                 </Button>
                             </m.div>
                         )}

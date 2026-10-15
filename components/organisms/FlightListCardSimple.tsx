@@ -7,12 +7,13 @@ import { TypeBadge } from "@/components/atoms/TypeBadge";
 import { cn } from "@/lib/utils";
 import type { FlightListItem } from "@/types/app.types";
 
+import { mxDate } from "@/lib/format/mx-date";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 function fmtDatetime(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     const h = d.getUTCHours();
     const m = d.getUTCMinutes().toString().padStart(2, "0");
     const ampm = h >= 12 ? "PM" : "AM";
@@ -103,7 +104,7 @@ export const FlightListCardSimple: React.FC<FlightListCardSimpleProps> = ({
                 <span className="text-border text-small">|</span>
                 <div className="flex flex-col gap-0.5">
                     <span className="text-caption text-muted font-medium">Tipo</span>
-                    <TypeBadge variant="neutral">Sencillo</TypeBadge>
+                    <TypeBadge variant="neutral">{flight.flight_type === "ROUND_TRIP" ? "Redondo" : "Sencillo"}</TypeBadge>
                 </div>
             </div>
 

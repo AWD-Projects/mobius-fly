@@ -15,6 +15,7 @@ import { useLocalAuth }  from "@/hooks/useLocalAuth";
 import { useBookingStore } from "@/store/useBookingStore";
 import type { FlightDetail } from "@/types/app.types";
 
+import { mxDate } from "@/lib/format/mx-date";
 // ─── Stripe init (outside component to avoid re-creating) ─────────────────────
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -24,12 +25,12 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 const MONTHS_FULL = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 function fmtDate(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     return `${d.getUTCDate()} de ${MONTHS_FULL[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
 function fmtTime(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     const h = d.getUTCHours();
     const m = d.getUTCMinutes().toString().padStart(2, "0");
     return `${h % 12 || 12}:${m} ${h >= 12 ? "PM" : "AM"}`;

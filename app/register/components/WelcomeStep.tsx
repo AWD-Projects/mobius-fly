@@ -22,7 +22,7 @@ export const WelcomeStep = React.memo<WelcomeStepProps>(({ onGoToDashboard, isLo
         Bienvenid@ a Mobius Fly
       </h1>
       <p className="text-base sm:text-lg text-text max-w-md mx-auto">
-        Completaste tu registro. Todo listo<br />
+        Completaste tu registro. Todo listo{" "}<br />
         para reservar tus vuelos privados
       </p>
       <Button

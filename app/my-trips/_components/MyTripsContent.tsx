@@ -9,6 +9,7 @@ import { PastFlightCard } from "@/components/organisms/PastFlightCard";
 import { Button } from "@/components/atoms/Button";
 import type { ReservationListItem, ReservationStatusCode } from "@/types/app.types";
 
+import { mxDate } from "@/lib/format/mx-date";
 interface MyTripsContentProps {
     upcoming: ReservationListItem[];
     past: ReservationListItem[];
@@ -20,14 +21,14 @@ const MONTHS_SHORT = [
 ];
 
 function formatDate(isoString: string): string {
-    const d = new Date(isoString);
-    return `${d.getDate().toString().padStart(2, "0")} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+    const d = mxDate(isoString);
+    return `${d.getUTCDate().toString().padStart(2, "0")} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 function formatTime(isoString: string): string {
-    const d = new Date(isoString);
-    const h = d.getHours();
-    const m = d.getMinutes().toString().padStart(2, "0");
+    const d = mxDate(isoString);
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes().toString().padStart(2, "0");
     const ampm = h >= 12 ? "PM" : "AM";
     return `${h % 12 || 12}:${m} ${ampm}`;
 }

@@ -19,18 +19,19 @@ import { useLocalAuth } from "@/hooks/useLocalAuth";
 import { useBookingStore } from "@/store/useBookingStore";
 import type { FlightDetail } from "@/types/app.types";
 
+import { mxDate } from "@/lib/format/mx-date";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const MONTHS_FULL = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 function fmtDateFull(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     return `${d.getUTCDate()} de ${MONTHS_FULL[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
 function fmtDatetime(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     const h = d.getUTCHours();
     const min = d.getUTCMinutes().toString().padStart(2, "0");
     const ampm = h >= 12 ? "PM" : "AM";

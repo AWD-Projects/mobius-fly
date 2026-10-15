@@ -7,17 +7,18 @@ import { TypeBadge } from "@/components/atoms/TypeBadge";
 import { cn } from "@/lib/utils";
 import type { RoundTripPair, FlightListItem } from "@/types/app.types";
 
+import { mxDate } from "@/lib/format/mx-date";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 function fmtDate(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
 
 function fmtDatetime(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     const h = d.getUTCHours();
     const m = d.getUTCMinutes().toString().padStart(2, "0");
     const ampm = h >= 12 ? "PM" : "AM";

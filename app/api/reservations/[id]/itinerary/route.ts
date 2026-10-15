@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { generateConfirmationPDF } from "@/lib/emails/confirmation-pdf";
+import { mxDate } from "@/lib/format/mx-date";
 
 const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 function fmtDate(iso: string) {
-    const d = new Date(iso);
-    return `${d.getDate().toString().padStart(2,"0")}/${(d.getMonth()+1).toString().padStart(2,"0")}/${d.getFullYear()}`;
+    const d = mxDate(iso);
+    return `${d.getUTCDate().toString().padStart(2,"0")}/${(d.getUTCMonth()+1).toString().padStart(2,"0")}/${d.getUTCFullYear()}`;
 }
 function fmtTime(iso: string) {
-    const d = new Date(iso);
-    return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`;
+    const d = mxDate(iso);
+    return `${d.getUTCHours().toString().padStart(2,"0")}:${d.getUTCMinutes().toString().padStart(2,"0")}`;
 }
 
 export async function GET(
@@ -29,7 +30,7 @@ export async function GET(
         .select(`
             id, booking_reference, seats_requested, purchase_type, base_price_total,
             contact_full_name, contact_email, contact_phone,
-            passengers:reservation_passengers (full_name, date_of_birth, gender, document_type, is_minor),
+            reservation_status:reservation_status!reservations_reservation_status_id_fkey (code),
             flight:flights!reservations_flight_id_fkey (
                 flight_code, flight_type,
                 departure_datetime, arrival_datetime,
@@ -46,6 +47,12 @@ export async function GET(
     if (error || !row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const r   = row as any;
+
+    // The confirmation only exists once the reservation is paid.
+    if (r.reservation_status?.code !== "CONFIRMED") {
+        return NextResponse.json({ error: "La confirmación aún no está disponible." }, { status: 409 });
+    }
+
     const f   = r.flight;
     const ac  = f.aircraft ?? {};
     const dep = f.departure_airport;
@@ -69,13 +76,8 @@ export async function GET(
         flightType:       f.flight_type as "ONE_WAY" | "ROUND_TRIP",
         purchaseType:     r.purchase_type,
         seatsRequested:   r.seats_requested,
-        passengers:       (r.passengers ?? []).map((p: any) => ({
-            full_name:     p.full_name,
-            date_of_birth: p.date_of_birth ?? null,
-            gender:        p.gender ?? null,
-            is_minor:      p.is_minor ?? false,
-            document_type: p.document_type ?? "",
-        })),
+        // The itinerary does not list passengers.
+        passengers:       [],
         amountTotalPaid:  Number(r.base_price_total ?? 0),
         generatedAt:      new Date().toLocaleString("es-MX"),
     });

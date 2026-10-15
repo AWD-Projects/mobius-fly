@@ -21,18 +21,19 @@ import { toast } from "@/components/atoms/Toast";
 import { useBookingStore, type StoredPassenger } from "@/store/useBookingStore";
 import type { UploadedDocument } from "@/components/molecules/DocumentUpload";
 
+import { mxDate } from "@/lib/format/mx-date";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MONTHS_FULL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 function fmtDayDate(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     return `${DAYS[d.getUTCDay()]}, ${d.getUTCDate()} de ${MONTHS_FULL[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
 function fmtTime(iso: string): string {
-    const d = new Date(iso);
+    const d = mxDate(iso);
     const h = d.getUTCHours();
     const m = d.getUTCMinutes().toString().padStart(2, "0");
     const ampm = h >= 12 ? "PM" : "AM";
@@ -174,7 +175,7 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
     };
 
     // ─── Navigate between passengers freely (persists partial data) ──────────
-    const handleNavigatePassenger = React.useCallback((
+    const handleNavigatePassenger = React.useCallback(async (
         groupType: "adult" | "minor",
         index: number,
     ) => {
@@ -185,9 +186,14 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
 
         if (targetIndex === undefined || targetIndex === activeIndex) return;
 
-        // Persist whatever the user has typed so far (without validating)
-        const partial = formRef.current?.getValues();
-        if (partial) store.updatePassenger(activeIndex, partial);
+        // Leaving a passenger whose form is already valid (e.g. the one prefilled
+        // from the account) marks it completed, so "Continuar" does not need an
+        // extra click later. Otherwise keep whatever was typed, without validating.
+        const completed = await formRef.current?.submit();
+        if (!completed) {
+            const partial = formRef.current?.getValues();
+            if (partial) store.updatePassenger(activeIndex, partial);
+        }
 
         setActiveIndex(targetIndex);
     }, [store, activeIndex]);
@@ -214,6 +220,12 @@ export function PassengersContent({ flightId }: PassengersContentProps) {
             );
             setErroredPassengers(incompleteIndexes);
             setActiveIndex(firstIncomplete);
+            toast.error(
+                "Faltan datos de pasajeros",
+                incompleteIndexes.size === 1
+                    ? "Completa la información del pasajero marcado para continuar."
+                    : `Completa la información de los ${incompleteIndexes.size} pasajeros marcados para continuar.`,
+            );
             return;
         }
 
