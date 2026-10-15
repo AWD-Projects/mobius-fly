@@ -764,7 +764,8 @@ export async function updateFlight(
 
     if (flightError) {
         console.error("[updateFlight] error:", flightError.message);
-        return { error: flightError.message };
+        // guard_flights raises "FORBIDDEN_COLUMN: <motivo>"; show only the reason.
+        return { error: flightError.message.replace(/^FORBIDDEN_(COLUMN|TRANSITION):\s*/, "") };
     }
 
     // Replace crew: delete all existing, insert new
