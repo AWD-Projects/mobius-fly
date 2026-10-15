@@ -60,3 +60,6 @@ storybook-static
 *.mp4
 *.mov
 *.webm
+
+# Playwright MCP
+.playwright-mcp/
