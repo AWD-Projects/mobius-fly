@@ -51,8 +51,11 @@ const LIST_SELECT = `
     aircraft:aircrafts!flights_aircraft_id_fkey (photos)
 `.trim();
 
-// Columns for flight detail (full aircraft + crew)
-const DETAIL_SELECT = `
+// Columns for flight detail (full aircraft + crew).
+// license_number is only readable by signed-in users (anon has no column grant),
+// so guests must not request it or PostgREST rejects the whole query.
+function detailSelect(includeLicense: boolean): string {
+    return `
     id, flight_code, flight_type,
     departure_fbo_name, arrival_fbo_name,
     departure_datetime, arrival_datetime,
@@ -66,11 +69,12 @@ const DETAIL_SELECT = `
     aircraft:aircrafts!flights_aircraft_id_fkey (id, manufacturer, model, year, seats, range_km, photos, tail_number),
     flight_crew!flight_crew_flight_id_fkey (
         crew_members!flight_crew_crew_member_id_fkey (
-            id, first_name, last_name, license_number,
+            id, first_name, last_name${includeLicense ? ", license_number" : ""},
             crew_roles!crew_members_crew_role_id_fkey (code)
         )
     )
 `.trim();
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -177,10 +181,11 @@ export async function getFlightById(id: string): Promise<FlightDetail | null> {
     if (!id) return null;
 
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { data, error } = await supabase
         .from("flights")
-        .select(DETAIL_SELECT)
+        .select(detailSelect(!!user))
         .eq("id", id)
         .eq("is_visible", true)
         .single();
