@@ -6,7 +6,7 @@
  * What it does (in order):
  *  1. Validates the request body.
  *  2. Uploads the identity document to the 'identity-documents' bucket.
- *  3. Generates a 6-digit OTP, hashes it (SHA-256).
+ *  3. Generates a 6-digit OTP, hashes it (HMAC-SHA256).
  *  4. Upserts all signup data + OTP hash into the signup_otps DB table.
  *  5. Sends the plain OTP to the user's email via Resend.
  *  6. Returns { email } — the auth user is NOT created yet.
@@ -17,11 +17,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/server";
-import { generateOTP, hashOTP, OTP_TTL_MINUTES } from "@/lib/otp";
-import { rateLimit } from "@/lib/rate-limit";
+import { generateOTP, hashOTP, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/otp";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 import { buildOtpEmail } from "@/lib/emails/otp-templates";
-
-const limiter = rateLimit({ limit: 5, windowMs: 60_000 });
 
 const GENDER_MAP: Record<string, string> = {
     male: "MALE",
@@ -30,8 +28,9 @@ const GENDER_MAP: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-    const limited = limiter(request);
-    if (limited) return limited;
+    if (!(await allowed(`signup:ip:${clientIp(request)}`, 10, 900))) {
+        return tooManyRequests();
+    }
 
     // ── 1. Parse body ─────────────────────────────────────────────────────────
     let body: unknown;
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-        email,
+        email: rawEmail,
         password,
         fullName,
         birthDate,
@@ -66,7 +65,9 @@ export async function POST(request: NextRequest) {
     };
 
     if (
-        !email ||
+        typeof rawEmail !== "string" ||
+        typeof password !== "string" ||
+        !rawEmail ||
         !password ||
         !fullName ||
         !birthDate ||
@@ -80,6 +81,12 @@ export async function POST(request: NextRequest) {
             { error: "Faltan campos requeridos" },
             { status: 400 },
         );
+    }
+
+    const email = normalizeEmail(rawEmail);
+
+    if (!(await allowed(`signup:email:${email}`, 5, 900))) {
+        return tooManyRequests();
     }
 
     const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
@@ -152,7 +159,7 @@ export async function POST(request: NextRequest) {
     }
 
     const otp = generateOTP();
-    const otpHash = hashOTP(otp);
+    const otpHash = hashOTP(otp, email);
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString();
 
     const payload = {
@@ -170,7 +177,7 @@ export async function POST(request: NextRequest) {
     const { error: otpError } = await admin
         .from("signup_otps")
         .upsert(
-            { email, otp_hash: otpHash, expires_at: expiresAt, payload },
+            { email, otp_hash: otpHash, expires_at: expiresAt, payload, attempts: 0 },
             { onConflict: "email" },
         );
 

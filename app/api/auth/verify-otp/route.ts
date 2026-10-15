@@ -19,7 +19,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { verifyOTP } from "@/lib/otp";
+import { verifyOTP, normalizeEmail, MAX_OTP_ATTEMPTS } from "@/lib/otp";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 
 const PENDING_REVIEW_STATUS_ID = "d0309d7b-ec5f-4e01-9a40-7801eb265144";
 
@@ -44,27 +45,42 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { email, token } = body as { email: string; token: string };
+    const { email: rawEmail, token } = (body ?? {}) as { email?: unknown; token?: unknown };
 
-    if (!email || !token || token.length !== 6) {
+    if (typeof rawEmail !== "string" || typeof token !== "string" || !rawEmail || token.length !== 6) {
         return NextResponse.json(
             { error: "Correo y código de 6 dígitos requeridos" },
             { status: 400 },
         );
     }
 
+    const email = normalizeEmail(rawEmail);
+
+    // Per-IP throttle (the per-OTP attempt counter below is the hard stop).
+    if (!(await allowed(`verify-otp:ip:${clientIp(request)}`, 30, 900))) {
+        return tooManyRequests();
+    }
+
     const admin = createAdminClient();
 
-    // ── 2. Read the pending signup row ────────────────────────────────────────
-    const { data: otpRow, error: fetchError } = await admin
-        .from("signup_otps")
-        .select("otp_hash, expires_at, payload")
-        .eq("email", email)
-        .single();
+    // ── 2. Consume one attempt atomically and read the pending signup row ─────
+    // The counter is incremented BEFORE comparing, so parallel requests cannot
+    // guess more than MAX_OTP_ATTEMPTS times per issued code.
+    const { data: taken, error: fetchError } = await admin.rpc("take_signup_otp_attempt", {
+        p_email: email,
+        p_max:   MAX_OTP_ATTEMPTS,
+    });
+    const otpRow = Array.isArray(taken) ? taken[0] : null;
 
-    if (fetchError || !otpRow) {
+    if (fetchError) {
+        console.error("[verify-otp] take_signup_otp_attempt:", fetchError.message);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
+
+    if (!otpRow) {
+        // No pending signup, or the attempts for this code are exhausted.
         return NextResponse.json(
-            { error: "Sesión de registro expirada. Por favor, empieza de nuevo." },
+            { error: "Sesión de registro expirada o sin intentos. Solicita un nuevo código o empieza de nuevo." },
             { status: 422 },
         );
     }
@@ -78,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 4. Verify OTP hash ────────────────────────────────────────────────────
-    if (!verifyOTP(token, otpRow.otp_hash)) {
+    if (!verifyOTP(token, otpRow.otp_hash, email)) {
         return NextResponse.json(
             { error: "Código incorrecto. Verifica e intenta de nuevo." },
             { status: 422 },

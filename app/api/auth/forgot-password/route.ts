@@ -8,7 +8,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { generateOTP, hashOTP, OTP_TTL_MINUTES } from "@/lib/otp";
+import { generateOTP, hashOTP, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/otp";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildOtpEmail } from "@/lib/emails/otp-templates";
 
@@ -20,10 +21,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { email } = body as { email?: string };
+    const { email: rawEmail } = (body ?? {}) as { email?: unknown };
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (typeof rawEmail !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail.trim())) {
         return NextResponse.json({ error: "Correo requerido" }, { status: 400 });
+    }
+
+    const email = normalizeEmail(rawEmail);
+
+    // Limits protect against email bombing (per address) and enumeration (per IP).
+    if (
+        !(await allowed(`forgot:email:${email}`, 3, 900)) ||
+        !(await allowed(`forgot:ip:${clientIp(request)}`, 20, 900))
+    ) {
+        return tooManyRequests();
     }
 
     const admin = createAdminClient();
@@ -45,7 +56,7 @@ export async function POST(request: NextRequest) {
     const { error: upsertError } = await admin
         .from("password_reset_otps")
         .upsert(
-            { email, otp_hash: hashOTP(otp), expires_at: expiresAt },
+            { email, otp_hash: hashOTP(otp, email), expires_at: expiresAt, attempts: 0 },
             { onConflict: "email" },
         );
 

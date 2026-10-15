@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { verifyOTP } from "@/lib/otp";
+import { verifyOTP, normalizeEmail, MAX_OTP_ATTEMPTS } from "@/lib/otp";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 
 export async function POST(request: NextRequest) {
     let body: unknown;
@@ -17,31 +18,46 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { email, token, password } = body as {
-        email?: string;
-        token?: string;
-        password?: string;
+    const { email: rawEmail, token, password } = (body ?? {}) as {
+        email?: unknown;
+        token?: unknown;
+        password?: unknown;
     };
 
-    if (!email || !token || token.length !== 6 || !password || password.length < 8) {
+    if (
+        typeof rawEmail !== "string" || !rawEmail ||
+        typeof token !== "string" || token.length !== 6 ||
+        typeof password !== "string" || password.length < 8
+    ) {
         return NextResponse.json(
             { error: "Datos incompletos o inválidos" },
             { status: 400 },
         );
     }
 
+    const email = normalizeEmail(rawEmail);
+
+    if (!(await allowed(`reset-password:ip:${clientIp(request)}`, 30, 900))) {
+        return tooManyRequests();
+    }
+
     const admin = createAdminClient();
 
-    // ── Read the OTP row ──────────────────────────────────────────────────────
-    const { data: otpRow, error: fetchError } = await admin
-        .from("password_reset_otps")
-        .select("otp_hash, expires_at")
-        .eq("email", email)
-        .single();
+    // ── Consume one attempt atomically and read the OTP row ───────────────────
+    const { data: taken, error: fetchError } = await admin.rpc("take_reset_otp_attempt", {
+        p_email: email,
+        p_max:   MAX_OTP_ATTEMPTS,
+    });
+    const otpRow = Array.isArray(taken) ? taken[0] : null;
 
-    if (fetchError || !otpRow) {
+    if (fetchError) {
+        console.error("[reset-password] take_reset_otp_attempt:", fetchError.message);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
+
+    if (!otpRow) {
         return NextResponse.json(
-            { error: "Solicitud expirada. Por favor, empieza de nuevo." },
+            { error: "Solicitud expirada o sin intentos. Solicita un nuevo código." },
             { status: 422 },
         );
     }
@@ -56,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Verify OTP ────────────────────────────────────────────────────────────
-    if (!verifyOTP(token, otpRow.otp_hash)) {
+    if (!verifyOTP(token, otpRow.otp_hash, email)) {
         return NextResponse.json(
             { error: "Código incorrecto. Verifica e intenta de nuevo." },
             { status: 422 },

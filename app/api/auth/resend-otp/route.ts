@@ -10,7 +10,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { generateOTP, hashOTP, OTP_TTL_MINUTES } from "@/lib/otp";
+import { generateOTP, hashOTP, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/otp";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildOtpEmail } from "@/lib/emails/otp-templates";
 
@@ -22,10 +23,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { email } = body as { email: string };
+    const { email: rawEmail } = (body ?? {}) as { email?: unknown };
 
-    if (!email) {
+    if (typeof rawEmail !== "string" || !rawEmail.trim()) {
         return NextResponse.json({ error: "Correo requerido" }, { status: 400 });
+    }
+
+    const email = normalizeEmail(rawEmail);
+
+    if (
+        !(await allowed(`resend:email:${email}`, 3, 900)) ||
+        !(await allowed(`resend:ip:${clientIp(request)}`, 20, 900))
+    ) {
+        return tooManyRequests();
     }
 
     const admin = createAdminClient();
@@ -50,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const { error: updateError } = await admin
         .from("signup_otps")
-        .update({ otp_hash: hashOTP(newOtp), expires_at: newExpiresAt })
+        .update({ otp_hash: hashOTP(newOtp, email), expires_at: newExpiresAt, attempts: 0 })
         .eq("email", email);
 
     if (updateError) {

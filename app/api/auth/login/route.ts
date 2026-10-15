@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { normalizeEmail } from "@/lib/otp";
+import { allowed, clientIp, tooManyRequests } from "@/lib/rate-limit-db";
 
 export async function POST(request: NextRequest) {
     let body: unknown;
@@ -16,13 +18,22 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { email, password } = body as { email: string; password: string };
+    const { email: rawEmail, password } = (body ?? {}) as { email?: unknown; password?: unknown };
 
-    if (!email || !password) {
+    if (typeof rawEmail !== "string" || typeof password !== "string" || !rawEmail || !password) {
         return NextResponse.json(
             { error: "Correo y contraseña requeridos" },
             { status: 400 },
         );
+    }
+
+    const email = normalizeEmail(rawEmail);
+
+    if (
+        !(await allowed(`login:email:${email}`, 10, 900)) ||
+        !(await allowed(`login:ip:${clientIp(request)}`, 50, 900))
+    ) {
+        return tooManyRequests();
     }
 
     // ── 1. Sign in — SSR client writes session cookies to the response ─────────
